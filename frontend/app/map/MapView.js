@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, useMap, useMapEvents } from 'react-leaflet';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { getStations, getStationHistory, addFavorite, removeFavorite, getFavorites } from '../../lib/api';
 import { useUser } from '../../lib/context/UserContext';
@@ -20,16 +20,37 @@ function priceColor(p) {
   return '#ef4444';
 }
 
-function MapEventHandler({ onMoveEnd }) {
-  useMapEvents({ moveend: onMoveEnd, zoomend: onMoveEnd });
+function getBbox(map) {
+  const b = map.getBounds();
+  return `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
+}
+
+// Fires once on mount to do initial data load, then on every move/zoom
+function MapController({ mapRef, onBboxChange }) {
+  const map = useMap();
+
+  useEffect(() => {
+    mapRef.current = map;
+    onBboxChange(getBbox(map));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map]);
+
+  useMapEvents({
+    moveend: () => onBboxChange(getBbox(map)),
+    zoomend: () => onBboxChange(getBbox(map)),
+  });
+
   return null;
 }
 
-function FlyTo({ coords }) {
+function FlyTo({ coords, onDone }) {
   const map = useMap();
   useEffect(() => {
-    if (coords) map.flyTo([coords.lat, coords.lng], 13, { duration: 1 });
-  }, [coords, map]);
+    if (!coords) return;
+    map.flyTo([coords.lat, coords.lng], 13, { duration: 1 });
+    onDone();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coords]);
   return null;
 }
 
@@ -45,71 +66,72 @@ export default function MapView() {
   const [flyTo, setFlyTo] = useState(null);
   const [citySearch, setCitySearch] = useState('');
   const [loading, setLoading] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [mode, setMode] = useState('bbox'); // bbox | near
+  const [mode, setMode] = useState('bbox');
   const mapRef = useRef(null);
   const bboxRef = useRef(null);
+  const modeRef = useRef('bbox');
+  const userPosRef = useRef(null);
+  const fuelRef = useRef(fuel);
+  fuelRef.current = fuel;
+  modeRef.current = mode;
+  userPosRef.current = userPos;
 
-  // Load favorites
   useEffect(() => {
     if (user) getFavorites().then(favs => setFavorites(new Set(favs.map(f => f.id))));
   }, [user]);
 
-  // GPS location
   useEffect(() => {
     if (!navigator.geolocation) return;
-    const id = navigator.geolocation.watchPosition(pos => {
-      setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-    }, null, { enableHighAccuracy: true });
+    const id = navigator.geolocation.watchPosition(
+      pos => setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      null,
+      { enableHighAccuracy: true }
+    );
     return () => navigator.geolocation.clearWatch(id);
   }, []);
 
-  const fetchStations = useCallback(async (opts = {}) => {
+  const fetchByBbox = useCallback(async (bbox) => {
+    bboxRef.current = bbox;
+    if (modeRef.current !== 'bbox') return;
     setLoading(true);
     try {
-      const params = { fuel, ...opts };
-      const data = await getStations(params);
+      const data = await getStations({ fuel: fuelRef.current, bbox });
       setStations(data);
     } catch {}
     setLoading(false);
-  }, [fuel]);
+  }, []);
 
-  const handleMoveEnd = useCallback(() => {
-    const map = mapRef.current;
-    if (!map || mode !== 'bbox') return;
-    const b = map.getBounds();
-    const bbox = `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
-    bboxRef.current = bbox;
-    fetchStations({ bbox });
-  }, [mode, fetchStations]);
+  const fetchNear = useCallback(async (lat, lng) => {
+    setLoading(true);
+    try {
+      const data = await getStations({ fuel: fuelRef.current, near: true, lat, lng });
+      setStations(data);
+    } catch {}
+    setLoading(false);
+  }, []);
 
-  const modeRef = useRef(mode);
-  const userPosRef = useRef(userPos);
-  modeRef.current = mode;
-  userPosRef.current = userPos;
-
-  // Re-fetch when fuel changes
+  // Re-fetch when fuel changes without moving the map
+  const prevFuel = useRef(fuel);
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    if (modeRef.current === 'near' && userPosRef.current) {
-      fetchStations({ near: true, lat: userPosRef.current.lat, lng: userPosRef.current.lng });
+    if (prevFuel.current === fuel) return;
+    prevFuel.current = fuel;
+    if (mode === 'near' && userPos) {
+      fetchNear(userPos.lat, userPos.lng);
     } else if (bboxRef.current) {
-      fetchStations({ bbox: bboxRef.current });
+      fetchByBbox(bboxRef.current);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchStations]);
+  }, [fuel, mode, userPos, fetchNear, fetchByBbox]);
 
   function handleNearMe() {
     if (!userPos) return;
     setMode('near');
     setFlyTo({ lat: userPos.lat, lng: userPos.lng });
-    fetchStations({ near: true, lat: userPos.lat, lng: userPos.lng });
+    fetchNear(userPos.lat, userPos.lng);
   }
 
   function handleBboxMode() {
     setMode('bbox');
-    if (bboxRef.current) fetchStations({ bbox: bboxRef.current });
+    if (bboxRef.current) fetchByBbox(bboxRef.current);
   }
 
   async function handleCitySearch(e) {
@@ -126,12 +148,14 @@ export default function MapView() {
 
   async function handleSelectStation(station) {
     setSelected(station);
-    setPanelOpen(true);
     setHistory([]);
     setLoadingHistory(true);
     try {
       const h = await getStationHistory(station.id, fuel);
-      setHistory(h.map(r => ({ date: new Date(r.recordedAt).toLocaleDateString('en', { month: 'short', day: 'numeric' }), price: r.price })));
+      setHistory(h.map(r => ({
+        date: new Date(r.recordedAt).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
+        price: r.price,
+      })));
     } catch {}
     setLoadingHistory(false);
   }
@@ -147,7 +171,7 @@ export default function MapView() {
     }
   }
 
-  // Mobile panel drag
+  // Mobile bottom-sheet drag
   const dragStartY = useRef(null);
   const [sheetHeight, setSheetHeight] = useState(120);
   function onTouchStart(e) { dragStartY.current = e.touches[0].clientY; }
@@ -159,13 +183,18 @@ export default function MapView() {
   }
   function onTouchEnd() { dragStartY.current = null; }
 
+  const sortedStations = [...stations].sort((a, b) => (a.price ?? 9) - (b.price ?? 9));
+
   return (
     <div className={styles.root}>
-      {/* Controls bar */}
       <div className={styles.controls}>
         <div className={styles.fuelTabs}>
           {FUELS.map(f => (
-            <button key={f.key} className={`${styles.fuelTab} ${fuel === f.key ? styles.fuelTabActive : ''}`} onClick={() => setFuel(f.key)}>
+            <button
+              key={f.key}
+              className={`${styles.fuelTab} ${fuel === f.key ? styles.fuelTabActive : ''}`}
+              onClick={() => setFuel(f.key)}
+            >
               {f.label}
             </button>
           ))}
@@ -182,22 +211,20 @@ export default function MapView() {
       </div>
 
       <div className={styles.mapWrap}>
-        <MapContainer
-          center={[46.1, 14.5]}
-          zoom={9}
-          className={styles.map}
-          ref={mapRef}
-          zoomControl={false}
-        >
+        <MapContainer center={[46.1, 14.5]} zoom={9} className={styles.map} zoomControl={false}>
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             attribution='&copy; <a href="https://carto.com/">CARTO</a>'
           />
-          <MapEventHandler onMoveEnd={handleMoveEnd} />
-          {flyTo && <FlyTo coords={flyTo} />}
+          <MapController mapRef={mapRef} onBboxChange={fetchByBbox} />
+          {flyTo && <FlyTo coords={flyTo} onDone={() => setFlyTo(null)} />}
 
           {userPos && (
-            <CircleMarker center={[userPos.lat, userPos.lng]} radius={8} pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 1 }} />
+            <CircleMarker
+              center={[userPos.lat, userPos.lng]}
+              radius={8}
+              pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 1 }}
+            />
           )}
 
           {stations.map(s => (
@@ -211,14 +238,17 @@ export default function MapView() {
           ))}
         </MapContainer>
 
-        {/* Desktop station list sidebar */}
         <div className={styles.sidebar}>
           <div className={styles.sidebarHeader}>
             <span className={styles.sidebarCount}>{stations.length} stations</span>
           </div>
           <div className={styles.stationList}>
-            {stations.sort((a, b) => (a.price ?? 9) - (b.price ?? 9)).map(s => (
-              <button key={s.id} className={`${styles.stationRow} ${selected?.id === s.id ? styles.stationRowActive : ''}`} onClick={() => handleSelectStation(s)}>
+            {sortedStations.map(s => (
+              <button
+                key={s.id}
+                className={`${styles.stationRow} ${selected?.id === s.id ? styles.stationRowActive : ''}`}
+                onClick={() => handleSelectStation(s)}
+              >
                 <div className={styles.stationRowLeft}>
                   <div className={styles.stationRowName}>{s.name}</div>
                   <div className={styles.stationRowCity}>{s.city}{s.distance != null ? ` · ${s.distance} km` : ''}</div>
@@ -232,11 +262,14 @@ export default function MapView() {
         </div>
       </div>
 
-      {/* Station detail panel */}
       {selected && (
-        <div className={`${styles.detailPanel} ${panelOpen ? styles.detailPanelOpen : ''}`}
-          onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
-          style={{ '--sheet-h': `${sheetHeight}px` }}>
+        <div
+          className={styles.detailPanel}
+          style={{ '--sheet-h': `${sheetHeight}px` }}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
           <div className={styles.dragHandle} />
           <div className={styles.detailScroll}>
             <div className={styles.detailHeader}>
@@ -246,15 +279,17 @@ export default function MapView() {
               </div>
               <div className={styles.detailActions}>
                 {user && (
-                  <button className={`${styles.favBtn} ${favorites.has(selected.id) ? styles.favBtnActive : ''}`} onClick={() => toggleFavorite(selected.id)}>
+                  <button
+                    className={`${styles.favBtn} ${favorites.has(selected.id) ? styles.favBtnActive : ''}`}
+                    onClick={() => toggleFavorite(selected.id)}
+                  >
                     {favorites.has(selected.id) ? '★' : '☆'}
                   </button>
                 )}
-                <button className={styles.closeBtn} onClick={() => { setSelected(null); setPanelOpen(false); }}>✕</button>
+                <button className={styles.closeBtn} onClick={() => setSelected(null)}>✕</button>
               </div>
             </div>
 
-            {/* All prices */}
             {selected.allPrices && Object.keys(selected.allPrices).length > 0 && (
               <div className={styles.allPrices}>
                 {Object.entries(selected.allPrices).map(([ft, p]) => (
@@ -266,7 +301,6 @@ export default function MapView() {
               </div>
             )}
 
-            {/* Price history chart */}
             {loadingHistory && <div className={styles.histSpinner} />}
             {!loadingHistory && history.length > 1 && (
               <div className={styles.chartWrap}>
@@ -275,7 +309,9 @@ export default function MapView() {
                   <LineChart data={history} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
                     <XAxis dataKey="date" tick={{ fill: '#7b8099', fontSize: 10 }} />
                     <YAxis tick={{ fill: '#7b8099', fontSize: 10 }} domain={['auto', 'auto']} />
-                    <Tooltip contentStyle={{ background: '#1e2130', border: '1px solid #2a2d3e', borderRadius: 8, color: '#e8eaf0', fontSize: 12 }} />
+                    <Tooltip
+                      contentStyle={{ background: '#1e2130', border: '1px solid #2a2d3e', borderRadius: 8, color: '#e8eaf0', fontSize: 12 }}
+                    />
                     <Line type="monotone" dataKey="price" stroke="#22c55e" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>

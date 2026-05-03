@@ -1,15 +1,14 @@
 const cron = require('node-cron');
-const { PrismaClient } = require('@prisma/client');
 const { fetchSloveniaStations } = require('./scrapers/slovenia');
+const { fetchFranceStations } = require('./scrapers/france');
+const prisma = require('../lib/prisma');
 
-const prisma = new PrismaClient();
-
-async function syncStations() {
-  console.log('[sync] Starting station sync...');
-  const allStations = await fetchSloveniaStations();
-  console.log(`[sync] Fetched ${allStations.length} stations`);
-
-  for (const station of allStations) {
+async function upsertStations(stations, label) {
+  console.log(`[sync] Upserting ${stations.length} ${label} stations…`);
+  let count = 0;
+  for (const station of stations) {
+    count++;
+    if (count % 50 === 0) console.log(`[sync] ${label}: ${count}/${stations.length}`);
     const { prices, ...stationData } = station;
 
     const saved = await prisma.station.upsert({
@@ -29,20 +28,33 @@ async function syncStations() {
         create: { stationId: saved.id, fuelType, price },
       });
 
-      // Record history only when price changed
       if (!existing || existing.price !== price) {
         await prisma.priceHistory.create({ data: { stationId: saved.id, fuelType, price } });
       }
     }
   }
+}
 
-  console.log('[sync] Sync complete');
+async function syncSlovenia() {
+  const stations = await fetchSloveniaStations();
+  await upsertStations(stations, 'Slovenia');
+}
+
+async function syncFrance() {
+  const stations = await fetchFranceStations();
+  await upsertStations(stations, 'France');
+}
+
+async function syncAll() {
+  console.log('[sync] Starting full sync…');
+  await syncSlovenia().catch(err => console.error('[sync] Slovenia error:', err.message));
+  await syncFrance().catch(err => console.error('[sync] France error:', err.message));
+  console.log('[sync] Full sync complete');
 }
 
 function startSyncScheduler() {
-  syncStations().catch(console.error);
-  // Re-sync every 2 hours
-  cron.schedule('0 */2 * * *', () => syncStations().catch(console.error));
+  syncAll().catch(console.error);
+  cron.schedule('0 */2 * * *', () => syncAll().catch(console.error));
 }
 
-module.exports = { syncStations, startSyncScheduler };
+module.exports = { syncAll, startSyncScheduler };

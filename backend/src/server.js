@@ -9,6 +9,14 @@ const usersRouter = require('./routes/users');
 const newsRouter = require('./routes/news');
 const { startSyncScheduler } = require('./services/sync');
 
+process.on('unhandledRejection', (reason) => {
+  console.error('[server] Unhandled rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[server] Uncaught exception:', err);
+  process.exit(1);
+});
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 

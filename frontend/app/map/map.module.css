@@ -168,13 +168,13 @@
   border-top: 1px solid var(--border);
   border-radius: var(--r) var(--r) 0 0;
   z-index: 900;
-  transform: translateY(calc(100% - var(--peek-h)));
-  transition: transform 0.3s ease;
-  height: 70vh;
+  height: var(--sheet-h, 340px);
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
+  animation: slideUp 0.25s ease;
 }
-.detailPanelOpen { transform: translateY(0); }
+@keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 /* On desktop the detail panel floats over the map on the left */
 @media (min-width: 768px) {
