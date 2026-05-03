@@ -1,31 +1,3 @@
-const path = require('path');
-const fs = require('fs');
-const { reverseGeocodeCity } = require('../../utils/geo');
-
-const CACHE_FILE = path.join(__dirname, '../../../.city-cache.json');
-
-// Load persistent zip→city cache from disk
-let cityCache = {};
-try { cityCache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8')); } catch {}
-
-function saveCache() {
-  try { fs.writeFileSync(CACHE_FILE, JSON.stringify(cityCache)); } catch {}
-}
-
-async function resolveCity(zipCode, lat, lng) {
-  if (cityCache[zipCode]) return cityCache[zipCode];
-  try {
-    await new Promise(r => setTimeout(r, 1100)); // Nominatim: max 1 req/sec
-    const city = await reverseGeocodeCity(lat, lng);
-    cityCache[zipCode] = city || zipCode;
-    saveCache();
-    return cityCache[zipCode];
-  } catch {
-    cityCache[zipCode] = zipCode;
-    return zipCode;
-  }
-}
-
 const FUEL_MAP = {
   '95': 'sp95',
   '98': 'sp98',
@@ -53,8 +25,6 @@ async function fetchSloveniaStations() {
       }
       if (!prices.length) continue;
 
-      const city = await resolveCity(item.zip_code, item.lat, item.lng);
-
       stations.push({
         externalId: `SI-${item.pk}`,
         name: item.name,
@@ -62,7 +32,7 @@ async function fetchSloveniaStations() {
         lat: item.lat,
         lng: item.lng,
         address: item.address || null,
-        city,
+        city: item.zip_code || '',
         country: 'SI',
         prices,
       });
