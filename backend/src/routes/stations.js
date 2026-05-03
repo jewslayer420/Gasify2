@@ -3,6 +3,19 @@ const router = express.Router();
 const { geocodeCity } = require('../utils/geo');
 const prisma = require('../lib/prisma');
 
+// GET /api/stations/geocode?city=Koper  — must be before /:id
+router.get('/geocode', async (req, res) => {
+  try {
+    const { city } = req.query;
+    if (!city) return res.status(400).json({ error: 'city required' });
+    const result = await geocodeCity(city);
+    if (!result) return res.status(404).json({ error: 'City not found' });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Geocode failed' });
+  }
+});
+
 // GET /api/stations?fuel=diesel&lat=&lng=&bbox=minLat,minLng,maxLat,maxLng&near=1&city=Koper
 router.get('/', async (req, res) => {
   try {
@@ -10,13 +23,45 @@ router.get('/', async (req, res) => {
 
     let userLat = lat ? parseFloat(lat) : null;
     let userLng = lng ? parseFloat(lng) : null;
+    let stations;
 
     if (city) {
       const coords = await geocodeCity(city);
-      if (coords) { userLat = coords.lat; userLng = coords.lng; }
-    }
+      if (!coords) return res.json([]);
 
-    let stations;
+      // Use Nominatim's bounding box if available, otherwise build one (±0.15° ≈ 15 km)
+      let minLat, minLng, maxLat, maxLng;
+      if (coords.boundingBox) {
+        [minLat, maxLat, minLng, maxLng] = coords.boundingBox;
+        // Clamp very large bounding boxes (country-level) to a city-sized area
+        const latSpan = maxLat - minLat;
+        const lngSpan = maxLng - minLng;
+        if (latSpan > 0.6 || lngSpan > 0.9) {
+          minLat = coords.lat - 0.15; maxLat = coords.lat + 0.15;
+          minLng = coords.lng - 0.22; maxLng = coords.lng + 0.22;
+        }
+      } else {
+        minLat = coords.lat - 0.15; maxLat = coords.lat + 0.15;
+        minLng = coords.lng - 0.22; maxLng = coords.lng + 0.22;
+      }
+
+      stations = await prisma.station.findMany({
+        where: {
+          lat: { gte: minLat, lte: maxLat },
+          lng: { gte: minLng, lte: maxLng },
+          prices: { some: { fuelType: fuel, price: { gt: 0 } } },
+        },
+        include: { prices: true },
+      });
+
+      userLat = coords.lat;
+      userLng = coords.lng;
+
+      const result = stations
+        .map(s => normalizeStation(s, fuel, userLat, userLng))
+        .sort((a, b) => (a.price ?? 9) - (b.price ?? 9));
+      return res.json(result);
+    }
 
     if (bbox) {
       const [minLat, minLng, maxLat, maxLng] = bbox.split(',').map(Number);
@@ -29,7 +74,6 @@ router.get('/', async (req, res) => {
         include: { prices: true },
       });
     } else if (near === '1' && userLat && userLng) {
-      // PostGIS-style distance sort via raw query
       stations = await prisma.$queryRaw`
         SELECT s.*,
           (SELECT p.price FROM "FuelPrice" p WHERE p."stationId" = s.id AND p."fuelType" = ${fuel} LIMIT 1) as price,
@@ -42,7 +86,6 @@ router.get('/', async (req, res) => {
       `;
       return res.json(stations.map(normalizeRaw));
     } else {
-      // Default: 100 cheapest
       const prices = await prisma.fuelPrice.findMany({
         where: { fuelType: fuel, price: { gt: 0 } },
         orderBy: { price: 'asc' },

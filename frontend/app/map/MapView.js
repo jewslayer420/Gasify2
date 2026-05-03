@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, CircleMarker, useMap, useMapEvents } from 'react-leaflet';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { getStations, getStationHistory, addFavorite, removeFavorite, getFavorites } from '../../lib/api';
+import { getStations, getStationHistory, geocodeCity, addFavorite, removeFavorite, getFavorites } from '../../lib/api';
 import { useUser } from '../../lib/context/UserContext';
 import styles from './map.module.css';
 
@@ -12,6 +12,8 @@ const FUELS = [
   { key: 'sp98', label: '98' },
   { key: 'lpg', label: 'LPG' },
 ];
+
+const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HR: '🇭🇷', HU: '🇭🇺' };
 
 function priceColor(p) {
   if (!p) return '#4b5563';
@@ -43,11 +45,11 @@ function MapController({ mapRef, onBboxChange }) {
   return null;
 }
 
-function FlyTo({ coords, onDone }) {
+function FlyTo({ coords, zoom = 13, onDone }) {
   const map = useMap();
   useEffect(() => {
     if (!coords) return;
-    map.flyTo([coords.lat, coords.lng], 13, { duration: 1 });
+    map.flyTo([coords.lat, coords.lng], zoom, { duration: 1 });
     onDone();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coords]);
@@ -63,7 +65,7 @@ export default function MapView() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [favorites, setFavorites] = useState(new Set());
   const [userPos, setUserPos] = useState(null);
-  const [flyTo, setFlyTo] = useState(null);
+  const [flyTo, setFlyTo] = useState(null); // { lat, lng, zoom? }
   const [citySearch, setCitySearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('bbox');
@@ -138,10 +140,25 @@ export default function MapView() {
     e.preventDefault();
     if (!citySearch.trim()) return;
     setLoading(true);
+    setMode('bbox');
     try {
-      const data = await getStations({ fuel, city: citySearch.trim() });
+      const [geo, data] = await Promise.all([
+        geocodeCity(citySearch.trim()),
+        getStations({ fuel, city: citySearch.trim() }),
+      ]);
       setStations(data);
-      if (data.length) setFlyTo({ lat: data[0].lat, lng: data[0].lng });
+      if (geo) {
+        // Decide zoom: use bounding box span to pick appropriate level
+        let zoom = 13;
+        if (geo.boundingBox) {
+          const latSpan = Math.abs(geo.boundingBox[1] - geo.boundingBox[0]);
+          if (latSpan > 0.3) zoom = 11;
+          else if (latSpan > 0.1) zoom = 12;
+        }
+        setFlyTo({ lat: geo.lat, lng: geo.lng, zoom });
+      } else if (data.length) {
+        setFlyTo({ lat: data[0].lat, lng: data[0].lng, zoom: 13 });
+      }
     } catch {}
     setLoading(false);
   }
@@ -217,7 +234,7 @@ export default function MapView() {
             attribution='&copy; <a href="https://carto.com/">CARTO</a>'
           />
           <MapController mapRef={mapRef} onBboxChange={fetchByBbox} />
-          {flyTo && <FlyTo coords={flyTo} onDone={() => setFlyTo(null)} />}
+          {flyTo && <FlyTo coords={flyTo} zoom={flyTo.zoom} onDone={() => setFlyTo(null)} />}
 
           {userPos && (
             <CircleMarker
@@ -251,7 +268,9 @@ export default function MapView() {
               >
                 <div className={styles.stationRowLeft}>
                   <div className={styles.stationRowName}>{s.name}</div>
-                  <div className={styles.stationRowCity}>{s.city}{s.distance != null ? ` · ${s.distance} km` : ''}</div>
+                  <div className={styles.stationRowCity}>
+                    {FLAGS[s.country] ?? s.country} {s.city}{s.distance != null ? ` · ${s.distance} km` : ''}
+                  </div>
                 </div>
                 <div className={styles.stationRowPrice} style={{ color: priceColor(s.price) }}>
                   {s.price ? `€${s.price.toFixed(3)}` : '—'}

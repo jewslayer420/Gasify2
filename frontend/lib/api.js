@@ -12,6 +12,12 @@ export async function getStations({ fuel = 'diesel', lat, lng, bbox, near, city 
   return res.json();
 }
 
+export async function geocodeCity(city) {
+  const res = await fetch(`${BASE}/api/stations/geocode?city=${encodeURIComponent(city)}`);
+  if (!res.ok) return null;
+  return res.json(); // { lat, lng, displayName, boundingBox }
+}
+
 export async function getStation(id) {
   const res = await fetch(`${BASE}/api/stations/${id}`);
   if (!res.ok) throw new Error('Station not found');
