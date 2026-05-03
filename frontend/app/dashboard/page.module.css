@@ -1,0 +1,152 @@
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: calc(var(--nav-h) + 32px) 24px 64px;
+}
+
+.header { margin-bottom: 40px; }
+
+.title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.sub { color: var(--text-muted); font-size: 0.9rem; }
+
+.section { margin-bottom: 48px; }
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.sectionHeader .sectionTitle { margin-bottom: 0; }
+
+.empty {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  padding: 24px 0;
+}
+
+.link { color: var(--green); }
+.link:hover { text-decoration: underline; }
+
+.favList, .locList { display: flex; flex-direction: column; gap: 10px; }
+
+.favItem, .locItem {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.favName, .locName { font-weight: 600; font-size: 0.9rem; margin-bottom: 3px; }
+.favCity, .locCoords { color: var(--text-muted); font-size: 0.8rem; }
+
+.favRight { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+
+.price {
+  font-weight: 800;
+  font-size: 1rem;
+}
+.green { color: var(--green); }
+.orange { color: var(--orange); }
+.red { color: var(--red); }
+
+.removeBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.removeBtn:hover { color: var(--red); background: var(--bg-secondary); }
+
+.addBtn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.addBtn:hover { border-color: var(--green); }
+
+.locForm {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.select, .input {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--text);
+  font-size: 0.875rem;
+  outline: none;
+}
+.select:focus, .input:focus { border-color: var(--green); }
+
+.locFormBtns { display: flex; gap: 8px; }
+
+.saveBtn {
+  background: var(--green);
+  color: #000;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.cancelBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.locItem { gap: 12px; }
+.locIcon { font-size: 20px; flex-shrink: 0; }
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 80px auto;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

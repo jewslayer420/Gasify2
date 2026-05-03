@@ -1,0 +1,287 @@
+.root {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Controls */
+.controls {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  pointer-events: none;
+}
+.controls > * { pointer-events: all; }
+
+.fuelTabs {
+  display: flex;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.fuelTab {
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.fuelTab:hover { color: var(--text); background: var(--bg-secondary); }
+.fuelTabActive { background: var(--green) !important; color: #000 !important; }
+
+.searchForm {
+  display: flex;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.searchInput {
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  color: var(--text);
+  font-size: 0.85rem;
+  outline: none;
+  width: 160px;
+}
+.searchInput::placeholder { color: var(--text-muted); }
+
+.searchBtn {
+  background: var(--green);
+  color: #000;
+  border: none;
+  padding: 8px 14px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.modeBtns {
+  display: flex;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.modeBtn {
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.modeBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.modeBtn:not(:disabled):hover { color: var(--text); background: var(--bg-secondary); }
+.modeBtnActive { background: var(--bg-secondary) !important; color: var(--text) !important; }
+
+.loadingDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 1s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { opacity:1; transform: scale(1); } 50% { opacity:0.4; transform: scale(0.7); } }
+
+/* Map layout */
+.mapWrap {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.map {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Sidebar (desktop) */
+.sidebar {
+  width: var(--panel-w);
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebarHeader {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.stationList {
+  overflow-y: auto;
+  flex: 1;
+}
+.stationList::-webkit-scrollbar { width: 4px; }
+.stationList::-webkit-scrollbar-track { background: transparent; }
+.stationList::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.stationRow {
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+.stationRow:hover { background: var(--bg-secondary); }
+.stationRowActive { background: var(--bg-card) !important; }
+
+.stationRowName { font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.stationRowCity { font-size: 0.75rem; color: var(--text-muted); }
+.stationRowPrice { font-size: 0.95rem; font-weight: 800; flex-shrink: 0; }
+
+/* Detail panel */
+.detailPanel {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  border-radius: var(--r) var(--r) 0 0;
+  z-index: 900;
+  transform: translateY(calc(100% - var(--peek-h)));
+  transition: transform 0.3s ease;
+  height: 70vh;
+  display: flex;
+  flex-direction: column;
+}
+.detailPanelOpen { transform: translateY(0); }
+
+/* On desktop the detail panel floats over the map on the left */
+@media (min-width: 768px) {
+  .detailPanel {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    top: auto;
+    right: auto;
+    width: var(--panel-w);
+    height: auto;
+    max-height: 60vh;
+    border-radius: 0 var(--r) 0 0;
+    border-right: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+    transform: none;
+  }
+}
+
+.dragHandle {
+  width: 40px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 10px auto 0;
+  flex-shrink: 0;
+}
+@media (min-width: 768px) { .dragHandle { display: none; } }
+
+.detailScroll {
+  overflow-y: auto;
+  flex: 1;
+  padding: 16px;
+}
+
+.detailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.detailName { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+.detailCity { font-size: 0.8rem; color: var(--text-muted); }
+
+.detailActions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+.favBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 18px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s;
+  line-height: 1;
+}
+.favBtnActive { color: #f59e0b; border-color: #f59e0b; }
+
+.closeBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+}
+.closeBtn:hover { color: var(--text); }
+
+.allPrices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.priceChip {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.priceChipLabel { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.priceChipVal { font-size: 0.9rem; font-weight: 800; }
+
+.chartWrap { margin-top: 8px; }
+.chartTitle { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; }
+
+.histSpinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 24px auto;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Mobile: hide sidebar */
+@media (max-width: 767px) {
+  .sidebar { display: none; }
+}

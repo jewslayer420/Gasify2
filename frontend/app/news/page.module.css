@@ -1,0 +1,65 @@
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: calc(var(--nav-h) + 32px) 24px 64px;
+}
+
+.header { margin-bottom: 32px; }
+
+.title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.sub { color: var(--text-muted); font-size: 0.9rem; }
+
+.list { display: flex; flex-direction: column; gap: 12px; }
+
+.item {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.stationName { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; }
+.stationCity { color: var(--text-muted); font-size: 0.8rem; }
+
+.itemRight { text-align: right; flex-shrink: 0; }
+
+.change {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.up { color: var(--red); }
+.down { color: var(--green); }
+
+.prices { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 6px; align-items: center; }
+.oldPrice { text-decoration: line-through; }
+.newPrice { color: var(--text); font-weight: 600; }
+.arrow { color: var(--border); }
+
+.empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 80px 0;
+  font-size: 0.95rem;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 80px auto;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

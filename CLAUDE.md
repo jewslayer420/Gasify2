@@ -20,6 +20,18 @@ npm run preview  # Preview production build
 
 There is no test suite — testing is manual.
 
+## Git workflow
+
+After finishing any task, automatically commit all changes and push to GitHub:
+
+```bash
+git add -A
+git commit -m "descriptive message"
+git push origin main
+```
+
+Remote: `https://github.com/jewslayer420/Gasify2` (branch: `main`)
+
 ## Architecture
 
 Two-process app: an Express API (`server.js`) that proxies/normalizes European fuel price data, and a React frontend (`src/App.jsx`) that renders an interactive map with a price list panel.

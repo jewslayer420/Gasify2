@@ -1,0 +1,40 @@
+.nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--nav-h);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 100;
+}
+
+.logo {
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.link {
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  transition: color 0.15s, background 0.15s;
+}
+.link:hover { color: var(--text); background: var(--bg-card); }
+
+.loginBtn {
+  color: var(--text);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  font-weight: 600;
+}

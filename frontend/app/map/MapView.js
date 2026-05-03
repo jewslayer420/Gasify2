@@ -1,0 +1,289 @@
+'use client';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { getStations, getStationHistory, addFavorite, removeFavorite, getFavorites } from '../../lib/api';
+import { useUser } from '../../lib/context/UserContext';
+import styles from './map.module.css';
+
+const FUELS = [
+  { key: 'diesel', label: 'Diesel' },
+  { key: 'sp95', label: '95' },
+  { key: 'sp98', label: '98' },
+  { key: 'lpg', label: 'LPG' },
+];
+
+function priceColor(p) {
+  if (!p) return '#4b5563';
+  if (p <= 1.60) return '#22c55e';
+  if (p <= 1.90) return '#f97316';
+  return '#ef4444';
+}
+
+function MapEventHandler({ onMoveEnd }) {
+  useMapEvents({ moveend: onMoveEnd, zoomend: onMoveEnd });
+  return null;
+}
+
+function FlyTo({ coords }) {
+  const map = useMap();
+  useEffect(() => {
+    if (coords) map.flyTo([coords.lat, coords.lng], 13, { duration: 1 });
+  }, [coords, map]);
+  return null;
+}
+
+export default function MapView() {
+  const { user } = useUser() ?? {};
+  const [fuel, setFuel] = useState('diesel');
+  const [stations, setStations] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [favorites, setFavorites] = useState(new Set());
+  const [userPos, setUserPos] = useState(null);
+  const [flyTo, setFlyTo] = useState(null);
+  const [citySearch, setCitySearch] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [mode, setMode] = useState('bbox'); // bbox | near
+  const mapRef = useRef(null);
+  const bboxRef = useRef(null);
+
+  // Load favorites
+  useEffect(() => {
+    if (user) getFavorites().then(favs => setFavorites(new Set(favs.map(f => f.id))));
+  }, [user]);
+
+  // GPS location
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    const id = navigator.geolocation.watchPosition(pos => {
+      setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+    }, null, { enableHighAccuracy: true });
+    return () => navigator.geolocation.clearWatch(id);
+  }, []);
+
+  const fetchStations = useCallback(async (opts = {}) => {
+    setLoading(true);
+    try {
+      const params = { fuel, ...opts };
+      const data = await getStations(params);
+      setStations(data);
+    } catch {}
+    setLoading(false);
+  }, [fuel]);
+
+  const handleMoveEnd = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || mode !== 'bbox') return;
+    const b = map.getBounds();
+    const bbox = `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
+    bboxRef.current = bbox;
+    fetchStations({ bbox });
+  }, [mode, fetchStations]);
+
+  const modeRef = useRef(mode);
+  const userPosRef = useRef(userPos);
+  modeRef.current = mode;
+  userPosRef.current = userPos;
+
+  // Re-fetch when fuel changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (modeRef.current === 'near' && userPosRef.current) {
+      fetchStations({ near: true, lat: userPosRef.current.lat, lng: userPosRef.current.lng });
+    } else if (bboxRef.current) {
+      fetchStations({ bbox: bboxRef.current });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchStations]);
+
+  function handleNearMe() {
+    if (!userPos) return;
+    setMode('near');
+    setFlyTo({ lat: userPos.lat, lng: userPos.lng });
+    fetchStations({ near: true, lat: userPos.lat, lng: userPos.lng });
+  }
+
+  function handleBboxMode() {
+    setMode('bbox');
+    if (bboxRef.current) fetchStations({ bbox: bboxRef.current });
+  }
+
+  async function handleCitySearch(e) {
+    e.preventDefault();
+    if (!citySearch.trim()) return;
+    setLoading(true);
+    try {
+      const data = await getStations({ fuel, city: citySearch.trim() });
+      setStations(data);
+      if (data.length) setFlyTo({ lat: data[0].lat, lng: data[0].lng });
+    } catch {}
+    setLoading(false);
+  }
+
+  async function handleSelectStation(station) {
+    setSelected(station);
+    setPanelOpen(true);
+    setHistory([]);
+    setLoadingHistory(true);
+    try {
+      const h = await getStationHistory(station.id, fuel);
+      setHistory(h.map(r => ({ date: new Date(r.recordedAt).toLocaleDateString('en', { month: 'short', day: 'numeric' }), price: r.price })));
+    } catch {}
+    setLoadingHistory(false);
+  }
+
+  async function toggleFavorite(stationId) {
+    if (!user) return;
+    if (favorites.has(stationId)) {
+      await removeFavorite(stationId);
+      setFavorites(s => { const n = new Set(s); n.delete(stationId); return n; });
+    } else {
+      await addFavorite(stationId);
+      setFavorites(s => new Set([...s, stationId]));
+    }
+  }
+
+  // Mobile panel drag
+  const dragStartY = useRef(null);
+  const [sheetHeight, setSheetHeight] = useState(120);
+  function onTouchStart(e) { dragStartY.current = e.touches[0].clientY; }
+  function onTouchMove(e) {
+    if (dragStartY.current === null) return;
+    const dy = dragStartY.current - e.touches[0].clientY;
+    setSheetHeight(h => Math.max(120, Math.min(window.innerHeight * 0.85, h + dy)));
+    dragStartY.current = e.touches[0].clientY;
+  }
+  function onTouchEnd() { dragStartY.current = null; }
+
+  return (
+    <div className={styles.root}>
+      {/* Controls bar */}
+      <div className={styles.controls}>
+        <div className={styles.fuelTabs}>
+          {FUELS.map(f => (
+            <button key={f.key} className={`${styles.fuelTab} ${fuel === f.key ? styles.fuelTabActive : ''}`} onClick={() => setFuel(f.key)}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <form onSubmit={handleCitySearch} className={styles.searchForm}>
+          <input className={styles.searchInput} placeholder="Search city…" value={citySearch} onChange={e => setCitySearch(e.target.value)} />
+          <button className={styles.searchBtn} type="submit">Go</button>
+        </form>
+        <div className={styles.modeBtns}>
+          <button className={`${styles.modeBtn} ${mode === 'bbox' ? styles.modeBtnActive : ''}`} onClick={handleBboxMode}>Map view</button>
+          <button className={`${styles.modeBtn} ${mode === 'near' ? styles.modeBtnActive : ''}`} onClick={handleNearMe} disabled={!userPos}>Near me</button>
+        </div>
+        {loading && <div className={styles.loadingDot} />}
+      </div>
+
+      <div className={styles.mapWrap}>
+        <MapContainer
+          center={[46.1, 14.5]}
+          zoom={9}
+          className={styles.map}
+          ref={mapRef}
+          zoomControl={false}
+        >
+          <TileLayer
+            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+          />
+          <MapEventHandler onMoveEnd={handleMoveEnd} />
+          {flyTo && <FlyTo coords={flyTo} />}
+
+          {userPos && (
+            <CircleMarker center={[userPos.lat, userPos.lng]} radius={8} pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 1 }} />
+          )}
+
+          {stations.map(s => (
+            <CircleMarker
+              key={s.id}
+              center={[s.lat, s.lng]}
+              radius={s.price ? 9 : 6}
+              pathOptions={{ color: priceColor(s.price), fillColor: priceColor(s.price), fillOpacity: 0.85, weight: 1.5 }}
+              eventHandlers={{ click: () => handleSelectStation(s) }}
+            />
+          ))}
+        </MapContainer>
+
+        {/* Desktop station list sidebar */}
+        <div className={styles.sidebar}>
+          <div className={styles.sidebarHeader}>
+            <span className={styles.sidebarCount}>{stations.length} stations</span>
+          </div>
+          <div className={styles.stationList}>
+            {stations.sort((a, b) => (a.price ?? 9) - (b.price ?? 9)).map(s => (
+              <button key={s.id} className={`${styles.stationRow} ${selected?.id === s.id ? styles.stationRowActive : ''}`} onClick={() => handleSelectStation(s)}>
+                <div className={styles.stationRowLeft}>
+                  <div className={styles.stationRowName}>{s.name}</div>
+                  <div className={styles.stationRowCity}>{s.city}{s.distance != null ? ` · ${s.distance} km` : ''}</div>
+                </div>
+                <div className={styles.stationRowPrice} style={{ color: priceColor(s.price) }}>
+                  {s.price ? `€${s.price.toFixed(3)}` : '—'}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Station detail panel */}
+      {selected && (
+        <div className={`${styles.detailPanel} ${panelOpen ? styles.detailPanelOpen : ''}`}
+          onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+          style={{ '--sheet-h': `${sheetHeight}px` }}>
+          <div className={styles.dragHandle} />
+          <div className={styles.detailScroll}>
+            <div className={styles.detailHeader}>
+              <div>
+                <div className={styles.detailName}>{selected.name}</div>
+                <div className={styles.detailCity}>{selected.city} · {selected.country}</div>
+              </div>
+              <div className={styles.detailActions}>
+                {user && (
+                  <button className={`${styles.favBtn} ${favorites.has(selected.id) ? styles.favBtnActive : ''}`} onClick={() => toggleFavorite(selected.id)}>
+                    {favorites.has(selected.id) ? '★' : '☆'}
+                  </button>
+                )}
+                <button className={styles.closeBtn} onClick={() => { setSelected(null); setPanelOpen(false); }}>✕</button>
+              </div>
+            </div>
+
+            {/* All prices */}
+            {selected.allPrices && Object.keys(selected.allPrices).length > 0 && (
+              <div className={styles.allPrices}>
+                {Object.entries(selected.allPrices).map(([ft, p]) => (
+                  <div key={ft} className={styles.priceChip}>
+                    <span className={styles.priceChipLabel}>{FUELS.find(f => f.key === ft)?.label ?? ft}</span>
+                    <span className={styles.priceChipVal} style={{ color: priceColor(p) }}>€{p.toFixed(3)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Price history chart */}
+            {loadingHistory && <div className={styles.histSpinner} />}
+            {!loadingHistory && history.length > 1 && (
+              <div className={styles.chartWrap}>
+                <div className={styles.chartTitle}>{FUELS.find(f => f.key === fuel)?.label} price history</div>
+                <ResponsiveContainer width="100%" height={140}>
+                  <LineChart data={history} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
+                    <XAxis dataKey="date" tick={{ fill: '#7b8099', fontSize: 10 }} />
+                    <YAxis tick={{ fill: '#7b8099', fontSize: 10 }} domain={['auto', 'auto']} />
+                    <Tooltip contentStyle={{ background: '#1e2130', border: '1px solid #2a2d3e', borderRadius: 8, color: '#e8eaf0', fontSize: 12 }} />
+                    <Line type="monotone" dataKey="price" stroke="#22c55e" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
