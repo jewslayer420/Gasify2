@@ -27,10 +27,11 @@ async function fetchGrid(lat, lng, fuelType, stationMap) {
       if (!s.location?.latitude || !s.location?.longitude) continue;
 
       if (!stationMap.has(s.id)) {
+        const name = s.name || s.location.address || `Station ${s.id}`;
         stationMap.set(s.id, {
           externalId: `AT-${s.id}`,
-          name: s.name,
-          brand: s.name,
+          name,
+          brand: s.name || null,
           lat: s.location.latitude,
           lng: s.location.longitude,
           address: s.location.address || null,
