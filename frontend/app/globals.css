@@ -33,19 +33,6 @@ a { color: inherit; text-decoration: none; }
 button { cursor: pointer; font-family: inherit; }
 input { font-family: inherit; }
 
-/* Cluster icon — subtle fade only, no scale (scale causes flash on zoom) */
-.gasify-cluster-icon {
-  animation: clusterFade 0.12s ease-out both;
-}
-@keyframes clusterFade {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-/* Smoother tile loading */
-.leaflet-tile {
-  transition: opacity 0.15s linear !important;
-}
-.leaflet-zoom-animated {
-  will-change: transform;
-}
+/* MapLibre GL overrides */
+.maplibregl-canvas { outline: none; }
+.maplibregl-ctrl-attrib { display: none; }

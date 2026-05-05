@@ -1,5 +1,4 @@
 import './globals.css';
-import 'leaflet/dist/leaflet.css';
 import Nav from '../components/Nav/Nav';
 import { UserProvider } from '../lib/context/UserContext';
 

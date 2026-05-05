@@ -1,12 +1,13 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Marker, useMap, useMapEvents } from 'react-leaflet';
-import MarkerClusterGroup from 'react-leaflet-cluster';
-import L from 'leaflet';
+import Map, { Source, Layer, Marker } from 'react-map-gl/maplibre';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { getStations, getStationHistory, geocodeCity, addFavorite, removeFavorite, getFavorites } from '../../lib/api';
 import { useUser } from '../../lib/context/UserContext';
 import styles from './map.module.css';
+
+const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
 const FUELS = [
   { key: 'diesel', label: 'Diesel' },
@@ -24,81 +25,102 @@ function priceColor(p) {
   return '#ef4444';
 }
 
-function getBbox(map) {
-  const b = map.getBounds();
-  return `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
+function toGeoJSON(stations) {
+  return {
+    type: 'FeatureCollection',
+    features: stations.map(s => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [s.lng, s.lat] },
+      properties: {
+        id: s.id,
+        name: s.name,
+        price: s.price ?? -1,
+        city: s.city,
+        country: s.country,
+        distance: s.distance ?? -1,
+        lat: s.lat,
+        lng: s.lng,
+        allPrices: JSON.stringify(s.allPrices || {}),
+      },
+    })),
+  };
 }
 
-function createStationIcon(price) {
-  const color = priceColor(price);
-  const d = price ? 14 : 10;
-  return L.divIcon({
-    className: '',
-    html: `<div style="width:${d}px;height:${d}px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,0.2);box-shadow:0 0 0 3px ${color}30"></div>`,
-    iconSize: [d, d],
-    iconAnchor: [d / 2, d / 2],
-  });
-}
+// Cluster bubble
+const clusterLayer = {
+  id: 'clusters',
+  type: 'circle',
+  source: 'stations',
+  filter: ['has', 'point_count'],
+  paint: {
+    'circle-color': '#1a1d2b',
+    'circle-radius': ['step', ['get', 'point_count'], 18, 10, 24, 100, 30],
+    'circle-stroke-width': 2,
+    'circle-stroke-color': '#22c55e',
+    'circle-opacity': 0.95,
+  },
+};
 
-function createClusterIcon(cluster) {
-  const n = cluster.getChildCount();
-  const size = n < 10 ? 38 : n < 100 ? 44 : 52;
-  const fs = n < 10 ? 14 : 12;
-  return L.divIcon({
-    className: '',
-    html: `<div class="gasify-cluster-icon" style="width:${size}px;height:${size}px;border-radius:50%;background:#1e2130;border:2px solid #22c55e;display:flex;align-items:center;justify-content:center;color:#e8eaf0;font-size:${fs}px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;box-shadow:0 2px 14px rgba(0,0,0,0.55)">${n}</div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
-}
+// Cluster count label
+const clusterCountLayer = {
+  id: 'cluster-count',
+  type: 'symbol',
+  source: 'stations',
+  filter: ['has', 'point_count'],
+  layout: {
+    'text-field': '{point_count_abbreviated}',
+    'text-font': ['Noto Sans Bold', 'Arial Unicode MS Bold'],
+    'text-size': 13,
+    'text-allow-overlap': true,
+  },
+  paint: { 'text-color': '#e8eaf0' },
+};
 
-function MapController({ mapRef, onBboxChange }) {
-  const map = useMap();
-  useEffect(() => {
-    mapRef.current = map;
-    onBboxChange(getBbox(map));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map]);
-  useMapEvents({
-    moveend: () => onBboxChange(getBbox(map)),
-    zoomend: () => onBboxChange(getBbox(map)),
-  });
-  return null;
-}
-
-function FlyTo({ coords, zoom = 13, onDone }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!coords) return;
-    map.flyTo([coords.lat, coords.lng], zoom, { duration: 1 });
-    onDone();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coords]);
-  return null;
-}
+// Individual station dot — color driven by price via MapLibre expression
+const pointLayer = {
+  id: 'points',
+  type: 'circle',
+  source: 'stations',
+  filter: ['!', ['has', 'point_count']],
+  paint: {
+    'circle-color': [
+      'case',
+      ['<', ['get', 'price'], 0], '#4b5563',
+      ['<', ['get', 'price'], 1.60], '#22c55e',
+      ['<', ['get', 'price'], 1.90], '#f97316',
+      '#ef4444',
+    ],
+    'circle-radius': 8,
+    'circle-stroke-width': 1.5,
+    'circle-stroke-color': 'rgba(255,255,255,0.2)',
+    'circle-opacity': 0.92,
+  },
+};
 
 export default function MapView() {
   const { user } = useUser() ?? {};
   const [fuel, setFuel] = useState('diesel');
   const [stations, setStations] = useState([]);
+  const [geojson, setGeojson] = useState({ type: 'FeatureCollection', features: [] });
   const [selected, setSelected] = useState(null);
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [favorites, setFavorites] = useState(new Set());
   const [userPos, setUserPos] = useState(null);
-  const [flyTo, setFlyTo] = useState(null);
   const [citySearch, setCitySearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('bbox');
+  const [cursor, setCursor] = useState('auto');
+  const [viewState, setViewState] = useState({ longitude: 14.5, latitude: 46.1, zoom: 9 });
+
   const mapRef = useRef(null);
-  const bboxRef = useRef(null);
   const bboxTimer = useRef(null);
   const modeRef = useRef('bbox');
-  const userPosRef = useRef(null);
   const fuelRef = useRef(fuel);
   fuelRef.current = fuel;
   modeRef.current = mode;
-  userPosRef.current = userPos;
+
+  useEffect(() => { setGeojson(toGeoJSON(stations)); }, [stations]);
 
   useEffect(() => {
     if (user) getFavorites().then(favs => setFavorites(new Set(favs.map(f => f.id))));
@@ -115,7 +137,6 @@ export default function MapView() {
   }, []);
 
   const fetchByBbox = useCallback((bbox) => {
-    bboxRef.current = bbox;
     if (modeRef.current !== 'bbox') return;
     clearTimeout(bboxTimer.current);
     bboxTimer.current = setTimeout(async () => {
@@ -137,27 +158,62 @@ export default function MapView() {
     setLoading(false);
   }, []);
 
+  function bboxFromMap(map) {
+    const b = map.getBounds();
+    return `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
+  }
+
   const prevFuel = useRef(fuel);
   useEffect(() => {
     if (prevFuel.current === fuel) return;
     prevFuel.current = fuel;
     if (mode === 'near' && userPos) {
       fetchNear(userPos.lat, userPos.lng);
-    } else if (bboxRef.current) {
-      fetchByBbox(bboxRef.current);
+    } else if (mapRef.current) {
+      fetchByBbox(bboxFromMap(mapRef.current));
     }
   }, [fuel, mode, userPos, fetchNear, fetchByBbox]);
+
+  function handleMapLoad(e) {
+    fetchByBbox(bboxFromMap(e.target));
+  }
+
+  function handleMoveEnd(e) {
+    fetchByBbox(bboxFromMap(e.target));
+  }
+
+  async function handleMapClick(e) {
+    if (!e.features?.length) return;
+    const feature = e.features[0];
+    const map = e.target;
+
+    if (feature.layer.id === 'clusters') {
+      try {
+        const zoom = await map.getSource('stations').getClusterExpansionZoom(feature.properties.cluster_id);
+        map.flyTo({ center: feature.geometry.coordinates, zoom: zoom + 0.5, duration: 450 });
+      } catch {}
+    } else if (feature.layer.id === 'points') {
+      const p = feature.properties;
+      handleSelectStation({
+        id: p.id, name: p.name, city: p.city, country: p.country,
+        lat: p.lat, lng: p.lng,
+        price: p.price < 0 ? null : p.price,
+        distance: p.distance < 0 ? null : p.distance,
+        allPrices: JSON.parse(p.allPrices || '{}'),
+      });
+    }
+  }
 
   function handleNearMe() {
     if (!userPos) return;
     setMode('near');
-    setFlyTo({ lat: userPos.lat, lng: userPos.lng });
+    mapRef.current?.flyTo({ center: [userPos.lng, userPos.lat], zoom: 13, duration: 800 });
     fetchNear(userPos.lat, userPos.lng);
   }
 
   function handleBboxMode() {
     setMode('bbox');
-    if (bboxRef.current) fetchByBbox(bboxRef.current);
+    if (mapRef.current) fetchByBbox(bboxFromMap(mapRef.current));
   }
 
   async function handleCitySearch(e) {
@@ -174,13 +230,13 @@ export default function MapView() {
       if (geo) {
         let zoom = 13;
         if (geo.boundingBox) {
-          const latSpan = Math.abs(geo.boundingBox[1] - geo.boundingBox[0]);
-          if (latSpan > 0.3) zoom = 11;
-          else if (latSpan > 0.1) zoom = 12;
+          const span = Math.abs(geo.boundingBox[1] - geo.boundingBox[0]);
+          if (span > 0.3) zoom = 11;
+          else if (span > 0.1) zoom = 12;
         }
-        setFlyTo({ lat: geo.lat, lng: geo.lng, zoom });
+        mapRef.current?.flyTo({ center: [geo.lng, geo.lat], zoom, duration: 900 });
       } else if (data.length) {
-        setFlyTo({ lat: data[0].lat, lng: data[0].lng, zoom: 13 });
+        mapRef.current?.flyTo({ center: [data[0].lng, data[0].lat], zoom: 13, duration: 900 });
       }
     } catch {}
     setLoading(false);
@@ -191,7 +247,7 @@ export default function MapView() {
     setHistory([]);
     setLoadingHistory(true);
     try {
-      const h = await getStationHistory(station.id, fuel);
+      const h = await getStationHistory(station.id, fuelRef.current);
       setHistory(h.map(r => ({
         date: new Date(r.recordedAt).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
         price: r.price,
@@ -229,11 +285,7 @@ export default function MapView() {
       <div className={styles.controls}>
         <div className={styles.fuelTabs}>
           {FUELS.map(f => (
-            <button
-              key={f.key}
-              className={`${styles.fuelTab} ${fuel === f.key ? styles.fuelTabActive : ''}`}
-              onClick={() => setFuel(f.key)}
-            >
+            <button key={f.key} className={`${styles.fuelTab} ${fuel === f.key ? styles.fuelTabActive : ''}`} onClick={() => setFuel(f.key)}>
               {f.label}
             </button>
           ))}
@@ -250,52 +302,46 @@ export default function MapView() {
       </div>
 
       <div className={styles.mapWrap}>
-        <MapContainer
-          center={[46.1, 14.5]}
-          zoom={9}
-          className={styles.map}
-          zoomControl={false}
-          zoomSnap={0.25}
-          zoomDelta={0.5}
-          wheelPxPerZoomLevel={100}
-          markerZoomAnimation
-        >
-          <TileLayer
-            url="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
-            attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-            maxZoom={20}
-            keepBuffer={4}
-            updateWhenZooming={false}
-          />
-          <MapController mapRef={mapRef} onBboxChange={fetchByBbox} />
-          {flyTo && <FlyTo coords={flyTo} zoom={flyTo.zoom} onDone={() => setFlyTo(null)} />}
-
-          {userPos && (
-            <CircleMarker
-              center={[userPos.lat, userPos.lng]}
-              radius={8}
-              pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 1 }}
-            />
-          )}
-
-          <MarkerClusterGroup
-            iconCreateFunction={createClusterIcon}
-            chunkedLoading
-            maxClusterRadius={60}
-            disableClusteringAtZoom={15}
-            showCoverageOnHover={false}
-            spiderfyOnMaxZoom
+        <div className={styles.map}>
+          <Map
+            ref={mapRef}
+            {...viewState}
+            onMove={e => setViewState(e.viewState)}
+            onLoad={handleMapLoad}
+            onMoveEnd={handleMoveEnd}
+            onClick={handleMapClick}
+            onMouseEnter={() => setCursor('pointer')}
+            onMouseLeave={() => setCursor('auto')}
+            interactiveLayerIds={['clusters', 'points']}
+            cursor={cursor}
+            mapStyle={MAP_STYLE}
+            style={{ width: '100%', height: '100%' }}
+            attributionControl={false}
           >
-            {stations.map(s => (
-              <Marker
-                key={s.id}
-                position={[s.lat, s.lng]}
-                icon={createStationIcon(s.price)}
-                eventHandlers={{ click: () => handleSelectStation(s) }}
-              />
-            ))}
-          </MarkerClusterGroup>
-        </MapContainer>
+            <Source
+              id="stations"
+              type="geojson"
+              data={geojson}
+              cluster
+              clusterMaxZoom={14}
+              clusterRadius={50}
+            >
+              <Layer {...clusterLayer} />
+              <Layer {...clusterCountLayer} />
+              <Layer {...pointLayer} />
+            </Source>
+
+            {userPos && (
+              <Marker longitude={userPos.lng} latitude={userPos.lat} anchor="center">
+                <div style={{
+                  width: 16, height: 16, borderRadius: '50%',
+                  background: '#3b82f6', border: '3px solid #fff',
+                  boxShadow: '0 0 0 3px rgba(59,130,246,0.3)',
+                }} />
+              </Marker>
+            )}
+          </Map>
+        </div>
 
         <div className={styles.sidebar}>
           <div className={styles.sidebarHeader}>
@@ -365,14 +411,12 @@ export default function MapView() {
 
             {selected.allPrices && Object.keys(selected.allPrices).length > 1 && (
               <div className={styles.allPrices}>
-                {Object.entries(selected.allPrices)
-                  .filter(([ft]) => ft !== fuel)
-                  .map(([ft, p]) => (
-                    <div key={ft} className={styles.priceChip}>
-                      <span className={styles.priceChipLabel}>{FUELS.find(f => f.key === ft)?.label ?? ft}</span>
-                      <span className={styles.priceChipVal} style={{ color: priceColor(p) }}>€{p.toFixed(3)}</span>
-                    </div>
-                  ))}
+                {Object.entries(selected.allPrices).filter(([ft]) => ft !== fuel).map(([ft, p]) => (
+                  <div key={ft} className={styles.priceChip}>
+                    <span className={styles.priceChipLabel}>{FUELS.find(f => f.key === ft)?.label ?? ft}</span>
+                    <span className={styles.priceChipVal} style={{ color: priceColor(p) }}>€{p.toFixed(3)}</span>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -384,9 +428,7 @@ export default function MapView() {
                   <LineChart data={history} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
                     <XAxis dataKey="date" tick={{ fill: '#7b8099', fontSize: 10 }} />
                     <YAxis tick={{ fill: '#7b8099', fontSize: 10 }} domain={['auto', 'auto']} />
-                    <Tooltip
-                      contentStyle={{ background: '#1e2130', border: '1px solid #2a2d3e', borderRadius: 8, color: '#e8eaf0', fontSize: 12 }}
-                    />
+                    <Tooltip contentStyle={{ background: '#1e2130', border: '1px solid #2a2d3e', borderRadius: 8, color: '#e8eaf0', fontSize: 12 }} />
                     <Line type="monotone" dataKey="price" stroke="#22c55e" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
