@@ -192,7 +192,19 @@ export default function MapView() {
     } else if (mapRef.current) {
       fetchByBbox(bboxFromMap(mapRef.current));
     }
-  }, [fuel, mode, userPos, fetchNear, fetchByBbox]);
+    // Refresh history for the open station with the new fuel
+    if (selected) {
+      setHistory([]);
+      setLoadingHistory(true);
+      getStationHistory(selected.id, fuel)
+        .then(h => setHistory(h.map(r => ({
+          date: new Date(r.recordedAt).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
+          price: r.price,
+        }))))
+        .catch(() => {})
+        .finally(() => setLoadingHistory(false));
+    }
+  }, [fuel, mode, userPos, fetchNear, fetchByBbox, selected]);
 
   function handleMapLoad(e) {
     fetchByBbox(bboxFromMap(e.target));
@@ -299,6 +311,9 @@ export default function MapView() {
   function onTouchEnd() { dragStartY.current = null; }
 
   const sortedStations = [...stations].sort((a, b) => (a.price ?? 9) - (b.price ?? 9));
+
+  // Always read price from allPrices so it updates when fuel tab changes
+  const selectedPrice = selected ? (selected.allPrices?.[fuel] ?? null) : null;
 
   return (
     <div className={styles.root}>
@@ -423,8 +438,8 @@ export default function MapView() {
 
             <div className={styles.detailPriceHero}>
               <span className={styles.detailFuelLabel}>{FUELS.find(f => f.key === fuel)?.label ?? fuel}</span>
-              <span className={styles.detailPriceBig} style={{ color: priceColor(selected.price) }}>
-                {selected.price ? `€${selected.price.toFixed(3)}` : '—'}
+              <span className={styles.detailPriceBig} style={{ color: priceColor(selectedPrice) }}>
+                {selectedPrice ? `€${selectedPrice.toFixed(3)}` : '—'}
               </span>
               {selected.distance != null && (
                 <span className={styles.detailDistance}>{selected.distance} km away</span>
