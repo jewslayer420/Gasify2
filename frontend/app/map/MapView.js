@@ -73,7 +73,7 @@ const clusterLayer = {
   },
 };
 
-// Cluster count label — text shrinks slightly for large numbers so it always fits
+// Cluster count — same font CartoDB dark matter uses for map labels = already cached, no glyph delay
 const clusterCountLayer = {
   id: 'cluster-count',
   type: 'symbol',
@@ -81,7 +81,7 @@ const clusterCountLayer = {
   filter: ['has', 'point_count'],
   layout: {
     'text-field': '{point_count_abbreviated}',
-    'text-font': ['Noto Sans Bold', 'Arial Unicode MS Bold'],
+    'text-font': ['Noto Sans Regular', 'Arial Unicode MS Regular'],
     'text-size': [
       'interpolate', ['linear'], ['zoom'],
       2,  9,
@@ -89,6 +89,7 @@ const clusterCountLayer = {
       8,  11,
     ],
     'text-allow-overlap': true,
+    'text-ignore-placement': true,
   },
   paint: {
     'text-color': '#e8eaf0',
@@ -362,6 +363,8 @@ export default function MapView() {
               cluster
               clusterMaxZoom={14}
               clusterRadius={50}
+              buffer={64}
+              generateId
             >
               <Layer {...clusterLayer} />
               <Layer {...clusterCountLayer} />
