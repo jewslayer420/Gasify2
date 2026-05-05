@@ -59,11 +59,11 @@ const clusterLayer = {
     'circle-color': '#1a1d2b',
     'circle-radius': [
       'step', ['get', 'point_count'],
-      16,       // < 10
-      10,  20,  // 10 – 49
-      50,  23,  // 50 – 199
-      200, 26,  // 200 – 999
-      1000, 28, // 1000+  ← hard cap
+      13,        // < 10
+      10,   16,  // 10 – 49
+      50,   18,  // 50 – 199
+      200,  20,  // 200 – 999
+      1000, 22,  // 1000+  ← hard cap
     ],
     'circle-stroke-width': 2,
     'circle-stroke-color': '#22c55e',
@@ -85,9 +85,9 @@ const clusterCountLayer = {
     'text-font': ['Noto Sans Bold', 'Arial Unicode MS Bold'],
     'text-size': [
       'step', ['get', 'point_count'],
-      13,       // < 100
-      100,  12, // 100 – 999
-      1000, 11, // 1000+
+      11,       // < 100
+      100,  10, // 100 – 999
+      1000,  9, // 1000+
     ],
     'text-allow-overlap': true,
   },
