@@ -58,12 +58,11 @@ const clusterLayer = {
   paint: {
     'circle-color': '#1a1d2b',
     'circle-radius': [
-      'step', ['get', 'point_count'],
-      13,        // < 10
-      10,   16,  // 10 – 49
-      50,   18,  // 50 – 199
-      200,  20,  // 200 – 999
-      1000, 22,  // 1000+  ← hard cap
+      'interpolate', ['linear'], ['zoom'],
+      2,  11,   // fully zoomed out → tiny
+      5,  14,   // country level
+      8,  18,   // region level
+      12, 20,   // city level
     ],
     'circle-stroke-width': 2,
     'circle-stroke-color': '#22c55e',
@@ -84,10 +83,10 @@ const clusterCountLayer = {
     'text-field': '{point_count_abbreviated}',
     'text-font': ['Noto Sans Bold', 'Arial Unicode MS Bold'],
     'text-size': [
-      'step', ['get', 'point_count'],
-      11,       // < 100
-      100,  10, // 100 – 999
-      1000,  9, // 1000+
+      'interpolate', ['linear'], ['zoom'],
+      2,  9,
+      5,  10,
+      8,  11,
     ],
     'text-allow-overlap': true,
   },
