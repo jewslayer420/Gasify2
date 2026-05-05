@@ -49,7 +49,7 @@ function toGeoJSON(stations) {
   };
 }
 
-// Cluster bubble — transitions set to 0 to prevent ghost outlines between zoom levels
+// Cluster bubble — radius caps at 28px regardless of how many countries are added
 const clusterLayer = {
   id: 'clusters',
   type: 'circle',
@@ -57,7 +57,14 @@ const clusterLayer = {
   filter: ['has', 'point_count'],
   paint: {
     'circle-color': '#1a1d2b',
-    'circle-radius': ['step', ['get', 'point_count'], 18, 10, 24, 100, 30],
+    'circle-radius': [
+      'step', ['get', 'point_count'],
+      16,       // < 10
+      10,  20,  // 10 – 49
+      50,  23,  // 50 – 199
+      200, 26,  // 200 – 999
+      1000, 28, // 1000+  ← hard cap
+    ],
     'circle-stroke-width': 2,
     'circle-stroke-color': '#22c55e',
     'circle-opacity': 0.95,
@@ -67,7 +74,7 @@ const clusterLayer = {
   },
 };
 
-// Cluster count label
+// Cluster count label — text shrinks slightly for large numbers so it always fits
 const clusterCountLayer = {
   id: 'cluster-count',
   type: 'symbol',
@@ -76,7 +83,12 @@ const clusterCountLayer = {
   layout: {
     'text-field': '{point_count_abbreviated}',
     'text-font': ['Noto Sans Bold', 'Arial Unicode MS Bold'],
-    'text-size': 13,
+    'text-size': [
+      'step', ['get', 'point_count'],
+      13,       // < 100
+      100,  12, // 100 – 999
+      1000, 11, // 1000+
+    ],
     'text-allow-overlap': true,
   },
   paint: {
