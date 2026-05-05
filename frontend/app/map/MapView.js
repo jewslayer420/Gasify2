@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Marker, useMap, useMapEvents } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
@@ -29,15 +29,26 @@ function getBbox(map) {
   return `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
 }
 
-function createStationIcon(price) {
-  const color = priceColor(price);
-  const d = price ? 14 : 10;
+// Pre-create the 4 possible icon variants once — never recreated per render
+const ICONS = {
+  cheap:     mkDot(14, '#22c55e'),
+  mid:       mkDot(14, '#f97316'),
+  expensive: mkDot(14, '#ef4444'),
+  none:      mkDot(10, '#4b5563'),
+};
+function mkDot(d, color) {
   return L.divIcon({
     className: '',
     html: `<div style="width:${d}px;height:${d}px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,0.2);box-shadow:0 0 0 3px ${color}30"></div>`,
     iconSize: [d, d],
     iconAnchor: [d / 2, d / 2],
   });
+}
+function getIcon(price) {
+  if (!price) return ICONS.none;
+  if (price <= 1.60) return ICONS.cheap;
+  if (price <= 1.90) return ICONS.mid;
+  return ICONS.expensive;
 }
 
 function createClusterIcon(cluster) {
@@ -92,6 +103,7 @@ export default function MapView() {
   const [mode, setMode] = useState('bbox');
   const mapRef = useRef(null);
   const bboxRef = useRef(null);
+  const bboxTimer = useRef(null);
   const modeRef = useRef('bbox');
   const userPosRef = useRef(null);
   const fuelRef = useRef(fuel);
@@ -113,15 +125,18 @@ export default function MapView() {
     return () => navigator.geolocation.clearWatch(id);
   }, []);
 
-  const fetchByBbox = useCallback(async (bbox) => {
+  const fetchByBbox = useCallback((bbox) => {
     bboxRef.current = bbox;
     if (modeRef.current !== 'bbox') return;
-    setLoading(true);
-    try {
-      const data = await getStations({ fuel: fuelRef.current, bbox });
-      setStations(data);
-    } catch {}
-    setLoading(false);
+    clearTimeout(bboxTimer.current);
+    bboxTimer.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const data = await getStations({ fuel: fuelRef.current, bbox });
+        setStations(data);
+      } catch {}
+      setLoading(false);
+    }, 250);
   }, []);
 
   const fetchNear = useCallback(async (lat, lng) => {
@@ -182,19 +197,19 @@ export default function MapView() {
     setLoading(false);
   }
 
-  async function handleSelectStation(station) {
+  const handleSelectStation = useCallback(async (station) => {
     setSelected(station);
     setHistory([]);
     setLoadingHistory(true);
     try {
-      const h = await getStationHistory(station.id, fuel);
+      const h = await getStationHistory(station.id, fuelRef.current);
       setHistory(h.map(r => ({
         date: new Date(r.recordedAt).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
         price: r.price,
       })));
     } catch {}
     setLoadingHistory(false);
-  }
+  }, []);
 
   async function toggleFavorite(stationId) {
     if (!user) return;
@@ -218,7 +233,22 @@ export default function MapView() {
   }
   function onTouchEnd() { dragStartY.current = null; }
 
-  const sortedStations = [...stations].sort((a, b) => (a.price ?? 9) - (b.price ?? 9));
+  const sortedStations = useMemo(
+    () => [...stations].sort((a, b) => (a.price ?? 9) - (b.price ?? 9)),
+    [stations]
+  );
+
+  const stationMarkers = useMemo(
+    () => stations.map(s => (
+      <Marker
+        key={s.id}
+        position={[s.lat, s.lng]}
+        icon={getIcon(s.price)}
+        eventHandlers={{ click: () => handleSelectStation(s) }}
+      />
+    )),
+    [stations, handleSelectStation]
+  );
 
   return (
     <div className={styles.root}>
@@ -269,15 +299,9 @@ export default function MapView() {
             disableClusteringAtZoom={15}
             showCoverageOnHover={false}
             spiderfyOnMaxZoom
+            animate={false}
           >
-            {stations.map(s => (
-              <Marker
-                key={s.id}
-                position={[s.lat, s.lng]}
-                icon={createStationIcon(s.price)}
-                eventHandlers={{ click: () => handleSelectStation(s) }}
-              />
-            ))}
+            {stationMarkers}
           </MarkerClusterGroup>
         </MapContainer>
 
