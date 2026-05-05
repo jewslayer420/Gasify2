@@ -19,7 +19,7 @@ const FUELS = [
   { key: 'lpg',            label: 'LPG' },
 ];
 
-const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HR: '🇭🇷', HU: '🇭🇺' };
+const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹' };
 
 function priceColor(p) {
   if (!p) return '#4b5563';
@@ -351,7 +351,7 @@ export default function MapView() {
             interactiveLayerIds={['clusters', 'points']}
             cursor={cursor}
             mapStyle={MAP_STYLE}
-            style={{ width: '100%', height: '100%' }}
+            style={{ position: 'absolute', inset: 0 }}
             renderWorldCopies={false}
             minZoom={3}
             attributionControl={false}
