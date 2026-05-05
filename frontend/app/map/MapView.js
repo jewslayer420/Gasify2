@@ -46,7 +46,7 @@ function createClusterIcon(cluster) {
   const fs = n < 10 ? 14 : 12;
   return L.divIcon({
     className: '',
-    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:#1e2130;border:2px solid #22c55e;display:flex;align-items:center;justify-content:center;color:#e8eaf0;font-size:${fs}px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;box-shadow:0 2px 14px rgba(0,0,0,0.55)">${n}</div>`,
+    html: `<div class="gasify-cluster-icon" style="width:${size}px;height:${size}px;border-radius:50%;background:#1e2130;border:2px solid #22c55e;display:flex;align-items:center;justify-content:center;color:#e8eaf0;font-size:${fs}px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;box-shadow:0 2px 14px rgba(0,0,0,0.55)">${n}</div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   });
@@ -92,6 +92,7 @@ export default function MapView() {
   const [mode, setMode] = useState('bbox');
   const mapRef = useRef(null);
   const bboxRef = useRef(null);
+  const bboxTimer = useRef(null);
   const modeRef = useRef('bbox');
   const userPosRef = useRef(null);
   const fuelRef = useRef(fuel);
@@ -113,15 +114,18 @@ export default function MapView() {
     return () => navigator.geolocation.clearWatch(id);
   }, []);
 
-  const fetchByBbox = useCallback(async (bbox) => {
+  const fetchByBbox = useCallback((bbox) => {
     bboxRef.current = bbox;
     if (modeRef.current !== 'bbox') return;
-    setLoading(true);
-    try {
-      const data = await getStations({ fuel: fuelRef.current, bbox });
-      setStations(data);
-    } catch {}
-    setLoading(false);
+    clearTimeout(bboxTimer.current);
+    bboxTimer.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const data = await getStations({ fuel: fuelRef.current, bbox });
+        setStations(data);
+      } catch {}
+      setLoading(false);
+    }, 300);
   }, []);
 
   const fetchNear = useCallback(async (lat, lng) => {
@@ -246,10 +250,21 @@ export default function MapView() {
       </div>
 
       <div className={styles.mapWrap}>
-        <MapContainer center={[46.1, 14.5]} zoom={9} className={styles.map} zoomControl={false}>
+        <MapContainer
+          center={[46.1, 14.5]}
+          zoom={9}
+          className={styles.map}
+          zoomControl={false}
+          zoomSnap={0.25}
+          zoomDelta={0.5}
+          wheelPxPerZoomLevel={100}
+          markerZoomAnimation
+        >
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+            keepBuffer={4}
+            updateWhenZooming={false}
           />
           <MapController mapRef={mapRef} onBboxChange={fetchByBbox} />
           {flyTo && <FlyTo coords={flyTo} zoom={flyTo.zoom} onDone={() => setFlyTo(null)} />}
