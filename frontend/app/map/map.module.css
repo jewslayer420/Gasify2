@@ -27,18 +27,24 @@
   backdrop-filter: blur(8px);
   border: 1px solid var(--border);
   border-radius: 10px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  max-width: 100%;
 }
+.fuelTabs::-webkit-scrollbar { display: none; }
 
 .fuelTab {
-  padding: 8px 14px;
+  padding: 8px 12px;
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .fuelTab:hover { color: var(--text); background: var(--bg-secondary); }
 .fuelTabActive { background: var(--green) !important; color: #000 !important; }

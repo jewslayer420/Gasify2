@@ -10,10 +10,13 @@ import styles from './map.module.css';
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
 const FUELS = [
-  { key: 'diesel', label: 'Diesel' },
-  { key: 'sp95', label: '95' },
-  { key: 'sp98', label: '98' },
-  { key: 'lpg', label: 'LPG' },
+  { key: 'diesel',         label: 'Diesel' },
+  { key: 'diesel_premium', label: 'Premium Diesel' },
+  { key: 'sp95',           label: 'Unleaded 95' },
+  { key: 'sp98',           label: 'Unleaded 98' },
+  { key: 'sp100',          label: 'Super 100' },
+  { key: 'e10',            label: 'E10' },
+  { key: 'lpg',            label: 'LPG' },
 ];
 
 const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HR: '🇭🇷', HU: '🇭🇺' };
@@ -46,7 +49,7 @@ function toGeoJSON(stations) {
   };
 }
 
-// Cluster bubble
+// Cluster bubble — transitions set to 0 to prevent ghost outlines between zoom levels
 const clusterLayer = {
   id: 'clusters',
   type: 'circle',
@@ -58,6 +61,9 @@ const clusterLayer = {
     'circle-stroke-width': 2,
     'circle-stroke-color': '#22c55e',
     'circle-opacity': 0.95,
+    'circle-opacity-transition': { duration: 0 },
+    'circle-radius-transition': { duration: 0 },
+    'circle-stroke-opacity-transition': { duration: 0 },
   },
 };
 
@@ -73,7 +79,10 @@ const clusterCountLayer = {
     'text-size': 13,
     'text-allow-overlap': true,
   },
-  paint: { 'text-color': '#e8eaf0' },
+  paint: {
+    'text-color': '#e8eaf0',
+    'text-opacity-transition': { duration: 0 },
+  },
 };
 
 // Individual station dot — color driven by price via MapLibre expression
@@ -316,6 +325,8 @@ export default function MapView() {
             cursor={cursor}
             mapStyle={MAP_STYLE}
             style={{ width: '100%', height: '100%' }}
+            renderWorldCopies={false}
+            minZoom={3}
             attributionControl={false}
           >
             <Source
