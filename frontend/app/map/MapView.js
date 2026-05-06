@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Map, { Source, Layer, Marker } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -123,7 +123,7 @@ export default function MapView() {
   const { user } = useUser() ?? {};
   const [fuel, setFuel] = useState('diesel');
   const [stations, setStations] = useState([]);
-  const [geojsonByCountry, setGeojsonByCountry] = useState({});
+  const [geojson, setGeojson] = useState({ type: 'FeatureCollection', features: [] });
   const [selected, setSelected] = useState(null);
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -142,13 +142,22 @@ export default function MapView() {
   fuelRef.current = fuel;
   modeRef.current = mode;
 
-  useEffect(() => {
-    const byCountry = {};
+  useEffect(() => { setGeojson(toGeoJSON(stations)); }, [stations]);
+
+  const countrySummary = useMemo(() => {
+    const map = {};
     for (const s of stations) {
-      if (!byCountry[s.country]) byCountry[s.country] = [];
-      byCountry[s.country].push(s);
+      if (!map[s.country]) map[s.country] = { country: s.country, count: 0, latSum: 0, lngSum: 0 };
+      map[s.country].count++;
+      map[s.country].latSum += s.lat;
+      map[s.country].lngSum += s.lng;
     }
-    setGeojsonByCountry(Object.fromEntries(Object.entries(byCountry).map(([c, ss]) => [c, toGeoJSON(ss)])));
+    return Object.values(map).map(d => ({
+      country: d.country,
+      count: d.count,
+      lat: d.latSum / d.count,
+      lng: d.lngSum / d.count,
+    }));
   }, [stations]);
 
   useEffect(() => {
@@ -228,13 +237,12 @@ export default function MapView() {
     const feature = e.features[0];
     const map = e.target;
 
-    if (feature.layer.id.startsWith('clusters-')) {
+    if (feature.layer.id === 'clusters') {
       try {
-        const country = feature.layer.id.slice('clusters-'.length);
-        const zoom = await map.getSource(`stations-${country}`).getClusterExpansionZoom(feature.properties.cluster_id);
+        const zoom = await map.getSource('stations').getClusterExpansionZoom(feature.properties.cluster_id);
         map.flyTo({ center: feature.geometry.coordinates, zoom: zoom + 0.5, duration: 450 });
       } catch {}
-    } else if (feature.layer.id.startsWith('points-')) {
+    } else if (feature.layer.id === 'points') {
       const p = feature.properties;
       handleSelectStation({
         id: p.id, name: p.name, city: p.city, country: p.country,
@@ -357,7 +365,7 @@ export default function MapView() {
             onClick={handleMapClick}
             onMouseEnter={() => setCursor('pointer')}
             onMouseLeave={() => setCursor('auto')}
-            interactiveLayerIds={['SI', 'AT', 'FR'].flatMap(c => [`clusters-${c}`, `points-${c}`])}
+            interactiveLayerIds={['clusters', 'points']}
             cursor={cursor}
             mapStyle={MAP_STYLE}
             style={{ position: 'absolute', inset: 0 }}
@@ -365,15 +373,24 @@ export default function MapView() {
             minZoom={3}
             attributionControl={false}
           >
-            {['SI', 'AT', 'FR'].map(country => (
-              <Source key={country} id={`stations-${country}`} type="geojson" data={geojsonByCountry[country] || { type: 'FeatureCollection', features: [] }} cluster clusterMaxZoom={14} clusterRadius={50} buffer={64} generateId />
-            ))}
-            {['SI', 'AT', 'FR'].map(country => (
-              <Fragment key={country}>
-                <Layer id={`clusters-${country}`} type="circle" source={`stations-${country}`} filter={['has', 'point_count']} paint={clusterLayer.paint} />
-                <Layer id={`cluster-count-${country}`} type="symbol" source={`stations-${country}`} filter={['has', 'point_count']} layout={clusterCountLayer.layout} paint={clusterCountLayer.paint} />
-                <Layer id={`points-${country}`} type="circle" source={`stations-${country}`} filter={['!', ['has', 'point_count']]} paint={pointLayer.paint} />
-              </Fragment>
+            <Source id="stations" type="geojson" data={geojson} cluster clusterMaxZoom={14} clusterRadius={50} buffer={64} generateId>
+              <Layer {...clusterLayer} minzoom={7} />
+              <Layer {...clusterCountLayer} minzoom={7} />
+              <Layer {...pointLayer} minzoom={7} />
+            </Source>
+
+            {viewState.zoom < 7 && countrySummary.map(({ country, count, lat, lng }) => (
+              <Marker key={country} longitude={lng} latitude={lat} anchor="center"
+                onClick={() => mapRef.current?.flyTo({ center: [lng, lat], zoom: 7, duration: 600 })}>
+                <div style={{
+                  background: '#1a1d2b', border: '2px solid #22c55e', borderRadius: '50%',
+                  width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#e8eaf0', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)', userSelect: 'none',
+                }}>
+                  {count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count}
+                </div>
+              </Marker>
             ))}
 
             {userPos && (
@@ -392,7 +409,6 @@ export default function MapView() {
           <div className={styles.sidebarHeader}>
             <span className={styles.sidebarCount}>{stations.length} stations</span>
             <span className={styles.sidebarFuel}>{FUELS.find(f => f.key === fuel)?.label}</span>
-            <span style={{fontSize:10,color:'#888'}}>{Object.entries(geojsonByCountry).map(([c,g])=>`${c}:${g.features.length}`).join(' ')}</span>
           </div>
           <div className={styles.stationList}>
             {sortedStations.map((s, i) => (
