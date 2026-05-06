@@ -123,7 +123,7 @@ export default function MapView() {
   const { user } = useUser() ?? {};
   const [fuel, setFuel] = useState('diesel');
   const [stations, setStations] = useState([]);
-  const [geojson, setGeojson] = useState({ type: 'FeatureCollection', features: [] });
+  const [geojsonByCountry, setGeojsonByCountry] = useState({});
   const [selected, setSelected] = useState(null);
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -142,7 +142,14 @@ export default function MapView() {
   fuelRef.current = fuel;
   modeRef.current = mode;
 
-  useEffect(() => { setGeojson(toGeoJSON(stations)); }, [stations]);
+  useEffect(() => {
+    const byCountry = {};
+    for (const s of stations) {
+      if (!byCountry[s.country]) byCountry[s.country] = [];
+      byCountry[s.country].push(s);
+    }
+    setGeojsonByCountry(Object.fromEntries(Object.entries(byCountry).map(([c, ss]) => [c, toGeoJSON(ss)])));
+  }, [stations]);
 
   useEffect(() => {
     if (user) getFavorites().then(favs => setFavorites(new Set(favs.map(f => f.id))));
@@ -221,12 +228,13 @@ export default function MapView() {
     const feature = e.features[0];
     const map = e.target;
 
-    if (feature.layer.id === 'clusters') {
+    if (feature.layer.id.startsWith('clusters-')) {
       try {
-        const zoom = await map.getSource('stations').getClusterExpansionZoom(feature.properties.cluster_id);
+        const country = feature.layer.id.slice('clusters-'.length);
+        const zoom = await map.getSource(`stations-${country}`).getClusterExpansionZoom(feature.properties.cluster_id);
         map.flyTo({ center: feature.geometry.coordinates, zoom: zoom + 0.5, duration: 450 });
       } catch {}
-    } else if (feature.layer.id === 'points') {
+    } else if (feature.layer.id.startsWith('points-')) {
       const p = feature.properties;
       handleSelectStation({
         id: p.id, name: p.name, city: p.city, country: p.country,
@@ -349,7 +357,7 @@ export default function MapView() {
             onClick={handleMapClick}
             onMouseEnter={() => setCursor('pointer')}
             onMouseLeave={() => setCursor('auto')}
-            interactiveLayerIds={['clusters', 'points']}
+            interactiveLayerIds={Object.keys(geojsonByCountry).flatMap(c => [`clusters-${c}`, `points-${c}`])}
             cursor={cursor}
             mapStyle={MAP_STYLE}
             style={{ position: 'absolute', inset: 0 }}
@@ -357,20 +365,23 @@ export default function MapView() {
             minZoom={3}
             attributionControl={false}
           >
-            <Source
-              id="stations"
-              type="geojson"
-              data={geojson}
-              cluster
-              clusterMaxZoom={14}
-              clusterRadius={80}
-              buffer={64}
-              generateId
-            >
-              <Layer {...clusterLayer} />
-              <Layer {...clusterCountLayer} />
-              <Layer {...pointLayer} />
-            </Source>
+            {Object.entries(geojsonByCountry).map(([country, gj]) => (
+              <Source
+                key={country}
+                id={`stations-${country}`}
+                type="geojson"
+                data={gj}
+                cluster
+                clusterMaxZoom={14}
+                clusterRadius={50}
+                buffer={64}
+                generateId
+              >
+                <Layer {...clusterLayer} id={`clusters-${country}`} source={`stations-${country}`} />
+                <Layer {...clusterCountLayer} id={`cluster-count-${country}`} source={`stations-${country}`} />
+                <Layer {...pointLayer} id={`points-${country}`} source={`stations-${country}`} />
+              </Source>
+            ))}
 
             {userPos && (
               <Marker longitude={userPos.lng} latitude={userPos.lat} anchor="center">
