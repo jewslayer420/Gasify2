@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import Map, { Source, Layer, Marker } from 'react-map-gl/maplibre';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import Map, { Marker } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { getStations, getStationHistory, geocodeCity, addFavorite, removeFavorite, getFavorites } from '../../lib/api';
@@ -98,6 +98,8 @@ const clusterCountLayer = {
   },
 };
 
+const COUNTRIES = ['SI', 'AT', 'FR'];
+
 // Individual station dot — color driven by price via MapLibre expression
 const pointLayer = {
   id: 'points',
@@ -123,7 +125,6 @@ export default function MapView() {
   const { user } = useUser() ?? {};
   const [fuel, setFuel] = useState('diesel');
   const [stations, setStations] = useState([]);
-  const [geojson, setGeojson] = useState({ type: 'FeatureCollection', features: [] });
   const [selected, setSelected] = useState(null);
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -142,22 +143,19 @@ export default function MapView() {
   fuelRef.current = fuel;
   modeRef.current = mode;
 
-  useEffect(() => { setGeojson(toGeoJSON(stations)); }, [stations]);
-
-  const countrySummary = useMemo(() => {
-    const map = {};
+  // Push station data into per-country MapLibre sources whenever stations change
+  useEffect(() => {
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+    const byCountry = {};
     for (const s of stations) {
-      if (!map[s.country]) map[s.country] = { country: s.country, count: 0, latSum: 0, lngSum: 0 };
-      map[s.country].count++;
-      map[s.country].latSum += s.lat;
-      map[s.country].lngSum += s.lng;
+      if (!byCountry[s.country]) byCountry[s.country] = [];
+      byCountry[s.country].push(s);
     }
-    return Object.values(map).map(d => ({
-      country: d.country,
-      count: d.count,
-      lat: d.latSum / d.count,
-      lng: d.lngSum / d.count,
-    }));
+    for (const country of COUNTRIES) {
+      const src = map.getSource(`stations-${country}`);
+      if (src) src.setData(toGeoJSON(byCountry[country] || []));
+    }
   }, [stations]);
 
   useEffect(() => {
@@ -225,7 +223,24 @@ export default function MapView() {
   }, [fuel, mode, userPos, fetchNear, fetchByBbox, selected]);
 
   function handleMapLoad(e) {
-    fetchByBbox(bboxFromMap(e.target));
+    const map = e.target;
+    // Add one independent clustered source + layers per country via raw MapLibre API,
+    // bypassing react-map-gl's component system so source bindings are unambiguous.
+    for (const country of COUNTRIES) {
+      map.addSource(`stations-${country}`, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 50,
+        buffer: 64,
+        generateId: true,
+      });
+      map.addLayer({ id: `clusters-${country}`,       type: 'circle', source: `stations-${country}`, filter: ['has', 'point_count'],         paint: clusterLayer.paint });
+      map.addLayer({ id: `cluster-count-${country}`,  type: 'symbol', source: `stations-${country}`, filter: ['has', 'point_count'],         layout: clusterCountLayer.layout, paint: clusterCountLayer.paint });
+      map.addLayer({ id: `points-${country}`,         type: 'circle', source: `stations-${country}`, filter: ['!', ['has', 'point_count']],  paint: pointLayer.paint });
+    }
+    fetchByBbox(bboxFromMap(map));
   }
 
   function handleMoveEnd(e) {
@@ -365,7 +380,7 @@ export default function MapView() {
             onClick={handleMapClick}
             onMouseEnter={() => setCursor('pointer')}
             onMouseLeave={() => setCursor('auto')}
-            interactiveLayerIds={['clusters', 'points']}
+            interactiveLayerIds={COUNTRIES.flatMap(c => [`clusters-${c}`, `points-${c}`])}
             cursor={cursor}
             mapStyle={MAP_STYLE}
             style={{ position: 'absolute', inset: 0 }}
@@ -373,25 +388,7 @@ export default function MapView() {
             minZoom={3}
             attributionControl={false}
           >
-            <Source id="stations" type="geojson" data={geojson} cluster clusterMaxZoom={14} clusterRadius={50} buffer={64} generateId>
-              <Layer {...clusterLayer} layout={{ visibility: viewState.zoom >= 7 ? 'visible' : 'none' }} />
-              <Layer {...clusterCountLayer} layout={{ ...clusterCountLayer.layout, visibility: viewState.zoom >= 7 ? 'visible' : 'none' }} />
-              <Layer {...pointLayer} layout={{ visibility: viewState.zoom >= 7 ? 'visible' : 'none' }} />
-            </Source>
-
-            {viewState.zoom < 7 && countrySummary.map(({ country, count, lat, lng }) => (
-              <Marker key={country} longitude={lng} latitude={lat} anchor="center"
-                onClick={() => mapRef.current?.flyTo({ center: [lng, lat], zoom: 7, duration: 600 })}>
-                <div style={{
-                  background: '#1a1d2b', border: '2px solid #22c55e', borderRadius: '50%',
-                  width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#e8eaf0', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)', userSelect: 'none',
-                }}>
-                  {count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count}
-                </div>
-              </Marker>
-            ))}
+            {/* Sources and layers are added imperatively in handleMapLoad */}
 
             {userPos && (
               <Marker longitude={userPos.lng} latitude={userPos.lat} anchor="center">
