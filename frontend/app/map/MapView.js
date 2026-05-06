@@ -20,7 +20,7 @@ const FUELS = [
   { key: 'cng',            label: 'CNG' },
 ];
 
-const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹' };
+const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺' };
 
 function priceColor(p) {
   if (!p) return '#4b5563';
@@ -98,7 +98,7 @@ const clusterCountLayer = {
   },
 };
 
-const COUNTRIES = ['SI', 'AT', 'FR'];
+const COUNTRIES = ['SI', 'AT', 'FR', 'HU'];
 
 // Individual station dot — color driven by price via MapLibre expression
 const pointLayer = {

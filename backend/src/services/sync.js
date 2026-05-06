@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const { fetchSloveniaStations } = require('./scrapers/slovenia');
 const { fetchFranceStations } = require('./scrapers/france');
 const { fetchAustriaStations } = require('./scrapers/austria');
+const { fetchHungaryStations } = require('./scrapers/hungary');
 const prisma = require('../lib/prisma');
 
 async function upsertStations(stations, label) {
@@ -51,11 +52,17 @@ async function syncAustria() {
   await upsertStations(stations, 'Austria');
 }
 
+async function syncHungary() {
+  const stations = await fetchHungaryStations();
+  await upsertStations(stations, 'Hungary');
+}
+
 async function syncAll() {
   console.log('[sync] Starting full sync…');
   await syncSlovenia().catch(err => console.error('[sync] Slovenia error:', err.message));
   await syncFrance().catch(err => console.error('[sync] France error:', err.message));
   await syncAustria().catch(err => console.error('[sync] Austria error:', err.message));
+  await syncHungary().catch(err => console.error('[sync] Hungary error:', err.message));
   console.log('[sync] Full sync complete');
 }
 
