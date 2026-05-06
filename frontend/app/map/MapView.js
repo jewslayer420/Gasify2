@@ -363,7 +363,7 @@ export default function MapView() {
               data={geojson}
               cluster
               clusterMaxZoom={14}
-              clusterRadius={50}
+              clusterRadius={80}
               buffer={64}
               generateId
             >
