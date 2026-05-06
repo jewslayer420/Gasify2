@@ -392,6 +392,7 @@ export default function MapView() {
           <div className={styles.sidebarHeader}>
             <span className={styles.sidebarCount}>{stations.length} stations</span>
             <span className={styles.sidebarFuel}>{FUELS.find(f => f.key === fuel)?.label}</span>
+            <span style={{fontSize:10,color:'#888'}}>{Object.entries(geojsonByCountry).map(([c,g])=>`${c}:${g.features.length}`).join(' ')}</span>
           </div>
           <div className={styles.stationList}>
             {sortedStations.map((s, i) => (
