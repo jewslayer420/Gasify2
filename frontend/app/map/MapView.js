@@ -17,6 +17,7 @@ const FUELS = [
   { key: 'sp100',          label: 'Super 100' },
   { key: 'e10',            label: 'E10' },
   { key: 'lpg',            label: 'LPG' },
+  { key: 'cng',            label: 'CNG' },
 ];
 
 const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹' };

@@ -3,7 +3,7 @@ const BASE = 'https://api.e-control.at/sprit/1.0/search/gas-stations/by-address'
 const FUEL_MAP = {
   DIE: 'diesel',
   SUP: 'sp95',
-  GAS: 'lpg',
+  GAS: 'cng',
 };
 
 // Austria bounding box — 0.3° grid ≈ 33km spacing, ~240 points × 3 fuels = ~720 requests
