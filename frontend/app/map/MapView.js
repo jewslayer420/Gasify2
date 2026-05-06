@@ -374,9 +374,9 @@ export default function MapView() {
             attributionControl={false}
           >
             <Source id="stations" type="geojson" data={geojson} cluster clusterMaxZoom={14} clusterRadius={50} buffer={64} generateId>
-              <Layer {...clusterLayer} minzoom={7} />
-              <Layer {...clusterCountLayer} minzoom={7} />
-              <Layer {...pointLayer} minzoom={7} />
+              <Layer {...clusterLayer} layout={{ visibility: viewState.zoom >= 7 ? 'visible' : 'none' }} />
+              <Layer {...clusterCountLayer} layout={{ ...clusterCountLayer.layout, visibility: viewState.zoom >= 7 ? 'visible' : 'none' }} />
+              <Layer {...pointLayer} layout={{ visibility: viewState.zoom >= 7 ? 'visible' : 'none' }} />
             </Source>
 
             {viewState.zoom < 7 && countrySummary.map(({ country, count, lat, lng }) => (
