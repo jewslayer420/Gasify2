@@ -357,7 +357,7 @@ export default function MapView() {
             onClick={handleMapClick}
             onMouseEnter={() => setCursor('pointer')}
             onMouseLeave={() => setCursor('auto')}
-            interactiveLayerIds={Object.keys(geojsonByCountry).flatMap(c => [`clusters-${c}`, `points-${c}`])}
+            interactiveLayerIds={['SI', 'AT', 'FR'].flatMap(c => [`clusters-${c}`, `points-${c}`])}
             cursor={cursor}
             mapStyle={MAP_STYLE}
             style={{ position: 'absolute', inset: 0 }}
@@ -365,23 +365,16 @@ export default function MapView() {
             minZoom={3}
             attributionControl={false}
           >
-            {Object.entries(geojsonByCountry).map(([country, gj]) => (
-              <Source
-                key={country}
-                id={`stations-${country}`}
-                type="geojson"
-                data={gj}
-                cluster
-                clusterMaxZoom={14}
-                clusterRadius={50}
-                buffer={64}
-                generateId
-              >
-                <Layer {...clusterLayer} id={`clusters-${country}`} source={`stations-${country}`} />
-                <Layer {...clusterCountLayer} id={`cluster-count-${country}`} source={`stations-${country}`} />
-                <Layer {...pointLayer} id={`points-${country}`} source={`stations-${country}`} />
-              </Source>
-            ))}
+            {['SI', 'AT', 'FR'].map(country => {
+              const gj = geojsonByCountry[country] || { type: 'FeatureCollection', features: [] };
+              return (
+                <Source key={country} id={`stations-${country}`} type="geojson" data={gj} cluster clusterMaxZoom={14} clusterRadius={50} buffer={64} generateId>
+                  <Layer id={`clusters-${country}`} type="circle" source={`stations-${country}`} filter={['has', 'point_count']} paint={clusterLayer.paint} />
+                  <Layer id={`cluster-count-${country}`} type="symbol" source={`stations-${country}`} filter={['has', 'point_count']} layout={clusterCountLayer.layout} paint={clusterCountLayer.paint} />
+                  <Layer id={`points-${country}`} type="circle" source={`stations-${country}`} filter={['!', ['has', 'point_count']]} paint={pointLayer.paint} />
+                </Source>
+              );
+            })}
 
             {userPos && (
               <Marker longitude={userPos.lng} latitude={userPos.lat} anchor="center">
