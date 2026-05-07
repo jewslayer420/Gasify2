@@ -25,7 +25,11 @@ async function fetchFranceStations() {
     for (const item of data.results) {
       if (!item.geom?.lat || !item.geom?.lon) continue;
 
-      const pricesRaw = item.prix ?? [];
+      // prix is returned as a JSON string by the API
+      let pricesRaw = [];
+      try {
+        pricesRaw = item.prix ? (typeof item.prix === 'string' ? JSON.parse(item.prix) : item.prix) : [];
+      } catch { pricesRaw = []; }
       const prices = [];
 
       for (const entry of pricesRaw) {
