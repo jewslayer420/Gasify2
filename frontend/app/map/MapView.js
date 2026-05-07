@@ -150,6 +150,7 @@ export default function MapView() {
   const bboxTimer = useRef(null);
   const modeRef = useRef('bbox');
   const fuelRef = useRef(fuel);
+  const zoomRef = useRef(viewState.zoom);
   fuelRef.current = fuel;
   modeRef.current = mode;
 
@@ -173,18 +174,6 @@ export default function MapView() {
     }
   }, [stations]);
 
-  // Hide MapLibre cluster/point layers when we're showing React country badges (zoom < 8)
-  useEffect(() => {
-    const map = mapRef.current?.getMap();
-    if (!map) return;
-    const vis = viewState.zoom < 8 ? 'none' : 'visible';
-    for (const c of COUNTRIES) {
-      [`clusters-${c}`, `cluster-count-${c}`, `points-${c}`].forEach(id => {
-        if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
-      });
-    }
-  }, [viewState.zoom]);
-
   useEffect(() => {
     if (user) getFavorites().then(favs => setFavorites(new Set(favs.map(f => f.id))));
   }, [user]);
@@ -201,6 +190,7 @@ export default function MapView() {
 
   const fetchByBbox = useCallback((bbox) => {
     if (modeRef.current !== 'bbox') return;
+    if (zoomRef.current < 7) return;  // country badges don't need station data
     clearTimeout(bboxTimer.current);
     bboxTimer.current = setTimeout(async () => {
       setLoading(true);
@@ -251,8 +241,6 @@ export default function MapView() {
 
   function handleMapLoad(e) {
     const map = e.target;
-    // Add one independent clustered source + layers per country via raw MapLibre API,
-    // bypassing react-map-gl's component system so source bindings are unambiguous.
     for (const country of COUNTRIES) {
       map.addSource(`stations-${country}`, {
         type: 'geojson',
@@ -263,14 +251,17 @@ export default function MapView() {
         buffer: 64,
         generateId: true,
       });
-      map.addLayer({ id: `clusters-${country}`,       type: 'circle', source: `stations-${country}`, filter: ['has', 'point_count'],         paint: clusterLayer.paint });
-      map.addLayer({ id: `cluster-count-${country}`,  type: 'symbol', source: `stations-${country}`, filter: ['has', 'point_count'],         layout: clusterCountLayer.layout, paint: clusterCountLayer.paint });
-      map.addLayer({ id: `points-${country}`,         type: 'circle', source: `stations-${country}`, filter: ['!', ['has', 'point_count']],  paint: pointLayer.paint });
+      // minzoom: 7 means MapLibre natively hides these layers below zoom 7 —
+      // no imperative visibility toggling needed.
+      map.addLayer({ id: `clusters-${country}`,      type: 'circle', minzoom: 7, source: `stations-${country}`, filter: ['has', 'point_count'],        paint: clusterLayer.paint });
+      map.addLayer({ id: `cluster-count-${country}`, type: 'symbol', minzoom: 7, source: `stations-${country}`, filter: ['has', 'point_count'],        layout: clusterCountLayer.layout, paint: clusterCountLayer.paint });
+      map.addLayer({ id: `points-${country}`,        type: 'circle', minzoom: 7, source: `stations-${country}`, filter: ['!', ['has', 'point_count']], paint: pointLayer.paint });
     }
     fetchByBbox(bboxFromMap(map));
   }
 
   function handleMoveEnd(e) {
+    zoomRef.current = e.target.getZoom();
     fetchByBbox(bboxFromMap(e.target));
   }
 
@@ -403,7 +394,7 @@ export default function MapView() {
           <Map
             ref={mapRef}
             {...viewState}
-            onMove={e => setViewState(e.viewState)}
+            onMove={e => { setViewState(e.viewState); zoomRef.current = e.viewState.zoom; }}
             onLoad={handleMapLoad}
             onMoveEnd={handleMoveEnd}
             onClick={handleMapClick}
@@ -429,8 +420,10 @@ export default function MapView() {
               </Marker>
             )}
 
-            {/* Country-level overview badges — shown when zoomed out (zoom < 8) */}
-            {viewState.zoom < 8 && COUNTRIES.map(country => {
+            {/* Country-level overview badges — shown when zoomed out (zoom < 7).
+                MapLibre layers have minzoom:7 so they are natively invisible below that.
+                React badges use fixed centroids so they can never merge across countries. */}
+            {viewState.zoom < 7 && COUNTRIES.map(country => {
               const count = countryTotals[country];
               if (!count) return null;
               const { lng, lat } = COUNTRY_CENTROIDS[country];
