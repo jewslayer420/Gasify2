@@ -100,11 +100,11 @@ const clusterCountLayer = {
 
 const COUNTRIES = ['SI', 'AT', 'FR', 'HU'];
 
-// Geographic centres used for the country-level overview bubbles (zoom < 6)
-// Slight lat offsets for SI/AT so their bubbles don't visually overlap
+// True geographic centres — AT must use its real centre (~13.2°E) not the eastern tip,
+// otherwise it overlaps with SI (14.8°E) at any zoom below 9.
 const COUNTRY_CENTROIDS = {
   SI: { lng: 14.82, lat: 46.12 },
-  AT: { lng: 14.55, lat: 47.72 },
+  AT: { lng: 13.20, lat: 47.60 },
   HU: { lng: 19.50, lat: 47.18 },
   FR: { lng:  2.35, lat: 46.60 },
 };
@@ -173,11 +173,11 @@ export default function MapView() {
     }
   }, [stations]);
 
-  // Hide MapLibre cluster/point layers when we're showing React country badges (zoom < 6)
+  // Hide MapLibre cluster/point layers when we're showing React country badges (zoom < 8)
   useEffect(() => {
     const map = mapRef.current?.getMap();
     if (!map) return;
-    const vis = viewState.zoom < 6 ? 'none' : 'visible';
+    const vis = viewState.zoom < 8 ? 'none' : 'visible';
     for (const c of COUNTRIES) {
       [`clusters-${c}`, `cluster-count-${c}`, `points-${c}`].forEach(id => {
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
@@ -429,8 +429,8 @@ export default function MapView() {
               </Marker>
             )}
 
-            {/* Country-level overview badges — shown when zoomed out (zoom < 6) */}
-            {viewState.zoom < 6 && COUNTRIES.map(country => {
+            {/* Country-level overview badges — shown when zoomed out (zoom < 8) */}
+            {viewState.zoom < 8 && COUNTRIES.map(country => {
               const count = countryTotals[country];
               if (!count) return null;
               const { lng, lat } = COUNTRY_CENTROIDS[country];
@@ -441,16 +441,16 @@ export default function MapView() {
                     background: '#1a1d2b',
                     border: '2px solid #22c55e',
                     borderRadius: '50%',
-                    width: 52, height: 52,
+                    width: 44, height: 44,
                     display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center',
                     color: '#e8eaf0',
-                    fontSize: 10, fontWeight: 700,
+                    fontSize: 9, fontWeight: 700,
                     pointerEvents: 'none',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
                     userSelect: 'none',
                   }}>
-                    <span style={{ fontSize: 18, lineHeight: 1 }}>{FLAGS[country]}</span>
+                    <span style={{ fontSize: 16, lineHeight: 1 }}>{FLAGS[country]}</span>
                     <span style={{ marginTop: 1 }}>{label}</span>
                   </div>
                 </Marker>
