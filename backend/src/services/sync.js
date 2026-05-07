@@ -3,6 +3,9 @@ const { fetchSloveniaStations } = require('./scrapers/slovenia');
 const { fetchFranceStations } = require('./scrapers/france');
 const { fetchAustriaStations } = require('./scrapers/austria');
 const { fetchHungaryStations } = require('./scrapers/hungary');
+const { fetchGermanyStations } = require('./scrapers/germany');
+const { fetchCzechiaStations } = require('./scrapers/czechia');
+const { fetchSlovakiaStations } = require('./scrapers/slovakia');
 const prisma = require('../lib/prisma');
 
 async function upsertStations(stations, label) {
@@ -57,12 +60,30 @@ async function syncHungary() {
   await upsertStations(stations, 'Hungary');
 }
 
+async function syncGermany() {
+  const stations = await fetchGermanyStations();
+  await upsertStations(stations, 'Germany');
+}
+
+async function syncCzechia() {
+  const stations = await fetchCzechiaStations();
+  await upsertStations(stations, 'Czechia');
+}
+
+async function syncSlovakia() {
+  const stations = await fetchSlovakiaStations();
+  await upsertStations(stations, 'Slovakia');
+}
+
 async function syncAll() {
   console.log('[sync] Starting full sync…');
   await syncSlovenia().catch(err => console.error('[sync] Slovenia error:', err.message));
   await syncFrance().catch(err => console.error('[sync] France error:', err.message));
   await syncAustria().catch(err => console.error('[sync] Austria error:', err.message));
   await syncHungary().catch(err => console.error('[sync] Hungary error:', err.message));
+  await syncGermany().catch(err => console.error('[sync] Germany error:', err.message));
+  await syncCzechia().catch(err => console.error('[sync] Czechia error:', err.message));
+  await syncSlovakia().catch(err => console.error('[sync] Slovakia error:', err.message));
   console.log('[sync] Full sync complete');
 }
 

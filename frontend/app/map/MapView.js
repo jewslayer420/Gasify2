@@ -20,7 +20,7 @@ const FUELS = [
   { key: 'cng',            label: 'CNG' },
 ];
 
-const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺' };
+const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', DE: '🇩🇪', CZ: '🇨🇿', SK: '🇸🇰' };
 
 function priceColor(p) {
   if (!p) return '#4b5563';
@@ -98,15 +98,18 @@ const clusterCountLayer = {
   },
 };
 
-const COUNTRIES = ['SI', 'AT', 'FR', 'HU'];
+const COUNTRIES = ['SI', 'AT', 'FR', 'HU', 'DE', 'CZ', 'SK'];
 
-// True geographic centres — AT must use its real centre (~13.2°E) not the eastern tip,
-// otherwise it overlaps with SI (14.8°E) at any zoom below 9.
+// True geographic centres for each country.
+// AT uses real centre (~13.2°E) not the eastern tip (which would overlap SI at 14.8°E).
 const COUNTRY_CENTROIDS = {
   SI: { lng: 14.82, lat: 46.12 },
   AT: { lng: 13.20, lat: 47.60 },
   HU: { lng: 19.50, lat: 47.18 },
   FR: { lng:  2.35, lat: 46.60 },
+  DE: { lng: 10.45, lat: 51.17 },
+  CZ: { lng: 15.47, lat: 49.82 },
+  SK: { lng: 19.20, lat: 48.70 },
 };
 
 // Individual station dot — color driven by price via MapLibre expression
