@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Map, { Marker } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -100,6 +100,15 @@ const clusterCountLayer = {
 
 const COUNTRIES = ['SI', 'AT', 'FR', 'HU'];
 
+// Geographic centres used for the country-level overview bubbles (zoom < 6)
+// Slight lat offsets for SI/AT so their bubbles don't visually overlap
+const COUNTRY_CENTROIDS = {
+  SI: { lng: 14.82, lat: 46.12 },
+  AT: { lng: 14.55, lat: 47.72 },
+  HU: { lng: 19.50, lat: 47.18 },
+  FR: { lng:  2.35, lat: 46.60 },
+};
+
 // Individual station dot — color driven by price via MapLibre expression
 const pointLayer = {
   id: 'points',
@@ -143,6 +152,13 @@ export default function MapView() {
   fuelRef.current = fuel;
   modeRef.current = mode;
 
+  // Station counts per country — drives the country-level overview bubbles
+  const countsByCountry = useMemo(() => {
+    const counts = {};
+    for (const s of stations) counts[s.country] = (counts[s.country] || 0) + 1;
+    return counts;
+  }, [stations]);
+
   // Push station data into per-country MapLibre sources whenever stations change
   useEffect(() => {
     const map = mapRef.current?.getMap();
@@ -157,6 +173,18 @@ export default function MapView() {
       if (src) src.setData(toGeoJSON(byCountry[country] || []));
     }
   }, [stations]);
+
+  // Hide MapLibre cluster/point layers when we're showing React country badges (zoom < 6)
+  useEffect(() => {
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+    const vis = viewState.zoom < 6 ? 'none' : 'visible';
+    for (const c of COUNTRIES) {
+      [`clusters-${c}`, `cluster-count-${c}`, `points-${c}`].forEach(id => {
+        if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
+      });
+    }
+  }, [viewState.zoom]);
 
   useEffect(() => {
     if (user) getFavorites().then(favs => setFavorites(new Set(favs.map(f => f.id))));
@@ -251,13 +279,15 @@ export default function MapView() {
     if (!e.features?.length) return;
     const feature = e.features[0];
     const map = e.target;
+    const layerId = feature.layer.id;
 
-    if (feature.layer.id === 'clusters') {
+    if (layerId.startsWith('clusters-')) {
+      const country = layerId.slice('clusters-'.length);
       try {
-        const zoom = await map.getSource('stations').getClusterExpansionZoom(feature.properties.cluster_id);
+        const zoom = await map.getSource(`stations-${country}`).getClusterExpansionZoom(feature.properties.cluster_id);
         map.flyTo({ center: feature.geometry.coordinates, zoom: zoom + 0.5, duration: 450 });
       } catch {}
-    } else if (feature.layer.id === 'points') {
+    } else if (layerId.startsWith('points-')) {
       const p = feature.properties;
       handleSelectStation({
         id: p.id, name: p.name, city: p.city, country: p.country,
@@ -399,6 +429,34 @@ export default function MapView() {
                 }} />
               </Marker>
             )}
+
+            {/* Country-level overview badges — shown when zoomed out (zoom < 6) */}
+            {viewState.zoom < 6 && COUNTRIES.map(country => {
+              const count = countsByCountry[country];
+              if (!count) return null;
+              const { lng, lat } = COUNTRY_CENTROIDS[country];
+              const label = count >= 1000 ? (count / 1000).toFixed(1) + 'k' : String(count);
+              return (
+                <Marker key={country} longitude={lng} latitude={lat} anchor="center">
+                  <div style={{
+                    background: '#1a1d2b',
+                    border: '2px solid #22c55e',
+                    borderRadius: '50%',
+                    width: 52, height: 52,
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                    color: '#e8eaf0',
+                    fontSize: 10, fontWeight: 700,
+                    pointerEvents: 'none',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                    userSelect: 'none',
+                  }}>
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>{FLAGS[country]}</span>
+                    <span style={{ marginTop: 1 }}>{label}</span>
+                  </div>
+                </Marker>
+              );
+            })}
           </Map>
         </div>
 
