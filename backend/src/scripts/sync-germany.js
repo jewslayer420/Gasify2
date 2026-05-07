@@ -2,36 +2,53 @@ require('dotenv').config({ path: require('path').join(__dirname, '../../.env') }
 const { fetchGermanyStations } = require('../services/scrapers/germany');
 const prisma = require('../lib/prisma');
 
+const CHUNK = 2000; // rows per createMany call
+
 async function run() {
   const stations = await fetchGermanyStations();
-  console.log(`[script] Fetched ${stations.length} Germany stations — upserting…`);
+  console.log(`[script] Fetched ${stations.length} Germany stations`);
 
-  let count = 0;
-  for (const station of stations) {
-    count++;
-    if (count % 100 === 0) console.log(`[script] ${count}/${stations.length}`);
-    const { prices, ...stationData } = station;
-    const saved = await prisma.station.upsert({
-      where: { externalId: stationData.externalId },
-      update: { name: stationData.name, lat: stationData.lat, lng: stationData.lng, city: stationData.city },
-      create: stationData,
-    });
-    for (const { fuelType, price } of prices) {
-      const existing = await prisma.fuelPrice.findUnique({
-        where: { stationId_fuelType: { stationId: saved.id, fuelType } },
-      });
-      await prisma.fuelPrice.upsert({
-        where: { stationId_fuelType: { stationId: saved.id, fuelType } },
-        update: { price },
-        create: { stationId: saved.id, fuelType, price },
-      });
-      if (!existing || existing.price !== price) {
-        await prisma.priceHistory.create({ data: { stationId: saved.id, fuelType, price } });
-      }
+  // ── Step 1: bulk-insert new stations (skip existing) ──────────────────────
+  const stationRows = stations.map(s => ({
+    externalId: s.externalId,
+    name: s.name,
+    brand: s.brand ?? null,
+    lat: s.lat,
+    lng: s.lng,
+    address: s.address ?? null,
+    city: s.city || '',
+    country: s.country,
+  }));
+
+  for (let i = 0; i < stationRows.length; i += CHUNK) {
+    await prisma.station.createMany({ data: stationRows.slice(i, i + CHUNK), skipDuplicates: true });
+    console.log(`[script] Stations ${Math.min(i + CHUNK, stationRows.length)}/${stationRows.length}`);
+  }
+
+  // ── Step 2: fetch all DE station IDs ─────────────────────────────────────
+  const saved = await prisma.station.findMany({
+    where: { country: 'DE' },
+    select: { id: true, externalId: true },
+  });
+  const idMap = new Map(saved.map(s => [s.externalId, s.id]));
+  console.log(`[script] ${saved.length} DE stations in DB`);
+
+  // ── Step 3: bulk-insert prices (skip existing) ────────────────────────────
+  const priceRows = [];
+  for (const s of stations) {
+    const stationId = idMap.get(s.externalId);
+    if (!stationId) continue;
+    for (const { fuelType, price } of s.prices) {
+      priceRows.push({ stationId, fuelType, price });
     }
   }
 
-  console.log(`[script] Done — ${stations.length} Germany stations saved`);
+  for (let i = 0; i < priceRows.length; i += CHUNK) {
+    await prisma.fuelPrice.createMany({ data: priceRows.slice(i, i + CHUNK), skipDuplicates: true });
+    console.log(`[script] Prices ${Math.min(i + CHUNK, priceRows.length)}/${priceRows.length}`);
+  }
+
+  console.log(`[script] Done — ${stations.length} stations, ${priceRows.length} price records`);
   await prisma.$disconnect();
 }
 
