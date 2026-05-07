@@ -16,11 +16,16 @@ const LNG_MIN =  5.9, LNG_MAX = 15.1, LNG_STEP = 0.5;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+const DEMO_KEY = '00000000-0000-0000-0000-000000000002';
+
 async function fetchGermanyStations() {
   const apiKey = process.env.TANKERKOENIG_API_KEY;
   if (!apiKey) {
     console.warn('[germany] TANKERKOENIG_API_KEY not set — skipping');
     return [];
+  }
+  if (apiKey === DEMO_KEY) {
+    console.warn('[germany] Using Tankerkönig demo key — station locations are real but prices are placeholder (€1.009). Register a free key at https://creativecommons.tankerkoenig.de/ for live prices.');
   }
 
   const stationMap = new Map();
