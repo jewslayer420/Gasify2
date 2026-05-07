@@ -1,9 +1,9 @@
 'use client';
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Map, { Marker } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { getStations, getStationHistory, geocodeCity, addFavorite, removeFavorite, getFavorites } from '../../lib/api';
+import { getStations, getStationHistory, geocodeCity, addFavorite, removeFavorite, getFavorites, getCountryCounts } from '../../lib/api';
 import { useUser } from '../../lib/context/UserContext';
 import styles from './map.module.css';
 
@@ -144,6 +144,7 @@ export default function MapView() {
   const [mode, setMode] = useState('bbox');
   const [cursor, setCursor] = useState('auto');
   const [viewState, setViewState] = useState({ longitude: 14.5, latitude: 46.1, zoom: 9 });
+  const [countryTotals, setCountryTotals] = useState({});
 
   const mapRef = useRef(null);
   const bboxTimer = useRef(null);
@@ -152,12 +153,10 @@ export default function MapView() {
   fuelRef.current = fuel;
   modeRef.current = mode;
 
-  // Station counts per country — drives the country-level overview bubbles
-  const countsByCountry = useMemo(() => {
-    const counts = {};
-    for (const s of stations) counts[s.country] = (counts[s.country] || 0) + 1;
-    return counts;
-  }, [stations]);
+  // Fetch total station counts per country once on mount (used for country-level overview bubbles)
+  useEffect(() => {
+    getCountryCounts().then(setCountryTotals).catch(() => {});
+  }, []);
 
   // Push station data into per-country MapLibre sources whenever stations change
   useEffect(() => {
@@ -432,7 +431,7 @@ export default function MapView() {
 
             {/* Country-level overview badges — shown when zoomed out (zoom < 6) */}
             {viewState.zoom < 6 && COUNTRIES.map(country => {
-              const count = countsByCountry[country];
+              const count = countryTotals[country];
               if (!count) return null;
               const { lng, lat } = COUNTRY_CENTROIDS[country];
               const label = count >= 1000 ? (count / 1000).toFixed(1) + 'k' : String(count);

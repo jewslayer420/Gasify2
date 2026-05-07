@@ -16,6 +16,22 @@ router.get('/geocode', async (req, res) => {
   }
 });
 
+// GET /api/stations/counts  — total station count per country (no fuel filter)
+router.get('/counts', async (req, res) => {
+  try {
+    const rows = await prisma.station.groupBy({
+      by: ['country'],
+      _count: { id: true },
+    });
+    const result = {};
+    for (const row of rows) result[row.country] = row._count.id;
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
 // GET /api/stations?fuel=diesel&lat=&lng=&bbox=minLat,minLng,maxLat,maxLng&near=1&city=Koper
 router.get('/', async (req, res) => {
   try {

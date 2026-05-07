@@ -12,6 +12,12 @@ export async function getStations({ fuel = 'diesel', lat, lng, bbox, near, city 
   return res.json();
 }
 
+export async function getCountryCounts() {
+  const res = await fetch(`${BASE}/api/stations/counts`);
+  if (!res.ok) return {};
+  return res.json();
+}
+
 export async function geocodeCity(city) {
   const res = await fetch(`${BASE}/api/stations/geocode?city=${encodeURIComponent(city)}`);
   if (!res.ok) return null;
