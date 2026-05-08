@@ -3,6 +3,9 @@ const router = express.Router();
 const { geocodeCity } = require('../utils/geo');
 const prisma = require('../lib/prisma');
 
+// In-memory GeoJSON cache — keyed by fuel type, expires after 30 minutes
+const geojsonCache = new Map();
+
 // GET /api/stations/geocode?city=Koper  — must be before /:id
 router.get('/geocode', async (req, res) => {
   try {
@@ -32,24 +35,41 @@ router.get('/counts', async (req, res) => {
   }
 });
 
+async function buildGeojson(fuel) {
+  const stations = await prisma.station.findMany({
+    where: { prices: { some: { fuelType: fuel, price: { gt: 0 } } } },
+    select: {
+      id: true, lat: true, lng: true, name: true, city: true, country: true,
+      prices: { where: { fuelType: fuel, price: { gt: 0 } }, select: { price: true }, take: 1 },
+    },
+  });
+  const features = stations.map(s => ({
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: [+s.lng.toFixed(5), +s.lat.toFixed(5)] },
+    properties: { id: s.id, name: s.name, city: s.city, country: s.country, price: s.prices[0]?.price ?? -1 },
+  }));
+  // Store as pre-serialized string — avoids re-stringifying on every request
+  const str = JSON.stringify({ type: 'FeatureCollection', features });
+  geojsonCache.set(fuel, { str, expiresAt: Date.now() + 30 * 60 * 1000 });
+  console.log(`[geojson] cached ${fuel}: ${stations.length} stations, ${(str.length / 1024).toFixed(0)} KB`);
+  return str;
+}
+
+// Pre-warm diesel cache on startup so the first user doesn't wait
+setTimeout(() => buildGeojson('diesel').catch(() => {}), 5000);
+
 // GET /api/stations/geojson?fuel=diesel  — full station set as minimal GeoJSON, cached 30 min
 router.get('/geojson', async (req, res) => {
   const { fuel = 'diesel' } = req.query;
+  const cached = geojsonCache.get(fuel);
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'public, max-age=1800');
+  if (cached && cached.expiresAt > Date.now()) {
+    return res.send(cached.str);
+  }
   try {
-    const stations = await prisma.station.findMany({
-      where: { prices: { some: { fuelType: fuel, price: { gt: 0 } } } },
-      select: {
-        id: true, lat: true, lng: true, name: true, city: true, country: true,
-        prices: { where: { fuelType: fuel, price: { gt: 0 } }, select: { price: true }, take: 1 },
-      },
-    });
-    const features = stations.map(s => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [s.lng, s.lat] },
-      properties: { id: s.id, name: s.name, city: s.city, country: s.country, price: s.prices[0]?.price ?? -1 },
-    }));
-    res.setHeader('Cache-Control', 'public, max-age=1800');
-    res.json({ type: 'FeatureCollection', features });
+    const str = await buildGeojson(fuel);
+    res.send(str);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed' });

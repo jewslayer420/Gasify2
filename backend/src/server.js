@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const compression = require('compression');
 
 const stationsRouter = require('./routes/stations');
 const authRouter = require('./routes/auth');
@@ -20,6 +21,7 @@ process.on('uncaughtException', (err) => {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.use(compression());
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000', credentials: true }));
 app.use(cookieParser());
 app.use(express.json());
