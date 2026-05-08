@@ -1,5 +1,11 @@
 const BASE = '';  // Next.js rewrites /api/* → backend
 
+export async function getStationsGeoJSON(fuel = 'diesel') {
+  const res = await fetch(`${BASE}/api/stations/geojson?fuel=${fuel}`);
+  if (!res.ok) throw new Error('Failed to fetch GeoJSON');
+  return res.json();
+}
+
 export async function getStations({ fuel = 'diesel', lat, lng, bbox, near, city, zoom } = {}) {
   const params = new URLSearchParams({ fuel });
   if (lat) params.set('lat', lat);

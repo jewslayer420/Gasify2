@@ -32,6 +32,30 @@ router.get('/counts', async (req, res) => {
   }
 });
 
+// GET /api/stations/geojson?fuel=diesel  — full station set as minimal GeoJSON, cached 30 min
+router.get('/geojson', async (req, res) => {
+  const { fuel = 'diesel' } = req.query;
+  try {
+    const stations = await prisma.station.findMany({
+      where: { prices: { some: { fuelType: fuel, price: { gt: 0 } } } },
+      select: {
+        id: true, lat: true, lng: true, name: true, city: true, country: true,
+        prices: { where: { fuelType: fuel, price: { gt: 0 } }, select: { price: true }, take: 1 },
+      },
+    });
+    const features = stations.map(s => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [s.lng, s.lat] },
+      properties: { id: s.id, name: s.name, city: s.city, country: s.country, price: s.prices[0]?.price ?? -1 },
+    }));
+    res.setHeader('Cache-Control', 'public, max-age=1800');
+    res.json({ type: 'FeatureCollection', features });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
 // GET /api/stations?fuel=diesel&lat=&lng=&bbox=minLat,minLng,maxLat,maxLng&near=1&city=Koper
 router.get('/', async (req, res) => {
   try {
