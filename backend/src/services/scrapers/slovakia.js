@@ -17,7 +17,12 @@ const FUEL_MAP = {
   'cng': 'cng', 'e10': 'e10',
 };
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+async function runConcurrent(items, fn, concurrency = 10) {
+  for (let i = 0; i < items.length; i += concurrency) {
+    await Promise.all(items.slice(i, i + concurrency).map(fn));
+  }
+}
+
 function mapFuelType(name) { return FUEL_MAP[(name || '').toLowerCase().trim()] ?? null; }
 
 function parsePrices(html) {
@@ -105,24 +110,23 @@ async function fetchSlovakiaStations() {
   }
 
   let done = 0;
-  for (const c of cells) {
+  await runConcurrent(cells, async (c) => {
     await fetchCell(c.latMin, c.latMax, c.lngMin, c.lngMax, stationIdMap);
     done++;
     if (done % 20 === 0) console.log(`[slovakia] Phase 1: ${done}/${cells.length} cells, ${stationIdMap.size} stations`);
-    await sleep(200);
-  }
+  });
   console.log(`[slovakia] Phase 1 done — ${stationIdMap.size} unique station IDs`);
 
   // Phase 2: fetch prices for each station
   const stations = [];
+  const ids = [...stationIdMap.entries()];
   let i = 0;
-  for (const [id, coords] of stationIdMap) {
+  await runConcurrent(ids, async ([id, coords]) => {
     const s = await fetchDetail(id, coords);
     if (s) stations.push(s);
     i++;
-    if (i % 100 === 0) console.log(`[slovakia] Phase 2: ${i}/${stationIdMap.size}, ${stations.length} with prices`);
-    await sleep(120);
-  }
+    if (i % 100 === 0) console.log(`[slovakia] Phase 2: ${i}/${ids.length}, ${stations.length} with prices`);
+  });
 
   console.log(`[slovakia] Done — ${stations.length} stations`);
   return stations;
