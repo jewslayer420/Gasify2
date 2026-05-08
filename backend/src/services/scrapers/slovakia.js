@@ -38,8 +38,10 @@ function parsePrices(html) {
     const ft = mapFuelType(m[1]);
     const raw = parseFloat(m[2].replace(',', '.'));
     if (!ft || isNaN(raw) || raw <= 0) continue;
-    // Slovakia is EUR; guard against unexpected CZK just in case
-    const price = m[3].toUpperCase() === 'CZK' ? +(raw / 25).toFixed(3) : +raw.toFixed(3);
+    const cur = m[3].toUpperCase();
+    const price = cur === 'CZK' ? +(raw / 25).toFixed(3)
+                : cur === 'HUF' ? +(raw / 400).toFixed(3)
+                : +raw.toFixed(3);
     if (price > 0) prices.push({ fuelType: ft, price });
   }
   return prices;
