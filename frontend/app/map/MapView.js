@@ -76,14 +76,17 @@ const pointLayer = {
 const COUNTRIES = ['SI', 'AT', 'FR', 'HU', 'DE', 'CZ', 'SK'];
 
 const COUNTRY_CENTROIDS = {
-  SI: { lng: 14.82, lat: 46.12 },
-  AT: { lng: 13.20, lat: 47.60 },
-  HU: { lng: 19.50, lat: 47.18 },
+  SI: { lng: 14.82, lat: 46.15 },
+  AT: { lng: 14.55, lat: 47.60 },
+  HU: { lng: 19.40, lat: 47.18 },
   FR: { lng:  2.35, lat: 46.60 },
   DE: { lng: 10.45, lat: 51.17 },
-  CZ: { lng: 15.47, lat: 49.82 },
-  SK: { lng: 19.20, lat: 48.70 },
+  CZ: { lng: 15.50, lat: 49.80 },
+  SK: { lng: 19.50, lat: 48.80 },
 };
+
+// Relative bubble size per country — proportional to geographic area
+const COUNTRY_SCALE = { FR: 1.25, DE: 1.2, AT: 1.0, HU: 1.0, CZ: 0.95, SK: 0.8, SI: 0.65 };
 
 export default function MapView() {
   const { user } = useUser() ?? {};
@@ -98,6 +101,7 @@ export default function MapView() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('bbox');
   const [showCountryBadges, setShowCountryBadges] = useState(false);
+  const [mapZoom, setMapZoom] = useState(5.5);
   const [countryTotals, setCountryTotals] = useState({});
 
   const mapRef = useRef(null);
@@ -201,8 +205,9 @@ export default function MapView() {
   }
 
   // After every pan/zoom-end: update sidebar from in-memory data — no network.
-  function handleMoveEnd() {
+  function handleMoveEnd(e) {
     updateSidebar();
+    if (e?.viewState?.zoom != null) setMapZoom(e.viewState.zoom);
   }
 
   function handleMapClick(e) {
@@ -371,22 +376,24 @@ export default function MapView() {
               if (!count) return null;
               const { lng, lat } = COUNTRY_CENTROIDS[country];
               const label = count >= 1000 ? (count / 1000).toFixed(1) + 'k' : String(count);
+              const base = Math.max(22, Math.min(46, mapZoom * 8.5));
+              const sz = Math.round(base * (COUNTRY_SCALE[country] ?? 1));
               return (
                 <Marker key={country} longitude={lng} latitude={lat} anchor="center">
                   <div style={{
                     background: '#1a1d2b',
-                    border: '2px solid #22c55e',
+                    border: `${sz > 32 ? 2 : 1.5}px solid #22c55e`,
                     borderRadius: '50%',
-                    width: 44, height: 44,
+                    width: sz, height: sz,
                     display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center',
                     color: '#e8eaf0',
-                    fontSize: 9, fontWeight: 700,
+                    fontSize: Math.max(6, sz * 0.2), fontWeight: 700,
                     pointerEvents: 'none',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
                     userSelect: 'none',
                   }}>
-                    <span style={{ fontSize: 16, lineHeight: 1 }}>{FLAGS[country]}</span>
+                    <span style={{ fontSize: Math.max(10, sz * 0.35), lineHeight: 1 }}>{FLAGS[country]}</span>
                     <span style={{ marginTop: 1 }}>{label}</span>
                   </div>
                 </Marker>
