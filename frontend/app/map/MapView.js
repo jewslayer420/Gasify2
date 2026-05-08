@@ -34,12 +34,12 @@ const heatmapLayer = {
   id: 'stations-heat',
   type: 'heatmap',
   source: 'stations',
-  minzoom: 7,
+  minzoom: 4,
   maxzoom: 12,
   paint: {
     'heatmap-weight': 1,
-    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 7, 0.3, 12, 1.2],
-    'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 7, 6, 12, 22],
+    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 4, 0.1, 7, 0.3, 12, 1.2],
+    'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 4, 3, 7, 6, 12, 22],
     'heatmap-color': [
       'interpolate', ['linear'], ['heatmap-density'],
       0,   'rgba(0,0,0,0)',
@@ -335,10 +335,10 @@ export default function MapView() {
         <div className={styles.map}>
           <Map
             ref={mapRef}
-            initialViewState={{ longitude: 14.5, latitude: 46.1, zoom: 9 }}
+            initialViewState={{ longitude: 15.5, latitude: 48.5, zoom: 5.5 }}
             onMove={e => {
               const z = e.viewState.zoom;
-              const below7 = z < 7;
+              const below7 = z < 5.5;
               if (below7 !== prevZoomBelow7.current) {
                 prevZoomBelow7.current = below7;
                 setShowCountryBadges(below7);
