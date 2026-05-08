@@ -50,51 +50,26 @@ function toGeoJSON(stations) {
   };
 }
 
-// Cluster bubble — radius caps at 28px regardless of how many countries are added
-const clusterLayer = {
-  id: 'clusters',
-  type: 'circle',
+// Heatmap — GPU-rendered density view at mid zoom, colors reflect price concentration
+const heatmapLayer = {
+  id: 'stations-heat',
+  type: 'heatmap',
   source: 'stations',
-  filter: ['has', 'point_count'],
+  minzoom: 7,
+  maxzoom: 12,
   paint: {
-    'circle-color': '#1a1d2b',
-    'circle-radius': [
-      'interpolate', ['linear'], ['zoom'],
-      2,  11,   // fully zoomed out → tiny
-      5,  14,   // country level
-      8,  18,   // region level
-      12, 20,   // city level
+    'heatmap-weight': 1,
+    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 7, 0.3, 12, 1.2],
+    'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 7, 6, 12, 22],
+    'heatmap-color': [
+      'interpolate', ['linear'], ['heatmap-density'],
+      0,   'rgba(0,0,0,0)',
+      0.2, 'rgba(34,197,94,0.5)',
+      0.5, 'rgba(249,115,22,0.7)',
+      0.8, 'rgba(239,68,68,0.85)',
+      1,   'rgba(239,68,68,1)',
     ],
-    'circle-stroke-width': 2,
-    'circle-stroke-color': '#22c55e',
-    'circle-opacity': 0.95,
-    'circle-opacity-transition': { duration: 0 },
-    'circle-radius-transition': { duration: 0 },
-    'circle-stroke-opacity-transition': { duration: 0 },
-  },
-};
-
-// Cluster count — same font CartoDB dark matter uses for map labels = already cached, no glyph delay
-const clusterCountLayer = {
-  id: 'cluster-count',
-  type: 'symbol',
-  source: 'stations',
-  filter: ['has', 'point_count'],
-  layout: {
-    'text-field': '{point_count_abbreviated}',
-    'text-font': ['Noto Sans Regular', 'Arial Unicode MS Regular'],
-    'text-size': [
-      'interpolate', ['linear'], ['zoom'],
-      2,  9,
-      5,  10,
-      8,  11,
-    ],
-    'text-allow-overlap': true,
-    'text-ignore-placement': true,
-  },
-  paint: {
-    'text-color': '#e8eaf0',
-    'text-opacity-transition': { duration: 0 },
+    'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.85, 12, 0],
   },
 };
 
@@ -112,12 +87,12 @@ const COUNTRY_CENTROIDS = {
   SK: { lng: 19.20, lat: 48.70 },
 };
 
-// Individual station dot — color driven by price via MapLibre expression
+// Individual station dot — color driven by price, fades in as heatmap fades out
 const pointLayer = {
   id: 'points',
   type: 'circle',
   source: 'stations',
-  filter: ['!', ['has', 'point_count']],
+  minzoom: 11,
   paint: {
     'circle-color': [
       'case',
@@ -126,10 +101,10 @@ const pointLayer = {
       ['<', ['get', 'price'], 1.90], '#f97316',
       '#ef4444',
     ],
-    'circle-radius': 8,
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 5, 14, 9],
     'circle-stroke-width': 1.5,
-    'circle-stroke-color': 'rgba(255,255,255,0.2)',
-    'circle-opacity': 0.92,
+    'circle-stroke-color': 'rgba(255,255,255,0.25)',
+    'circle-opacity': ['interpolate', ['linear'], ['zoom'], 11, 0, 12, 0.92],
   },
 };
 
@@ -240,15 +215,11 @@ export default function MapView() {
     map.addSource('stations', {
       type: 'geojson',
       data: { type: 'FeatureCollection', features: [] },
-      cluster: true,
-      clusterMaxZoom: 14,
-      clusterRadius: 50,
       buffer: 64,
       generateId: true,
     });
-    map.addLayer({ ...clusterLayer, minzoom: 7 });
-    map.addLayer({ ...clusterCountLayer, minzoom: 7 });
-    map.addLayer({ ...pointLayer, minzoom: 7 });
+    map.addLayer(heatmapLayer);
+    map.addLayer(pointLayer);
     fetchByBbox(bboxFromMap(map));
   }
 
@@ -257,26 +228,18 @@ export default function MapView() {
     fetchByBbox(bboxFromMap(e.target));
   }
 
-  async function handleMapClick(e) {
+  function handleMapClick(e) {
     if (!e.features?.length) return;
     const feature = e.features[0];
-    const map = e.target;
-
-    if (feature.layer.id === 'clusters') {
-      try {
-        const zoom = await map.getSource('stations').getClusterExpansionZoom(feature.properties.cluster_id);
-        map.flyTo({ center: feature.geometry.coordinates, zoom: zoom + 0.5, duration: 450 });
-      } catch {}
-    } else if (feature.layer.id === 'points') {
-      const p = feature.properties;
-      handleSelectStation({
-        id: p.id, name: p.name, city: p.city, country: p.country,
-        lat: p.lat, lng: p.lng,
-        price: p.price < 0 ? null : p.price,
-        distance: p.distance < 0 ? null : p.distance,
-        allPrices: JSON.parse(p.allPrices || '{}'),
-      });
-    }
+    if (feature.layer.id !== 'points') return;
+    const p = feature.properties;
+    handleSelectStation({
+      id: p.id, name: p.name, city: p.city, country: p.country,
+      lat: p.lat, lng: p.lng,
+      price: p.price < 0 ? null : p.price,
+      distance: p.distance < 0 ? null : p.distance,
+      allPrices: JSON.parse(p.allPrices || '{}'),
+    });
   }
 
   function handleNearMe() {
@@ -406,7 +369,7 @@ export default function MapView() {
             onClick={handleMapClick}
             onMouseEnter={e => { e.target.getCanvas().style.cursor = 'pointer'; }}
             onMouseLeave={e => { e.target.getCanvas().style.cursor = ''; }}
-            interactiveLayerIds={['clusters', 'points']}
+            interactiveLayerIds={['points']}
             mapStyle={MAP_STYLE}
             style={{ position: 'absolute', inset: 0 }}
             renderWorldCopies={false}
