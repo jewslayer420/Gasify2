@@ -8,14 +8,6 @@ const PHASE2_BASE = 'https://sk.fuelo.net/ajax/get_infowindow_content';
 const GRID_STEP = 0.3;
 const BOUNDS = { latMin: 47.73, latMax: 49.61, lngMin: 16.83, lngMax: 22.57 };
 
-const FUEL_MAP = {
-  'natural 95': 'sp95', 'unleaded 95': 'sp95', 'super 95': 'sp95', 'natural': 'sp95',
-  'natural 98': 'sp98', 'unleaded 98': 'sp98', 'super 98': 'sp98',
-  'diesel': 'diesel', 'nafta': 'diesel',
-  'diesel premium': 'diesel_premium', 'nafta premium': 'diesel_premium', 'premium diesel': 'diesel_premium',
-  'lpg': 'lpg', 'autogas': 'lpg', 'autoplyn': 'lpg',
-  'cng': 'cng', 'e10': 'e10',
-};
 
 async function runConcurrent(items, fn, concurrency = 10) {
   for (let i = 0; i < items.length; i += concurrency) {
@@ -23,7 +15,20 @@ async function runConcurrent(items, fn, concurrency = 10) {
   }
 }
 
-function mapFuelType(name) { return FUEL_MAP[(name || '').toLowerCase().trim()] ?? null; }
+function mapFuelType(name) {
+  if (!name) return null;
+  const n = name.toLowerCase().trim();
+  if (n.includes('lpg') || n.includes('autogas') || n.includes('autoplyn')) return 'lpg';
+  if (n.includes('cng') || n.includes('gnv')) return 'cng';
+  if (n.includes('e10')) return 'e10';
+  const isDiesel = n.includes('diesel') || n.includes('nafta') || n.includes('gazole');
+  const isPremium = n.includes('premium') || n.includes('verva') || n.includes('plus') || n.includes('ultimate') || n.includes('v-power');
+  if (isDiesel && isPremium) return 'diesel_premium';
+  if (isDiesel) return 'diesel';
+  if (n.includes('98') || n.includes('100') || n.includes('102')) return 'sp98';
+  if (n.includes('95') || n.includes('unleaded') || n.includes('natural') || n.includes('benzin') || n.includes('super') || n.includes('e5')) return 'sp95';
+  return null;
+}
 
 function parsePrices(html) {
   const prices = [];
