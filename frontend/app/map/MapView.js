@@ -145,14 +145,15 @@ export default function MapView() {
   const [citySearch, setCitySearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('bbox');
-  const [viewState, setViewState] = useState({ longitude: 14.5, latitude: 46.1, zoom: 9 });
+  const [showCountryBadges, setShowCountryBadges] = useState(false); // initial zoom 9 > 7
   const [countryTotals, setCountryTotals] = useState({});
 
   const mapRef = useRef(null);
   const bboxTimer = useRef(null);
   const modeRef = useRef('bbox');
   const fuelRef = useRef(fuel);
-  const zoomRef = useRef(viewState.zoom);
+  const zoomRef = useRef(9);
+  const prevZoomBelow7 = useRef(false);
   fuelRef.current = fuel;
   modeRef.current = mode;
 
@@ -385,8 +386,16 @@ export default function MapView() {
         <div className={styles.map}>
           <Map
             ref={mapRef}
-            {...viewState}
-            onMove={e => { setViewState(e.viewState); zoomRef.current = e.viewState.zoom; }}
+            initialViewState={{ longitude: 14.5, latitude: 46.1, zoom: 9 }}
+            onMove={e => {
+              const z = e.viewState.zoom;
+              zoomRef.current = z;
+              const below7 = z < 7;
+              if (below7 !== prevZoomBelow7.current) {
+                prevZoomBelow7.current = below7;
+                setShowCountryBadges(below7);
+              }
+            }}
             onLoad={handleMapLoad}
             onMoveEnd={handleMoveEnd}
             onClick={handleMapClick}
@@ -414,7 +423,7 @@ export default function MapView() {
             {/* Country-level overview badges — shown when zoomed out (zoom < 7).
                 MapLibre layers have minzoom:7 so they are natively invisible below that.
                 React badges use fixed centroids so they can never merge across countries. */}
-            {viewState.zoom < 7 && COUNTRIES.map(country => {
+            {showCountryBadges && COUNTRIES.map(country => {
               const count = countryTotals[country];
               if (!count) return null;
               const { lng, lat } = COUNTRY_CENTROIDS[country];
