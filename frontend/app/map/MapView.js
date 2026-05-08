@@ -394,6 +394,11 @@ export default function MapView() {
               if (below7 !== prevZoomBelow7.current) {
                 prevZoomBelow7.current = below7;
                 setShowCountryBadges(below7);
+                if (below7) {
+                  // Clear source so supercluster has 0 features to process while zoomed out
+                  const src = e.target.getSource('stations');
+                  if (src) src.setData({ type: 'FeatureCollection', features: [] });
+                }
               }
             }}
             onLoad={handleMapLoad}
