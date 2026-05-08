@@ -35,7 +35,7 @@ router.get('/counts', async (req, res) => {
 // GET /api/stations?fuel=diesel&lat=&lng=&bbox=minLat,minLng,maxLat,maxLng&near=1&city=Koper
 router.get('/', async (req, res) => {
   try {
-    const { fuel = 'diesel', lat, lng, bbox, near, city } = req.query;
+    const { fuel = 'diesel', lat, lng, bbox, near, city, zoom } = req.query;
 
     let userLat = lat ? parseFloat(lat) : null;
     let userLng = lng ? parseFloat(lng) : null;
@@ -81,6 +81,8 @@ router.get('/', async (req, res) => {
 
     if (bbox) {
       const [minLat, minLng, maxLat, maxLng] = bbox.split(',').map(Number);
+      const z = zoom ? parseInt(zoom) : 14;
+      const take = z <= 8 ? 500 : z <= 10 ? 800 : z <= 12 ? 1200 : 2000;
       stations = await prisma.station.findMany({
         where: {
           lat: { gte: minLat, lte: maxLat },
@@ -88,6 +90,7 @@ router.get('/', async (req, res) => {
           prices: { some: { fuelType: fuel, price: { gt: 0 } } },
         },
         include: { prices: true },
+        take,
       });
     } else if (near === '1' && userLat && userLng) {
       stations = await prisma.$queryRaw`

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Map, { Marker } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -145,7 +145,6 @@ export default function MapView() {
   const [citySearch, setCitySearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('bbox');
-  const [cursor, setCursor] = useState('auto');
   const [viewState, setViewState] = useState({ longitude: 14.5, latitude: 46.1, zoom: 9 });
   const [countryTotals, setCountryTotals] = useState({});
 
@@ -162,19 +161,12 @@ export default function MapView() {
     getCountryCounts().then(setCountryTotals).catch(() => {});
   }, []);
 
-  // Push station data into per-country MapLibre sources whenever stations change
+  // Push station data into the single MapLibre source whenever stations change
   useEffect(() => {
     const map = mapRef.current?.getMap();
     if (!map) return;
-    const byCountry = {};
-    for (const s of stations) {
-      if (!byCountry[s.country]) byCountry[s.country] = [];
-      byCountry[s.country].push(s);
-    }
-    for (const country of COUNTRIES) {
-      const src = map.getSource(`stations-${country}`);
-      if (src) src.setData(toGeoJSON(byCountry[country] || []));
-    }
+    const src = map.getSource('stations');
+    if (src) src.setData(toGeoJSON(stations));
   }, [stations]);
 
   useEffect(() => {
@@ -198,7 +190,7 @@ export default function MapView() {
     bboxTimer.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const data = await getStations({ fuel: fuelRef.current, bbox });
+        const data = await getStations({ fuel: fuelRef.current, bbox, zoom: Math.floor(zoomRef.current) });
         setStations(data);
       } catch {}
       setLoading(false);
@@ -244,22 +236,18 @@ export default function MapView() {
 
   function handleMapLoad(e) {
     const map = e.target;
-    for (const country of COUNTRIES) {
-      map.addSource(`stations-${country}`, {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-        cluster: true,
-        clusterMaxZoom: 14,
-        clusterRadius: 50,
-        buffer: 64,
-        generateId: true,
-      });
-      // minzoom: 7 means MapLibre natively hides these layers below zoom 7 —
-      // no imperative visibility toggling needed.
-      map.addLayer({ id: `clusters-${country}`,      type: 'circle', minzoom: 7, source: `stations-${country}`, filter: ['has', 'point_count'],        paint: clusterLayer.paint });
-      map.addLayer({ id: `cluster-count-${country}`, type: 'symbol', minzoom: 7, source: `stations-${country}`, filter: ['has', 'point_count'],        layout: clusterCountLayer.layout, paint: clusterCountLayer.paint });
-      map.addLayer({ id: `points-${country}`,        type: 'circle', minzoom: 7, source: `stations-${country}`, filter: ['!', ['has', 'point_count']], paint: pointLayer.paint });
-    }
+    map.addSource('stations', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+      cluster: true,
+      clusterMaxZoom: 14,
+      clusterRadius: 50,
+      buffer: 64,
+      generateId: true,
+    });
+    map.addLayer({ ...clusterLayer, minzoom: 7 });
+    map.addLayer({ ...clusterCountLayer, minzoom: 7 });
+    map.addLayer({ ...pointLayer, minzoom: 7 });
     fetchByBbox(bboxFromMap(map));
   }
 
@@ -272,15 +260,13 @@ export default function MapView() {
     if (!e.features?.length) return;
     const feature = e.features[0];
     const map = e.target;
-    const layerId = feature.layer.id;
 
-    if (layerId.startsWith('clusters-')) {
-      const country = layerId.slice('clusters-'.length);
+    if (feature.layer.id === 'clusters') {
       try {
-        const zoom = await map.getSource(`stations-${country}`).getClusterExpansionZoom(feature.properties.cluster_id);
+        const zoom = await map.getSource('stations').getClusterExpansionZoom(feature.properties.cluster_id);
         map.flyTo({ center: feature.geometry.coordinates, zoom: zoom + 0.5, duration: 450 });
       } catch {}
-    } else if (layerId.startsWith('points-')) {
+    } else if (feature.layer.id === 'points') {
       const p = feature.properties;
       handleSelectStation({
         id: p.id, name: p.name, city: p.city, country: p.country,
@@ -366,7 +352,10 @@ export default function MapView() {
   }
   function onTouchEnd() { dragStartY.current = null; }
 
-  const sortedStations = [...stations].sort((a, b) => (a.price ?? 9) - (b.price ?? 9));
+  const sortedStations = useMemo(
+    () => [...stations].sort((a, b) => (a.price ?? 9) - (b.price ?? 9)),
+    [stations]
+  );
 
   // Always read price from allPrices so it updates when fuel tab changes
   const selectedPrice = selected ? (selected.allPrices?.[fuel] ?? null) : null;
@@ -401,10 +390,9 @@ export default function MapView() {
             onLoad={handleMapLoad}
             onMoveEnd={handleMoveEnd}
             onClick={handleMapClick}
-            onMouseEnter={() => setCursor('pointer')}
-            onMouseLeave={() => setCursor('auto')}
-            interactiveLayerIds={COUNTRIES.flatMap(c => [`clusters-${c}`, `points-${c}`])}
-            cursor={cursor}
+            onMouseEnter={e => { e.target.getCanvas().style.cursor = 'pointer'; }}
+            onMouseLeave={e => { e.target.getCanvas().style.cursor = ''; }}
+            interactiveLayerIds={['clusters', 'points']}
             mapStyle={MAP_STYLE}
             style={{ position: 'absolute', inset: 0 }}
             renderWorldCopies={false}
@@ -457,11 +445,13 @@ export default function MapView() {
 
         <div className={styles.sidebar}>
           <div className={styles.sidebarHeader}>
-            <span className={styles.sidebarCount}>{stations.length} stations</span>
+            <span className={styles.sidebarCount}>
+              {stations.length > 100 ? `${stations.length} stations (top 100)` : `${stations.length} stations`}
+            </span>
             <span className={styles.sidebarFuel}>{FUELS.find(f => f.key === fuel)?.label}</span>
           </div>
           <div className={styles.stationList}>
-            {sortedStations.map((s, i) => (
+            {sortedStations.slice(0, 100).map((s, i) => (
               <button
                 key={s.id}
                 className={`${styles.stationRow} ${selected?.id === s.id ? styles.stationRowActive : ''}`}

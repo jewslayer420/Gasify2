@@ -1,12 +1,13 @@
 const BASE = '';  // Next.js rewrites /api/* → backend
 
-export async function getStations({ fuel = 'diesel', lat, lng, bbox, near, city } = {}) {
+export async function getStations({ fuel = 'diesel', lat, lng, bbox, near, city, zoom } = {}) {
   const params = new URLSearchParams({ fuel });
   if (lat) params.set('lat', lat);
   if (lng) params.set('lng', lng);
   if (bbox) params.set('bbox', bbox);
   if (near) params.set('near', '1');
   if (city) params.set('city', city);
+  if (zoom != null) params.set('zoom', zoom);
   const res = await fetch(`${BASE}/api/stations?${params}`);
   if (!res.ok) throw new Error('Failed to fetch stations');
   return res.json();
