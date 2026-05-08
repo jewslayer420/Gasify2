@@ -63,7 +63,7 @@ router.get('/geojson', async (req, res) => {
   const { fuel = 'diesel' } = req.query;
   const cached = geojsonCache.get(fuel);
   res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Cache-Control', 'public, max-age=1800');
+  res.setHeader('Cache-Control', 'no-store');
   if (cached && cached.expiresAt > Date.now()) {
     return res.send(cached.str);
   }
