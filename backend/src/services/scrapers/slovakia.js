@@ -1,13 +1,21 @@
-// Slovakia fuel prices via fuelo.net public AJAX endpoints — no API key needed
+// Slovakia fuel prices via sk.fuelo.net public AJAX endpoints — no API key needed
 // Phase 1: grid POST to get station IDs + coords
-// Phase 2: GET per station for prices (HTML in JSON envelope)
-// Slovakia uses EUR — no currency conversion needed
+// Phase 2: GET per station for prices — detects actual country from address,
+//          converts CZK/HUF/RON to EUR, skips non-Slovak border stations
 
 const PHASE1_URL = 'https://sk.fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
 const PHASE2_BASE = 'https://sk.fuelo.net/ajax/get_infowindow_content';
 const GRID_STEP = 0.15;
 const BOUNDS = { latMin: 47.70, latMax: 49.65, lngMin: 16.80, lngMax: 22.60 };
 
+const COUNTRY_NAME_MAP = {
+  slovakia: 'SK', slovensko: 'SK', slowakei: 'SK',
+  hungary: 'HU', magyarország: 'HU', magyarorszag: 'HU', ungarn: 'HU',
+  czechia: 'CZ', 'czech republic': 'CZ', 'česká republika': 'CZ', tschechien: 'CZ',
+  austria: 'AT', österreich: 'AT', osterreich: 'AT',
+  romania: 'RO', românia: 'RO', rumänien: 'RO', rumanien: 'RO',
+  poland: 'PL', polska: 'PL', ukraine: 'UA',
+};
 
 async function runConcurrent(items, fn, concurrency = 10) {
   for (let i = 0; i < items.length; i += concurrency) {
@@ -26,23 +34,35 @@ function mapFuelType(name) {
   if (isDiesel && isPremium) return 'diesel_premium';
   if (isDiesel) return 'diesel';
   if (n.includes('98') || n.includes('100') || n.includes('102')) return 'sp98';
-  if (n.includes('95') || n.includes('unleaded') || n.includes('natural') || n.includes('benzin') || n.includes('super') || n.includes('e5')) return 'sp95';
+  if (n.includes('95') || n.includes('unleaded') || n.includes('natural') || n.includes('benzin') || n.includes('super') || n.includes('e5') || n.includes('a95')) return 'sp95';
   return null;
 }
 
+function convertPrice(raw, cur) {
+  switch (cur) {
+    case 'CZK': return +(raw / 25).toFixed(3);
+    case 'HUF': return +(raw / 400).toFixed(3);
+    case 'RON': return +(raw / 5).toFixed(3);
+    case 'PLN': return +(raw / 4.25).toFixed(3);
+    default:    return +raw.toFixed(3); // EUR or unknown — keep as-is
+  }
+}
+
 function parsePrices(html) {
+  const seen = new Set();
   const prices = [];
   const regex = /title="([^:]+):\s*([\d.,]+)\s*([A-Z]+)\/l/gi;
   let m;
   while ((m = regex.exec(html)) !== null) {
     const ft = mapFuelType(m[1]);
     const raw = parseFloat(m[2].replace(',', '.'));
-    if (!ft || isNaN(raw) || raw <= 0) continue;
     const cur = m[3].toUpperCase();
-    const price = cur === 'CZK' ? +(raw / 25).toFixed(3)
-                : cur === 'HUF' ? +(raw / 400).toFixed(3)
-                : +raw.toFixed(3);
-    if (price > 0) prices.push({ fuelType: ft, price });
+    if (!ft || isNaN(raw) || raw <= 0 || seen.has(ft)) continue;
+    const price = convertPrice(raw, cur);
+    // Sanity check — skip obviously wrong prices
+    if (price <= 0 || price > 4) continue;
+    seen.add(ft);
+    prices.push({ fuelType: ft, price });
   }
   return prices;
 }
@@ -52,10 +72,7 @@ async function fetchCell(latMin, latMax, lngMin, lngMax, stationIdMap) {
   try {
     const res = await fetch(PHASE1_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0 (compatible; Gasify/1.0)',
-      },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'Mozilla/5.0 (compatible; Gasify/1.0)' },
       body,
       signal: AbortSignal.timeout(20000),
     });
@@ -86,6 +103,13 @@ async function fetchDetail(id, coords) {
     const addrMatch = html.match(/<h5[^>]*>([^<]+)<\/h5>/);
     const rawAddr = addrMatch ? addrMatch[1].trim() : '';
 
+    // Detect country from "CountryName, City, Street" address format
+    const parts = rawAddr.split(',').map(p => p.trim());
+    const detectedCountry = COUNTRY_NAME_MAP[parts[0]?.toLowerCase()] ?? 'SK';
+
+    // Only keep Slovak stations — skip Romanian, Hungarian, Czech cross-border stations
+    if (detectedCountry !== 'SK') return null;
+
     const prices = parsePrices(html);
     if (!prices.length) return null;
 
@@ -95,7 +119,7 @@ async function fetchDetail(id, coords) {
       brand: null,
       lat: coords.lat, lng: coords.lng,
       address: rawAddr || null,
-      city: rawAddr ? (rawAddr.split(',')[0] || '').trim() : '',
+      city: parts.slice(1).join(', ').trim() || parts[0] || '',
       country: 'SK',
       prices,
     };
@@ -105,7 +129,6 @@ async function fetchDetail(id, coords) {
 async function fetchSlovakiaStations() {
   const stationIdMap = new Map();
 
-  // Phase 1: collect station IDs via grid
   const cells = [];
   for (let lat = BOUNDS.latMin; lat < BOUNDS.latMax; lat += GRID_STEP) {
     for (let lng = BOUNDS.lngMin; lng < BOUNDS.lngMax; lng += GRID_STEP) {
@@ -124,7 +147,6 @@ async function fetchSlovakiaStations() {
   });
   console.log(`[slovakia] Phase 1 done — ${stationIdMap.size} unique station IDs`);
 
-  // Phase 2: fetch prices for each station
   const stations = [];
   const ids = [...stationIdMap.entries()];
   let i = 0;
@@ -132,7 +154,7 @@ async function fetchSlovakiaStations() {
     const s = await fetchDetail(id, coords);
     if (s) stations.push(s);
     i++;
-    if (i % 100 === 0) console.log(`[slovakia] Phase 2: ${i}/${ids.length}, ${stations.length} with prices`);
+    if (i % 100 === 0) console.log(`[slovakia] Phase 2: ${i}/${ids.length}, ${stations.length} SK stations`);
   });
 
   console.log(`[slovakia] Done — ${stations.length} stations`);
