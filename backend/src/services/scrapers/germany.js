@@ -17,28 +17,29 @@ async function runConcurrent(items, fn, concurrency = 10) {
 function mapFuelType(name) {
   if (!name) return null;
   const n = name.toLowerCase().trim();
-  if (n.includes('lpg') || n.includes('autogas') || n.includes('autoplyn')) return 'lpg';
+  if (n.includes('lpg') || n.includes('autogas')) return 'lpg';
   if (n.includes('cng') || n.includes('gnv')) return 'cng';
   if (n.includes('e10') || n.includes('super e10')) return 'e10';
-  const isDiesel = n.includes('diesel') || n.includes('nafta') || n.includes('gazole');
+  const isDiesel = n.includes('diesel') || n.includes('gazole');
   const isPremium = n.includes('premium') || n.includes('verva') || n.includes('plus') || n.includes('ultimate') || n.includes('v-power');
   if (isDiesel && isPremium) return 'diesel_premium';
   if (isDiesel) return 'diesel';
   if (n.includes('98') || n.includes('100') || n.includes('102')) return 'sp98';
-  if (n.includes('95') || n.includes('unleaded') || n.includes('natural') || n.includes('benzin') || n.includes('super') || n.includes('e5')) return 'sp95';
+  if (n.includes('95') || n.includes('unleaded') || n.includes('super') || n.includes('benzin') || n.includes('e5')) return 'sp95';
   return null;
 }
 
 function parsePrices(html) {
+  const seen = new Set();
   const prices = [];
   const regex = /title="([^:]+):\s*([\d.,]+)\s*([A-Z€]+)\/l/gi;
   let m;
   while ((m = regex.exec(html)) !== null) {
     const ft = mapFuelType(m[1]);
     const raw = parseFloat(m[2].replace(',', '.'));
-    if (!ft || isNaN(raw) || raw <= 0) continue;
-    const price = +raw.toFixed(3);
-    if (price > 0) prices.push({ fuelType: ft, price });
+    if (!ft || isNaN(raw) || raw <= 0 || seen.has(ft)) continue;
+    seen.add(ft);
+    prices.push({ fuelType: ft, price: +raw.toFixed(3) });
   }
   return prices;
 }
@@ -48,10 +49,7 @@ async function fetchCell(latMin, latMax, lngMin, lngMax, stationIdMap) {
   try {
     const res = await fetch(PHASE1_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0 (compatible; Gasify/1.0)',
-      },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'Mozilla/5.0 (compatible; Gasify/1.0)' },
       body,
       signal: AbortSignal.timeout(20000),
     });
@@ -77,17 +75,11 @@ async function fetchDetail(id, coords) {
     const data = await res.json();
     const html = data.text || '';
     if (!html) return null;
-
     const nameMatch = html.match(/<h4[^>]*>([^<]+)<\/h4>/);
     const addrMatch = html.match(/<h5[^>]*>([^<]+)<\/h5>/);
     const rawAddr = addrMatch ? addrMatch[1].trim() : '';
-
-    const rawPrices = parsePrices(html);
-    // Deduplicate: keep only the first price per fuel type
-    const seen = new Set();
-    const prices = rawPrices.filter(p => { if (seen.has(p.fuelType)) return false; seen.add(p.fuelType); return true; });
+    const prices = parsePrices(html);
     if (!prices.length) return null;
-
     return {
       externalId: `DE-${id}`,
       name: nameMatch ? nameMatch[1].trim() : `Station ${id}`,
@@ -101,9 +93,9 @@ async function fetchDetail(id, coords) {
   } catch { return null; }
 }
 
-async function fetchGermanyStations() {
+// Phase 1 only — returns Map<id, {lat, lng}>
+async function fetchPhase1() {
   const stationIdMap = new Map();
-
   const cells = [];
   for (let lat = BOUNDS.latMin; lat < BOUNDS.latMax; lat += GRID_STEP) {
     for (let lng = BOUNDS.lngMin; lng < BOUNDS.lngMax; lng += GRID_STEP) {
@@ -113,7 +105,6 @@ async function fetchGermanyStations() {
       });
     }
   }
-
   let done = 0;
   await runConcurrent(cells, async (c) => {
     await fetchCell(c.latMin, c.latMax, c.lngMin, c.lngMax, stationIdMap);
@@ -121,19 +112,17 @@ async function fetchGermanyStations() {
     if (done % 20 === 0) console.log(`[germany] Phase 1: ${done}/${cells.length} cells, ${stationIdMap.size} stations`);
   });
   console.log(`[germany] Phase 1 done — ${stationIdMap.size} unique station IDs`);
+  return stationIdMap;
+}
 
+// Phase 2 for a slice of entries — returns stations with prices
+async function fetchDetailBatch(entries) {
   const stations = [];
-  const ids = [...stationIdMap.entries()];
-  let i = 0;
-  await runConcurrent(ids, async ([id, coords]) => {
+  await runConcurrent(entries, async ([id, coords]) => {
     const s = await fetchDetail(id, coords);
     if (s) stations.push(s);
-    i++;
-    if (i % 100 === 0) console.log(`[germany] Phase 2: ${i}/${ids.length}, ${stations.length} with prices`);
   });
-
-  console.log(`[germany] Done — ${stations.length} stations`);
   return stations;
 }
 
-module.exports = { fetchGermanyStations };
+module.exports = { fetchPhase1, fetchDetailBatch };
