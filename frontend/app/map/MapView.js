@@ -38,8 +38,8 @@ const heatmapLayer = {
   maxzoom: 12,
   paint: {
     'heatmap-weight': 1,
-    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 3, 0.6, 4, 0.5, 5, 0.4, 7, 0.3, 12, 1.2],
-    'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 3, 20, 4, 15, 5, 12, 7, 6, 12, 22],
+    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 3, 0.15, 4, 0.2, 5, 0.25, 7, 0.3, 12, 1.2],
+    'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 3, 15, 4, 12, 5, 10, 7, 6, 12, 22],
     'heatmap-color': [
       'interpolate', ['linear'], ['heatmap-density'],
       0,   'rgba(0,0,0,0)',
