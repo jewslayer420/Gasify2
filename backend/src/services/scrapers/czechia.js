@@ -32,7 +32,7 @@ function mapFuelType(name) {
 
 function parsePrices(html) {
   const prices = [];
-  const regex = /title="([^:]+):\s*([\d.,]+)\s*([A-Z]+)\/l/gi;
+  const regex = /title="([^:]+):\s*([\d.,]+)\s*([A-Z€]+)\/l/gi;
   let m;
   while ((m = regex.exec(html)) !== null) {
     const ft = mapFuelType(m[1]);
