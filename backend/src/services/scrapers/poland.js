@@ -1,15 +1,15 @@
-// Hungary fuel prices via hu.fuelo.net public AJAX endpoints — no API key needed
-const PHASE1_URL = 'https://hu.fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
-const PHASE2_BASE = 'https://hu.fuelo.net/ajax/get_infowindow_content';
-const GRID_STEP = 0.2;
-const BOUNDS = { latMin: 45.70, latMax: 48.60, lngMin: 16.00, lngMax: 23.00 };
+// Poland fuel prices via pl.fuelo.net public AJAX endpoints — no API key needed
+const PHASE1_URL = 'https://pl.fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
+const PHASE2_BASE = 'https://pl.fuelo.net/ajax/get_infowindow_content';
+const GRID_STEP = 0.3;
+const BOUNDS = { latMin: 49.0, latMax: 54.9, lngMin: 14.1, lngMax: 24.2 };
 
 const COUNTRY_NAME_MAP = {
-  hungary: 'HU', magyarország: 'HU', magyarorszag: 'HU', ungarn: 'HU',
-  austria: 'AT', österreich: 'AT', osterreich: 'AT',
-  slovakia: 'SK', slovensko: 'SK',
-  ukraine: 'UA', romania: 'RO', românia: 'RO',
-  serbia: 'RS', croatia: 'HR', hrvatska: 'HR', slovenia: 'SI',
+  poland: 'PL', polska: 'PL',
+  germany: 'DE', deutschland: 'DE',
+  czechia: 'CZ', 'czech republic': 'CZ',
+  slovakia: 'SK', ukraine: 'UA',
+  belarus: 'BY', lithuania: 'LT', russia: 'RU',
 };
 
 async function runConcurrent(items, fn, concurrency = 10) {
@@ -21,23 +21,23 @@ async function runConcurrent(items, fn, concurrency = 10) {
 function mapFuelType(name) {
   if (!name) return null;
   const n = name.toLowerCase().trim();
-  if (n.includes('lpg') || n.includes('autogas')) return 'lpg';
+  if (n.includes('lpg') || n.includes('autogas') || n.includes('autoplyn')) return 'lpg';
   if (n.includes('cng') || n.includes('gnv')) return 'cng';
   if (n.includes('e10')) return 'e10';
-  const isDiesel = n.includes('diesel') || n.includes('gazole');
-  const isPremium = n.includes('premium') || n.includes('plus') || n.includes('ultimate') || n.includes('v-power') || n.includes('evo');
+  const isDiesel = n.includes('diesel') || n.includes('nafta') || n.includes('gazole') || n.includes('olej');
+  const isPremium = n.includes('premium') || n.includes('verva') || n.includes('plus') || n.includes('ultimate') || n.includes('v-power');
   if (isDiesel && isPremium) return 'diesel_premium';
   if (isDiesel) return 'diesel';
   if (n.includes('98') || n.includes('100')) return 'sp98';
-  if (n.includes('95') || n.includes('super') || n.includes('unleaded') || n.includes('benzin') || n.includes('e5')) return 'sp95';
+  if (n.includes('95') || n.includes('unleaded') || n.includes('benzin') || n.includes('super') || n.includes('e5') || n.includes('pb')) return 'sp95';
   return null;
 }
 
 function convertPrice(raw, cur) {
   switch (cur) {
-    case 'HUF': return +(raw / 400).toFixed(3);
-    case 'RON': return +(raw / 5).toFixed(3);
+    case 'PLN': return +(raw / 4.25).toFixed(3);
     case 'CZK': return +(raw / 25).toFixed(3);
+    case 'EUR': return +raw.toFixed(3);
     default:    return +raw.toFixed(3);
   }
 }
@@ -97,26 +97,26 @@ async function fetchDetail(id, coords) {
     const rawAddr = addrMatch ? addrMatch[1].trim() : '';
 
     const parts = rawAddr.split(',').map(p => p.trim());
-    const detectedCountry = COUNTRY_NAME_MAP[parts[0]?.toLowerCase()] ?? 'HU';
-    if (detectedCountry !== 'HU') return null;
+    const detectedCountry = COUNTRY_NAME_MAP[parts[0]?.toLowerCase()] ?? 'PL';
+    if (detectedCountry !== 'PL') return null;
 
     const prices = parsePrices(html);
     if (!prices.length) return null;
 
     return {
-      externalId: `HU-${id}`,
+      externalId: `PL-${id}`,
       name: nameMatch ? nameMatch[1].trim() : `Station ${id}`,
       brand: null,
       lat: coords.lat, lng: coords.lng,
       address: rawAddr || null,
       city: parts.slice(1).join(', ').trim() || parts[0] || '',
-      country: 'HU',
+      country: 'PL',
       prices,
     };
   } catch { return null; }
 }
 
-async function fetchHungaryStations() {
+async function fetchPolandStations() {
   const stationIdMap = new Map();
 
   const cells = [];
@@ -133,9 +133,9 @@ async function fetchHungaryStations() {
   await runConcurrent(cells, async (c) => {
     await fetchCell(c.latMin, c.latMax, c.lngMin, c.lngMax, stationIdMap);
     done++;
-    if (done % 20 === 0) console.log(`[hungary] Phase 1: ${done}/${cells.length} cells, ${stationIdMap.size} stations`);
+    if (done % 20 === 0) console.log(`[poland] Phase 1: ${done}/${cells.length} cells, ${stationIdMap.size} stations`);
   });
-  console.log(`[hungary] Phase 1 done — ${stationIdMap.size} unique station IDs`);
+  console.log(`[poland] Phase 1 done — ${stationIdMap.size} unique station IDs`);
 
   const stations = [];
   const ids = [...stationIdMap.entries()];
@@ -144,11 +144,11 @@ async function fetchHungaryStations() {
     const s = await fetchDetail(id, coords);
     if (s) stations.push(s);
     i++;
-    if (i % 100 === 0) console.log(`[hungary] Phase 2: ${i}/${ids.length}, ${stations.length} HU stations`);
+    if (i % 200 === 0) console.log(`[poland] Phase 2: ${i}/${ids.length}, ${stations.length} PL stations`);
   });
 
-  console.log(`[hungary] Done — ${stations.length} stations`);
+  console.log(`[poland] Done — ${stations.length} stations`);
   return stations;
 }
 
-module.exports = { fetchHungaryStations };
+module.exports = { fetchPolandStations };
