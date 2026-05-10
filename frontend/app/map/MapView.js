@@ -34,7 +34,7 @@ const heatmapLayer = {
   id: 'stations-heat',
   type: 'heatmap',
   source: 'stations',
-  minzoom: 4,
+  minzoom: 7,
   maxzoom: 12,
   paint: {
     'heatmap-weight': 1,
