@@ -5,6 +5,20 @@ const prisma = require('../lib/prisma');
 const CHUNK = 2000; // rows per createMany call
 
 async function run() {
+  // ── Step 0: wipe old DE data (Tankerkönig placeholders) ──────────────────
+  console.log('[script] Clearing old DE stations...');
+  const oldStations = await prisma.station.findMany({ where: { country: 'DE' }, select: { id: true } });
+  const oldIds = oldStations.map(s => s.id);
+  if (oldIds.length) {
+    for (let i = 0; i < oldIds.length; i += CHUNK) {
+      await prisma.fuelPrice.deleteMany({ where: { stationId: { in: oldIds.slice(i, i + CHUNK) } } });
+    }
+    for (let i = 0; i < oldIds.length; i += CHUNK) {
+      await prisma.station.deleteMany({ where: { id: { in: oldIds.slice(i, i + CHUNK) } } });
+    }
+    console.log(`[script] Deleted ${oldIds.length} old DE stations`);
+  }
+
   const stations = await fetchGermanyStations();
   console.log(`[script] Fetched ${stations.length} Germany stations`);
 
@@ -44,7 +58,7 @@ async function run() {
   }
 
   for (let i = 0; i < priceRows.length; i += CHUNK) {
-    await prisma.fuelPrice.createMany({ data: priceRows.slice(i, i + CHUNK), skipDuplicates: true });
+    await prisma.fuelPrice.createMany({ data: priceRows.slice(i, i + CHUNK), skipDuplicates: false });
     console.log(`[script] Prices ${Math.min(i + CHUNK, priceRows.length)}/${priceRows.length}`);
   }
 
