@@ -20,7 +20,7 @@ const FUELS = [
   { key: 'cng',            label: 'CNG' },
 ];
 
-const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', DE: '🇩🇪', CZ: '🇨🇿', SK: '🇸🇰', NL: '🇳🇱', BE: '🇧🇪', CH: '🇨🇭', PL: '🇵🇱' };
+const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', DE: '🇩🇪', CZ: '🇨🇿', SK: '🇸🇰', NL: '🇳🇱', BE: '🇧🇪', CH: '🇨🇭', PL: '🇵🇱', RO: '🇷🇴', HR: '🇭🇷', RS: '🇷🇸' };
 
 function priceColor(p) {
   if (!p) return '#4b5563';
@@ -73,7 +73,7 @@ const pointLayer = {
   },
 };
 
-const COUNTRIES = ['SI', 'AT', 'FR', 'HU', 'DE', 'CZ', 'SK', 'NL', 'BE', 'CH', 'PL'];
+const COUNTRIES = ['SI', 'AT', 'FR', 'HU', 'DE', 'CZ', 'SK', 'NL', 'BE', 'CH', 'PL', 'RO', 'HR', 'RS'];
 
 const COUNTRY_CENTROIDS = {
   SI: { lng: 14.82, lat: 46.15 },
@@ -87,10 +87,12 @@ const COUNTRY_CENTROIDS = {
   BE: { lng:  4.47, lat: 50.50 },
   CH: { lng:  8.23, lat: 46.82 },
   PL: { lng: 19.50, lat: 52.10 },
+  RO: { lng: 25.00, lat: 45.94 },
+  HR: { lng: 15.20, lat: 45.10 },
+  RS: { lng: 21.00, lat: 44.02 },
 };
 
-// Relative bubble size per country — proportional to geographic area
-const COUNTRY_SCALE = { FR: 1.25, DE: 1.2, PL: 1.1, AT: 1.0, HU: 1.0, CZ: 0.95, NL: 0.85, SK: 0.8, BE: 0.8, CH: 0.75, SI: 0.65 };
+const COUNTRY_SCALE = { FR: 1.25, DE: 1.2, PL: 1.1, RO: 1.0, AT: 1.0, HU: 1.0, CZ: 0.95, NL: 0.85, SK: 0.8, BE: 0.8, CH: 0.75, HR: 0.75, SI: 0.65, RS: 0.7 };
 
 export default function MapView() {
   const { user } = useUser() ?? {};
