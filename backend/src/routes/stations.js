@@ -38,8 +38,8 @@ router.get('/counts', async (req, res) => {
 async function buildGeojson(fuel) {
   const rows = await prisma.$queryRaw`
     SELECT s.id, s.lat, s.lng, s.name, s.city, s.country, fp.price
-    FROM Station s
-    INNER JOIN FuelPrice fp ON fp.stationId = s.id AND fp.fuelType = ${fuel} AND fp.price > 0
+    FROM "Station" s
+    INNER JOIN "FuelPrice" fp ON fp."stationId" = s.id AND fp."fuelType" = ${fuel} AND fp.price > 0
   `;
   const features = rows.map(s => ({
     type: 'Feature',
