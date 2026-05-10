@@ -6,15 +6,15 @@ const CHUNK = 2000;
 const FETCH_BATCH = 500; // fetch + insert this many stations at a time
 
 async function run() {
-  // Step 0: wipe old DE data
-  console.log('[script] Clearing old DE stations...');
-  const oldIds = (await prisma.station.findMany({ where: { country: 'DE' }, select: { id: true } })).map(s => s.id);
+  // Step 0: wipe old DE/NL/BE data (all countries this scraper covers)
+  console.log('[script] Clearing old DE/NL/BE stations...');
+  const oldIds = (await prisma.station.findMany({ where: { country: { in: ['DE', 'NL', 'BE', 'LU'] } }, select: { id: true } })).map(s => s.id);
   if (oldIds.length) {
     for (let i = 0; i < oldIds.length; i += CHUNK)
       await prisma.fuelPrice.deleteMany({ where: { stationId: { in: oldIds.slice(i, i + CHUNK) } } });
     for (let i = 0; i < oldIds.length; i += CHUNK)
       await prisma.station.deleteMany({ where: { id: { in: oldIds.slice(i, i + CHUNK) } } });
-    console.log(`[script] Deleted ${oldIds.length} old DE stations`);
+    console.log(`[script] Deleted ${oldIds.length} old stations`);
   }
 
   // Step 1: Phase 1 — collect all station IDs

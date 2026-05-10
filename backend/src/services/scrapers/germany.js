@@ -6,7 +6,20 @@
 const PHASE1_URL = 'https://de.fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
 const PHASE2_BASE = 'https://de.fuelo.net/ajax/get_infowindow_content';
 const GRID_STEP = 0.3;
-const BOUNDS = { latMin: 47.3, latMax: 55.1, lngMin: 5.9, lngMax: 15.1 };
+// Extended bounds cover DE + NL + BE
+const BOUNDS = { latMin: 47.3, latMax: 55.5, lngMin: 2.5, lngMax: 15.1 };
+
+const COUNTRY_NAME_MAP = {
+  germany: 'DE', deutschland: 'DE',
+  netherlands: 'NL', nederland: 'NL', holland: 'NL',
+  belgium: 'BE', belgique: 'BE', belgië: 'BE', belgie: 'BE',
+  luxembourg: 'LU', luxembourg: 'LU',
+  austria: 'AT', österreich: 'AT', osterreich: 'AT',
+  france: 'FR', frankreich: 'FR',
+  switzerland: 'CH', schweiz: 'CH',
+  poland: 'PL', czechia: 'CZ', 'czech republic': 'CZ',
+  slovakia: 'SK', hungary: 'HU', slovenia: 'SI',
+};
 
 async function runConcurrent(items, fn, concurrency = 10) {
   for (let i = 0; i < items.length; i += concurrency) {
@@ -80,14 +93,20 @@ async function fetchDetail(id, coords) {
     const rawAddr = addrMatch ? addrMatch[1].trim() : '';
     const prices = parsePrices(html);
     if (!prices.length) return null;
+
+    // Detect country from "CountryName, City, Street" address format
+    const parts = rawAddr.split(',').map(p => p.trim());
+    const detectedCountry = COUNTRY_NAME_MAP[parts[0]?.toLowerCase()] ?? 'DE';
+    const city = parts.slice(1).join(', ').trim() || parts[0] || '';
+
     return {
-      externalId: `DE-${id}`,
+      externalId: `${detectedCountry}-${id}`,
       name: nameMatch ? nameMatch[1].trim() : `Station ${id}`,
       brand: null,
       lat: coords.lat, lng: coords.lng,
       address: rawAddr || null,
-      city: rawAddr ? (rawAddr.split(',').slice(1).join(',').trim() || rawAddr.split(',')[0].trim()) : '',
-      country: 'DE',
+      city,
+      country: detectedCountry,
       prices,
     };
   } catch { return null; }
