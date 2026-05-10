@@ -5,8 +5,8 @@
 
 const PHASE1_URL = 'https://sk.fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
 const PHASE2_BASE = 'https://sk.fuelo.net/ajax/get_infowindow_content';
-const GRID_STEP = 0.3;
-const BOUNDS = { latMin: 47.73, latMax: 49.61, lngMin: 16.83, lngMax: 22.57 };
+const GRID_STEP = 0.15;
+const BOUNDS = { latMin: 47.70, latMax: 49.65, lngMin: 16.80, lngMax: 22.60 };
 
 
 async function runConcurrent(items, fn, concurrency = 10) {
