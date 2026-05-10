@@ -82,7 +82,10 @@ async function fetchDetail(id, coords) {
     const addrMatch = html.match(/<h5[^>]*>([^<]+)<\/h5>/);
     const rawAddr = addrMatch ? addrMatch[1].trim() : '';
 
-    const prices = parsePrices(html);
+    const rawPrices = parsePrices(html);
+    // Deduplicate: keep only the first price per fuel type
+    const seen = new Set();
+    const prices = rawPrices.filter(p => { if (seen.has(p.fuelType)) return false; seen.add(p.fuelType); return true; });
     if (!prices.length) return null;
 
     return {

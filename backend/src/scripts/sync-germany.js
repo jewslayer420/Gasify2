@@ -58,7 +58,7 @@ async function run() {
   }
 
   for (let i = 0; i < priceRows.length; i += CHUNK) {
-    await prisma.fuelPrice.createMany({ data: priceRows.slice(i, i + CHUNK), skipDuplicates: false });
+    await prisma.fuelPrice.createMany({ data: priceRows.slice(i, i + CHUNK), skipDuplicates: true });
     console.log(`[script] Prices ${Math.min(i + CHUNK, priceRows.length)}/${priceRows.length}`);
   }
 
