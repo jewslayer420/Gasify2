@@ -1,7 +1,7 @@
 // Switzerland fuel prices via ch.fuelo.net public AJAX endpoints — no API key needed
 const PHASE1_URL = 'https://ch.fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
 const PHASE2_BASE = 'https://ch.fuelo.net/ajax/get_infowindow_content';
-const GRID_STEP = 0.15;
+const GRID_STEP = 0.08;
 const BOUNDS = { latMin: 45.82, latMax: 47.81, lngMin: 5.96, lngMax: 10.49 };
 
 const COUNTRY_NAME_MAP = {

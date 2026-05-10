@@ -1,7 +1,7 @@
 // Hungary fuel prices via hu.fuelo.net public AJAX endpoints — no API key needed
 const PHASE1_URL = 'https://hu.fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
 const PHASE2_BASE = 'https://hu.fuelo.net/ajax/get_infowindow_content';
-const GRID_STEP = 0.2;
+const GRID_STEP = 0.1;
 const BOUNDS = { latMin: 45.70, latMax: 48.60, lngMin: 16.00, lngMax: 23.00 };
 
 const COUNTRY_NAME_MAP = {

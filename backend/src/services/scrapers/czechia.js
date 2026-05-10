@@ -5,7 +5,7 @@
 const PHASE1_URL = 'https://cz.fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
 const PHASE2_BASE = 'https://cz.fuelo.net/ajax/get_infowindow_content';
 const CZK_EUR = 25.0;
-const GRID_STEP = 0.3;
+const GRID_STEP = 0.1;
 const BOUNDS = { latMin: 48.55, latMax: 51.06, lngMin: 12.09, lngMax: 18.87 };
 
 

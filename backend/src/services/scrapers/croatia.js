@@ -6,8 +6,14 @@ const BOUNDS = { latMin: 42.40, latMax: 46.60, lngMin: 13.50, lngMax: 19.50 };
 
 const COUNTRY_NAME_MAP = {
   croatia: 'HR', hrvatska: 'HR',
-  slovenia: 'SI', bosna: 'BA', 'bosnia and herzegovina': 'BA',
-  hungary: 'HU', serbia: 'RS', montenegro: 'ME',
+  slovenia: 'SI', slovenija: 'SI',
+  'bosna i hercegovina': 'BA', 'bosnia and herzegovina': 'BA', bosna: 'BA', 'bosna i hec': 'BA',
+  'bih': 'BA', 'b&h': 'BA', hercegovina: 'BA', 'republika srpska': 'BA',
+  'federacija bosne i hercegovine': 'BA', 'federacija bih': 'BA',
+  hungary: 'HU', magyarország: 'HU', magyarorszag: 'HU',
+  serbia: 'RS', srbija: 'RS',
+  montenegro: 'ME', 'crna gora': 'ME',
+  austria: 'AT', italy: 'IT', italia: 'IT',
 };
 
 async function runConcurrent(items, fn, concurrency = 10) {

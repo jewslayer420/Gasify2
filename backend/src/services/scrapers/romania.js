@@ -1,7 +1,7 @@
 // Romania fuel prices via ro.fuelo.net public AJAX endpoints — no API key needed
 const PHASE1_URL = 'https://ro.fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
 const PHASE2_BASE = 'https://ro.fuelo.net/ajax/get_infowindow_content';
-const GRID_STEP = 0.3;
+const GRID_STEP = 0.15;
 const BOUNDS = { latMin: 43.60, latMax: 48.30, lngMin: 20.20, lngMax: 29.80 };
 
 const COUNTRY_NAME_MAP = {

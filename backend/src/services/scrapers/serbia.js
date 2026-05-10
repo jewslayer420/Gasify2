@@ -1,7 +1,7 @@
 // Serbia fuel prices via rs.fuelo.net public AJAX endpoints — no API key needed
 const PHASE1_URL = 'https://rs.fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
 const PHASE2_BASE = 'https://rs.fuelo.net/ajax/get_infowindow_content';
-const GRID_STEP = 0.2;
+const GRID_STEP = 0.1;
 const BOUNDS = { latMin: 42.20, latMax: 46.20, lngMin: 18.80, lngMax: 23.00 };
 
 const COUNTRY_NAME_MAP = {
