@@ -36,22 +36,19 @@ router.get('/counts', async (req, res) => {
 });
 
 async function buildGeojson(fuel) {
-  const stations = await prisma.station.findMany({
-    where: { prices: { some: { fuelType: fuel, price: { gt: 0 } } } },
-    select: {
-      id: true, lat: true, lng: true, name: true, city: true, country: true,
-      prices: { where: { fuelType: fuel, price: { gt: 0 } }, select: { price: true }, take: 1 },
-    },
-  });
-  const features = stations.map(s => ({
+  const rows = await prisma.$queryRaw`
+    SELECT s.id, s.lat, s.lng, s.name, s.city, s.country, fp.price
+    FROM Station s
+    INNER JOIN FuelPrice fp ON fp.stationId = s.id AND fp.fuelType = ${fuel} AND fp.price > 0
+  `;
+  const features = rows.map(s => ({
     type: 'Feature',
-    geometry: { type: 'Point', coordinates: [+s.lng.toFixed(5), +s.lat.toFixed(5)] },
-    properties: { id: s.id, name: s.name, city: s.city, country: s.country, price: s.prices[0]?.price ?? -1 },
+    geometry: { type: 'Point', coordinates: [+Number(s.lng).toFixed(5), +Number(s.lat).toFixed(5)] },
+    properties: { id: s.id, name: s.name, city: s.city, country: s.country, price: Number(s.price) },
   }));
-  // Store as pre-serialized string — avoids re-stringifying on every request
   const str = JSON.stringify({ type: 'FeatureCollection', features });
   geojsonCache.set(fuel, { str, expiresAt: Date.now() + 30 * 60 * 1000 });
-  console.log(`[geojson] cached ${fuel}: ${stations.length} stations, ${(str.length / 1024).toFixed(0)} KB`);
+  console.log(`[geojson] cached ${fuel}: ${rows.length} stations, ${(str.length / 1024).toFixed(0)} KB`);
   return str;
 }
 
