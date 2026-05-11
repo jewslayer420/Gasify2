@@ -17,6 +17,12 @@ const { fetchSlovakiaStations }  = require('./scrapers/slovakia');
 const { fetchHungaryStations }   = require('./scrapers/hungary');
 const { fetchRomaniaStations }   = require('./scrapers/romania');
 const { fetchSerbiaStations }    = require('./scrapers/serbia');
+const { fetchBulgariaStations }  = require('./scrapers/bulgaria');
+const { fetchGreeceStations }    = require('./scrapers/greece');
+const { fetchBosniaStations }    = require('./scrapers/bosnia');
+const { fetchMontenegroStations } = require('./scrapers/montenegro');
+const { fetchNorthMacedoniaStations } = require('./scrapers/northmacedonia');
+const { fetchAlbaniaStations }   = require('./scrapers/albania');
 
 const CHUNK = 500;
 
@@ -124,7 +130,13 @@ async function runNightlySlowSync() {
   await runSync('Slovakia',    fetchSlovakiaStations);
   await runSync('Hungary',     fetchHungaryStations);
   await runSync('Romania',     fetchRomaniaStations);
-  await runSync('Serbia',      fetchSerbiaStations);
+  await runSync('Serbia',         fetchSerbiaStations);
+  await runSync('Bulgaria',       fetchBulgariaStations);
+  await runSync('Greece',         fetchGreeceStations);
+  await runSync('Bosnia',         fetchBosniaStations);
+  await runSync('Montenegro',     fetchMontenegroStations);
+  await runSync('NorthMacedonia', fetchNorthMacedoniaStations);
+  await runSync('Albania',        fetchAlbaniaStations);
   console.log('[sync] Nightly slow sync complete');
 }
 
