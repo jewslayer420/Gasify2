@@ -2,7 +2,7 @@
 // Grid-scans DE with 50km radius cells; deduplicates by station UUID
 
 const API_BASE = 'https://creativecommons.tankerkoenig.de/json/list.php';
-const API_KEY = '00000000-0000-0000-0000-000000000002';
+const API_KEY = process.env.TANKERKOENIG_API_KEY || '00000000-0000-0000-0000-000000000002';
 const RADIUS = 15; // km — small enough that even dense cities stay under the 350-station API cap
 const GRID_STEP = 0.18; // degrees (~20km) — slight overlap with 15km radius circles
 const BOUNDS = { latMin: 47.2, latMax: 55.1, lngMin: 5.9, lngMax: 15.2 };
