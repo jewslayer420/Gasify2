@@ -144,4 +144,10 @@ async function fetchDetailBatch(entries) {
   return stations;
 }
 
-module.exports = { fetchPhase1, fetchDetailBatch };
+async function fetchGermanyStations() {
+  const idMap = await fetchPhase1();
+  const entries = [...idMap.entries()];
+  return fetchDetailBatch(entries);
+}
+
+module.exports = { fetchPhase1, fetchDetailBatch, fetchGermanyStations };

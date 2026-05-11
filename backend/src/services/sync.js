@@ -1,95 +1,146 @@
 const cron = require('node-cron');
-const { fetchSloveniaStations } = require('./scrapers/slovenia');
-const { fetchFranceStations } = require('./scrapers/france');
-const { fetchAustriaStations } = require('./scrapers/austria');
-const { fetchHungaryStations } = require('./scrapers/hungary');
-const { fetchGermanyStations } = require('./scrapers/germany');
-const { fetchCzechiaStations } = require('./scrapers/czechia');
-const { fetchSlovakiaStations } = require('./scrapers/slovakia');
 const prisma = require('../lib/prisma');
 
-async function upsertStations(stations, label) {
-  console.log(`[sync] Upserting ${stations.length} ${label} stations…`);
-  let count = 0;
-  for (const station of stations) {
-    count++;
-    if (count % 50 === 0) console.log(`[sync] ${label}: ${count}/${stations.length}`);
-    const { prices, ...stationData } = station;
+const { fetchSloveniaStations }  = require('./scrapers/slovenia');
+const { fetchFranceStations }    = require('./scrapers/france');
+const { fetchSpainStations }     = require('./scrapers/spain');
+const { fetchItalyStations }     = require('./scrapers/italy');
+const { fetchPortugalStations }  = require('./scrapers/portugal');
+const { fetchAustriaStations }   = require('./scrapers/austria');
+const { fetchPolandStations }    = require('./scrapers/poland');
+const { fetchNLStations }        = require('./scrapers/netherlands');
+const { fetchGermanyStations }   = require('./scrapers/germany');
+const { fetchCroatiaStations }   = require('./scrapers/croatia');
+const { fetchCzechiaStations }   = require('./scrapers/czechia');
+const { fetchSwitzerlandStations } = require('./scrapers/switzerland');
+const { fetchSlovakiaStations }  = require('./scrapers/slovakia');
+const { fetchHungaryStations }   = require('./scrapers/hungary');
+const { fetchRomaniaStations }   = require('./scrapers/romania');
+const { fetchSerbiaStations }    = require('./scrapers/serbia');
 
-    const saved = await prisma.station.upsert({
-      where: { externalId: stationData.externalId },
-      update: { name: stationData.name, lat: stationData.lat, lng: stationData.lng, city: stationData.city },
-      create: stationData,
+const CHUNK = 500;
+
+// Bulk upsert: insert new stations, update changed prices, record history
+async function bulkUpsertStations(stations, label) {
+  if (!stations.length) { console.log(`[sync] ${label}: 0 stations, skipping`); return; }
+  let totalNew = 0, totalUpdated = 0;
+
+  for (let i = 0; i < stations.length; i += CHUNK) {
+    const batch = stations.slice(i, i + CHUNK);
+    const stationRows = batch.map(({ prices, ...s }) => s);
+
+    await prisma.station.createMany({ data: stationRows, skipDuplicates: true });
+
+    const saved = await prisma.station.findMany({
+      where: { externalId: { in: stationRows.map(s => s.externalId) } },
+      select: { id: true, externalId: true },
     });
+    const idMap = new Map(saved.map(s => [s.externalId, s.id]));
+    const stationIds = saved.map(s => s.id);
 
-    for (const { fuelType, price } of prices) {
-      const existing = await prisma.fuelPrice.findUnique({
-        where: { stationId_fuelType: { stationId: saved.id, fuelType } },
-      });
+    const existingPrices = await prisma.fuelPrice.findMany({
+      where: { stationId: { in: stationIds } },
+      select: { stationId: true, fuelType: true, price: true },
+    });
+    const existingMap = new Map(existingPrices.map(p => [`${p.stationId}|${p.fuelType}`, p.price]));
 
-      await prisma.fuelPrice.upsert({
-        where: { stationId_fuelType: { stationId: saved.id, fuelType } },
-        update: { price },
-        create: { stationId: saved.id, fuelType, price },
-      });
-
-      if (!existing || existing.price !== price) {
-        await prisma.priceHistory.create({ data: { stationId: saved.id, fuelType, price } });
+    const toInsert = [], toUpdate = [], historyRows = [];
+    for (const s of batch) {
+      const stationId = idMap.get(s.externalId);
+      if (!stationId) continue;
+      for (const { fuelType, price } of s.prices) {
+        const key = `${stationId}|${fuelType}`;
+        const old = existingMap.get(key);
+        if (old === undefined) {
+          toInsert.push({ stationId, fuelType, price });
+        } else if (old !== price) {
+          toUpdate.push({ stationId, fuelType, price });
+          historyRows.push({ stationId, fuelType, price });
+        }
       }
     }
+
+    if (toInsert.length) await prisma.fuelPrice.createMany({ data: toInsert });
+
+    for (let j = 0; j < toUpdate.length; j += 100) {
+      await prisma.$transaction(
+        toUpdate.slice(j, j + 100).map(p =>
+          prisma.fuelPrice.update({
+            where: { stationId_fuelType: { stationId: p.stationId, fuelType: p.fuelType } },
+            data: { price: p.price },
+          })
+        )
+      );
+    }
+
+    if (historyRows.length) await prisma.priceHistory.createMany({ data: historyRows });
+
+    totalNew += toInsert.length;
+    totalUpdated += toUpdate.length;
+    console.log(`[sync] ${label}: ${Math.min(i + CHUNK, stations.length)}/${stations.length} stations`);
+  }
+  console.log(`[sync] ${label} done — ${totalNew} new prices, ${totalUpdated} updated`);
+}
+
+async function runSync(label, fetchFn) {
+  console.log(`[sync] Starting ${label}…`);
+  try {
+    const stations = await fetchFn();
+    await bulkUpsertStations(stations, label);
+  } catch (err) {
+    console.error(`[sync] ${label} error:`, err.message);
   }
 }
 
-async function syncSlovenia() {
-  const stations = await fetchSloveniaStations();
-  await upsertStations(stations, 'Slovenia');
+// ── Fast government API countries — every 6 hours ──────────────────────────
+// Staggered by 10 min so they don't all hit at minute 0
+
+function scheduleGovernmentAPIs() {
+  // France: 0:00, 6:00, 12:00, 18:00
+  cron.schedule('0 0,6,12,18 * * *',   () => runSync('France',   fetchFranceStations));
+  // Spain: every 6h offset by 10min
+  cron.schedule('10 0,6,12,18 * * *',  () => runSync('Spain',    fetchSpainStations));
+  // Italy: every 6h offset by 20min
+  cron.schedule('20 0,6,12,18 * * *',  () => runSync('Italy',    fetchItalyStations));
+  // Portugal: every 6h offset by 30min
+  cron.schedule('30 0,6,12,18 * * *',  () => runSync('Portugal', fetchPortugalStations));
+  // Austria: every 6h offset by 40min
+  cron.schedule('40 0,6,12,18 * * *',  () => runSync('Austria',  fetchAustriaStations));
+  // Poland: every 6h offset by 50min
+  cron.schedule('50 0,6,12,18 * * *',  () => runSync('Poland',   fetchPolandStations));
 }
 
-async function syncFrance() {
-  const stations = await fetchFranceStations();
-  await upsertStations(stations, 'France');
-}
+// ── Slow fuelo.net grid scrapers — once daily ────────────────────────────────
+// Run sequentially overnight to avoid Cloudflare rate limits
 
-async function syncAustria() {
-  const stations = await fetchAustriaStations();
-  await upsertStations(stations, 'Austria');
-}
-
-async function syncHungary() {
-  const stations = await fetchHungaryStations();
-  await upsertStations(stations, 'Hungary');
-}
-
-async function syncGermany() {
-  const stations = await fetchGermanyStations();
-  await upsertStations(stations, 'Germany');
-}
-
-async function syncCzechia() {
-  const stations = await fetchCzechiaStations();
-  await upsertStations(stations, 'Czechia');
-}
-
-async function syncSlovakia() {
-  const stations = await fetchSlovakiaStations();
-  await upsertStations(stations, 'Slovakia');
-}
-
-async function syncAll() {
-  console.log('[sync] Starting full sync…');
-  await syncSlovenia().catch(err => console.error('[sync] Slovenia error:', err.message));
-  await syncFrance().catch(err => console.error('[sync] France error:', err.message));
-  await syncAustria().catch(err => console.error('[sync] Austria error:', err.message));
-  await syncHungary().catch(err => console.error('[sync] Hungary error:', err.message));
-  await syncGermany().catch(err => console.error('[sync] Germany error:', err.message));
-  await syncCzechia().catch(err => console.error('[sync] Czechia error:', err.message));
-  await syncSlovakia().catch(err => console.error('[sync] Slovakia error:', err.message));
-  console.log('[sync] Full sync complete');
+async function runNightlySlowSync() {
+  console.log('[sync] Nightly slow sync starting…');
+  await runSync('Slovenia',    fetchSloveniaStations);
+  await runSync('Germany',     fetchGermanyStations);    // also covers NL + BE
+  await runSync('Netherlands', fetchNLStations);         // extra NL coverage
+  await runSync('Croatia',     fetchCroatiaStations);
+  await runSync('Czechia',     fetchCzechiaStations);
+  await runSync('Switzerland', fetchSwitzerlandStations);
+  await runSync('Slovakia',    fetchSlovakiaStations);
+  await runSync('Hungary',     fetchHungaryStations);
+  await runSync('Romania',     fetchRomaniaStations);
+  await runSync('Serbia',      fetchSerbiaStations);
+  console.log('[sync] Nightly slow sync complete');
 }
 
 function startSyncScheduler() {
-  syncAll().catch(console.error);
-  cron.schedule('0 */2 * * *', () => syncAll().catch(console.error));
+  // Run all syncs once on startup (staggered to avoid hammering APIs)
+  setTimeout(() => runSync('France',      fetchFranceStations),   0);
+  setTimeout(() => runSync('Spain',       fetchSpainStations),    15000);
+  setTimeout(() => runSync('Italy',       fetchItalyStations),    30000);
+  setTimeout(() => runSync('Portugal',    fetchPortugalStations), 45000);
+  setTimeout(() => runSync('Austria',     fetchAustriaStations),  60000);
+  setTimeout(() => runSync('Poland',      fetchPolandStations),   75000);
+  setTimeout(() => runNightlySlowSync(),                          120000); // 2 min after start
+
+  // Schedule recurring syncs
+  scheduleGovernmentAPIs();
+  cron.schedule('0 2 * * *', runNightlySlowSync); // slow scrapers at 2am UTC daily
 }
 
-module.exports = { syncAll, startSyncScheduler };
+module.exports = { startSyncScheduler };
