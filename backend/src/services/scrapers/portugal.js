@@ -1,125 +1,90 @@
-// Portugal fuel prices via pt.fuelo.net public AJAX endpoints — no API key needed
-const PHASE1_URL = 'https://pt.fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
-const PHASE2_BASE = 'https://pt.fuelo.net/ajax/get_infowindow_content';
-const GRID_STEP = 0.2;
-const BOUNDS = { latMin: 36.90, latMax: 42.20, lngMin: -9.50, lngMax: -6.20 };
+// Portugal fuel prices via DGEG official API — no API key needed
+// https://precoscombustiveis.dgeg.gov.pt/api/PrecoComb/PesquisarPostos
+// Returns ~14,488 records (one row per fuel type per station), paginated ~55/page
 
-const COUNTRY_NAME_MAP = {
-  portugal: 'PT',
-  spain: 'ES', españa: 'ES', espanha: 'ES',
-};
-
-async function runConcurrent(items, fn, concurrency = 10) {
-  for (let i = 0; i < items.length; i += concurrency)
-    await Promise.all(items.slice(i, i + concurrency).map(fn));
-}
+const API_BASE = 'https://precoscombustiveis.dgeg.gov.pt/api/PrecoComb/PesquisarPostos';
 
 function mapFuelType(name) {
   if (!name) return null;
   const n = name.toLowerCase().trim();
-  if (n.includes('lpg') || n.includes('autogas') || n.includes('gpl')) return 'lpg';
-  if (n.includes('cng') || n.includes('gnv') || n.includes('gnc')) return 'cng';
-  if (n.includes('e10')) return 'e10';
-  const isDiesel = n.includes('diesel') || n.includes('gasoleo') || n.includes('gasóleo') || n.includes('gazole');
-  const isPremium = n.includes('premium') || n.includes('plus') || n.includes('ultimate') || n.includes('v-power');
+  if (n.includes('gpl') || n.includes('lpg')) return 'lpg';
+  if (n.includes('metano') || n.includes('cng') || n.includes('gnv')) return 'cng';
+  const isDiesel = n.includes('gasóleo') || n.includes('gasoleo') || n.includes('diesel');
+  const isPremium = n.includes('especial') || n.includes('premium') || n.includes('plus') || n.includes('ultimate');
   if (isDiesel && isPremium) return 'diesel_premium';
   if (isDiesel) return 'diesel';
-  if (n.includes('98') || n.includes('100')) return 'sp98';
-  if (n.includes('95') || n.includes('super') || n.includes('unleaded') || n.includes('gasolina') || n.includes('e5')) return 'sp95';
+  if (n.includes('98')) return 'sp98';
+  if (n.includes('95') || n.includes('gasolina')) return 'sp95';
   return null;
 }
 
-function parsePrices(html) {
-  const seen = new Set();
-  const prices = [];
-  const regex = /title="([^:]+):\s*([\d.,]+)\s*([A-Z€]+)\/l/gi;
-  let m;
-  while ((m = regex.exec(html)) !== null) {
-    const ft = mapFuelType(m[1]);
-    const raw = parseFloat(m[2].replace(',', '.'));
-    if (!ft || isNaN(raw) || raw <= 0 || seen.has(ft)) continue;
-    if (raw <= 0 || raw > 5) continue;
-    seen.add(ft);
-    prices.push({ fuelType: ft, price: +raw.toFixed(3) });
-  }
-  return prices;
+function parsePrice(str) {
+  if (!str) return null;
+  const n = parseFloat(str.replace(',', '.').replace(/[^\d.]/g, ''));
+  return (!isNaN(n) && n > 0 && n < 10) ? +n.toFixed(3) : null;
 }
 
-async function fetchCell(latMin, latMax, lngMin, lngMax, stationIdMap) {
-  const body = `lat_min=${latMin}&lat_max=${latMax}&lon_min=${lngMin}&lon_max=${lngMax}&zoom=14`;
+async function fetchPage(page) {
   try {
-    const res = await fetch(PHASE1_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'Mozilla/5.0 (compatible; Gasify/1.0)' },
-      body, signal: AbortSignal.timeout(20000),
+    const res = await fetch(`${API_BASE}?f=json&pagina=${page}`, {
+      headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; Gasify/1.0)' },
+      signal: AbortSignal.timeout(30000),
     });
-    if (!res.ok) return;
+    if (!res.ok) return [];
     const data = await res.json();
-    for (const s of (data.gasstations || [])) {
-      const id = String(s.id ?? '');
-      if (!id) continue;
-      const lat = parseFloat(s.lat);
-      const lng = parseFloat(s.lon ?? s.lng);
-      if (!isNaN(lat) && !isNaN(lng) && !stationIdMap.has(id)) stationIdMap.set(id, { lat, lng });
-    }
-  } catch { /* skip */ }
-}
-
-async function fetchDetail(id, coords) {
-  try {
-    const res = await fetch(`${PHASE2_BASE}/${id}?lang=en`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Gasify/1.0)', Accept: 'application/json' },
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const html = data.text || '';
-    if (!html) return null;
-
-    const nameMatch = html.match(/<h4[^>]*>([^<]+)<\/h4>/);
-    const addrMatch = html.match(/<h5[^>]*>([^<]+)<\/h5>/);
-    const rawAddr = addrMatch ? addrMatch[1].trim() : '';
-    const parts = rawAddr.split(',').map(p => p.trim());
-    const detectedCountry = COUNTRY_NAME_MAP[parts[0]?.toLowerCase()] ?? 'PT';
-    if (detectedCountry !== 'PT') return null;
-
-    const prices = parsePrices(html);
-    if (!prices.length) return null;
-
-    return {
-      externalId: `PT-${id}`,
-      name: nameMatch ? nameMatch[1].trim() : `Station ${id}`,
-      brand: null, lat: coords.lat, lng: coords.lng,
-      address: rawAddr || null,
-      city: parts.slice(1).join(', ').trim() || parts[0] || '',
-      country: 'PT', prices,
-    };
-  } catch { return null; }
+    return Array.isArray(data.resultado) ? data.resultado : [];
+  } catch { return []; }
 }
 
 async function fetchPortugalStations() {
-  const stationIdMap = new Map();
-  const cells = [];
-  for (let lat = BOUNDS.latMin; lat < BOUNDS.latMax; lat += GRID_STEP)
-    for (let lng = BOUNDS.lngMin; lng < BOUNDS.lngMax; lng += GRID_STEP)
-      cells.push({ latMin: +lat.toFixed(2), latMax: +(lat + GRID_STEP).toFixed(2), lngMin: +lng.toFixed(2), lngMax: +(lng + GRID_STEP).toFixed(2) });
+  const allRecords = [];
+  const CONCURRENCY = 20;
+  const MAX_PAGES = 320;
+  let consecutiveEmpty = 0;
 
-  let done = 0;
-  await runConcurrent(cells, async (c) => {
-    await fetchCell(c.latMin, c.latMax, c.lngMin, c.lngMax, stationIdMap);
-    if (++done % 20 === 0) console.log(`[portugal] Phase 1: ${done}/${cells.length} cells, ${stationIdMap.size} stations`);
-  });
-  console.log(`[portugal] Phase 1 done — ${stationIdMap.size} unique station IDs`);
+  for (let base = 1; base <= MAX_PAGES; base += CONCURRENCY) {
+    const pages = Array.from({ length: Math.min(CONCURRENCY, MAX_PAGES - base + 1) }, (_, i) => base + i);
+    const results = await Promise.all(pages.map(p => fetchPage(p)));
+    let batchEmpty = 0;
+    for (const rows of results) {
+      if (rows.length === 0) batchEmpty++;
+      allRecords.push(...rows);
+    }
+    console.log(`[portugal] Pages ${pages[0]}-${pages[pages.length - 1]} done, ${allRecords.length} records total`);
+    consecutiveEmpty = batchEmpty === pages.length ? consecutiveEmpty + 1 : 0;
+    if (consecutiveEmpty >= 2) break;
+  }
 
-  const stations = [];
-  const ids = [...stationIdMap.entries()];
-  let i = 0;
-  await runConcurrent(ids, async ([id, coords]) => {
-    const s = await fetchDetail(id, coords);
-    if (s) stations.push(s);
-    if (++i % 100 === 0) console.log(`[portugal] Phase 2: ${i}/${ids.length}, ${stations.length} PT stations`);
-  });
-  console.log(`[portugal] Done — ${stations.length} stations`);
+  // Group by station Id
+  const stationMap = new Map();
+  for (const row of allRecords) {
+    const id = String(row.Id);
+    if (!id || id === 'undefined') continue;
+    if (!stationMap.has(id)) {
+      stationMap.set(id, {
+        externalId: `PT-${id}`,
+        name: row.Nome || `Station ${id}`,
+        brand: row.Marca || null,
+        lat: row.Latitude,
+        lng: row.Longitude,
+        address: row.Morada || null,
+        city: row.Localidade || row.Municipio || '',
+        country: 'PT',
+        prices: [],
+      });
+    }
+    const ft = mapFuelType(row.Combustivel);
+    const price = parsePrice(row.Preco);
+    if (ft && price) {
+      const s = stationMap.get(id);
+      if (!s.prices.find(p => p.fuelType === ft)) s.prices.push({ fuelType: ft, price });
+    }
+  }
+
+  const stations = [...stationMap.values()].filter(s =>
+    s.lat && s.lng && !isNaN(s.lat) && !isNaN(s.lng) && s.prices.length > 0
+  );
+  console.log(`[portugal] Done — ${stations.length} stations with prices`);
   return stations;
 }
 
