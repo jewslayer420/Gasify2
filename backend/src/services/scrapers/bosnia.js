@@ -40,7 +40,9 @@ function parsePrices(html) {
   let m;
   while ((m = regex.exec(html)) !== null) {
     const ft = mapFuelType(m[1]);
-    const raw = parseFloat(m[2].replace(',', '.'));
+    let raw = parseFloat(m[2].replace(',', '.'));
+    const currency = m[3].toUpperCase();
+    if (currency === 'BAM') raw = raw / 1.9558; // Bosnian Mark → EUR
     if (!ft || isNaN(raw) || raw <= 0 || raw > 5 || seen.has(ft)) continue;
     seen.add(ft);
     prices.push({ fuelType: ft, price: +raw.toFixed(3) });
