@@ -1,0 +1,78 @@
+name: Sync Balkan Stations
+
+on:
+  workflow_dispatch:
+    inputs:
+      country:
+        description: Country to sync
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - bulgaria
+          - greece
+          - bosnia
+          - montenegro
+          - northmacedonia
+          - albania
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Sync Bulgaria
+        if: inputs.country == 'all' || inputs.country == 'bulgaria'
+        run: node src/scripts/sync-bulgaria.js
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Sync Greece
+        if: inputs.country == 'all' || inputs.country == 'greece'
+        run: node src/scripts/sync-greece.js
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Sync Bosnia
+        if: inputs.country == 'all' || inputs.country == 'bosnia'
+        run: node src/scripts/sync-bosnia.js
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Sync Montenegro
+        if: inputs.country == 'all' || inputs.country == 'montenegro'
+        run: node src/scripts/sync-montenegro.js
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Sync North Macedonia
+        if: inputs.country == 'all' || inputs.country == 'northmacedonia'
+        run: node src/scripts/sync-northmacedonia.js
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Sync Albania
+        if: inputs.country == 'all' || inputs.country == 'albania'
+        run: node src/scripts/sync-albania.js
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
