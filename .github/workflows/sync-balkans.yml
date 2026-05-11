@@ -44,6 +44,9 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
+      - name: Test fuelo.net connectivity
+        run: node src/scripts/test-fuelo-connectivity.js
+
       - name: Sync Bulgaria
         if: inputs.country == 'all' || inputs.country == 'bulgaria'
         run: node src/scripts/sync-bulgaria.js
