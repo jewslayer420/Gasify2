@@ -20,7 +20,7 @@ const FUELS = [
   { key: 'cng',            label: 'CNG' },
 ];
 
-const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', DE: '🇩🇪', CZ: '🇨🇿', SK: '🇸🇰', NL: '🇳🇱', BE: '🇧🇪', CH: '🇨🇭', PL: '🇵🇱', RO: '🇷🇴', HR: '🇭🇷', RS: '🇷🇸', ES: '🇪🇸', IT: '🇮🇹', PT: '🇵🇹' };
+const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', DE: '🇩🇪', CZ: '🇨🇿', SK: '🇸🇰', NL: '🇳🇱', BE: '🇧🇪', CH: '🇨🇭', PL: '🇵🇱', RO: '🇷🇴', HR: '🇭🇷', RS: '🇷🇸', ES: '🇪🇸', IT: '🇮🇹', PT: '🇵🇹', LU: '🇱🇺', LI: '🇱🇮', AD: '🇦🇩', MC: '🇲🇨' };
 
 function priceColor(p) {
   if (!p) return '#4b5563';
@@ -73,7 +73,7 @@ const pointLayer = {
   },
 };
 
-const COUNTRIES = ['SI', 'AT', 'FR', 'HU', 'DE', 'CZ', 'SK', 'NL', 'BE', 'CH', 'PL', 'RO', 'HR', 'RS', 'ES', 'IT', 'PT'];
+const COUNTRIES = ['SI', 'AT', 'FR', 'HU', 'DE', 'CZ', 'SK', 'NL', 'BE', 'CH', 'PL', 'RO', 'HR', 'RS', 'ES', 'IT', 'PT', 'LU', 'LI', 'AD', 'MC'];
 
 const COUNTRY_CENTROIDS = {
   SI: { lng: 14.82, lat: 46.15 },
@@ -93,9 +93,13 @@ const COUNTRY_CENTROIDS = {
   ES: { lng: -3.70, lat: 40.00 },
   IT: { lng: 12.57, lat: 42.50 },
   PT: { lng: -8.00, lat: 39.50 },
+  LU: { lng:  6.13, lat: 49.82 },
+  LI: { lng:  9.56, lat: 47.16 },
+  AD: { lng:  1.57, lat: 42.55 },
+  MC: { lng:  7.42, lat: 43.74 },
 };
 
-const COUNTRY_SCALE = { ES: 1.2, IT: 1.15, FR: 1.25, DE: 1.2, PL: 1.1, RO: 1.0, AT: 1.0, HU: 1.0, PT: 0.9, CZ: 0.95, NL: 0.85, SK: 0.8, BE: 0.8, CH: 0.75, HR: 0.75, SI: 0.65, RS: 0.7 };
+const COUNTRY_SCALE = { ES: 1.2, IT: 1.15, FR: 1.25, DE: 1.2, PL: 1.1, RO: 1.0, AT: 1.0, HU: 1.0, PT: 0.9, CZ: 0.95, NL: 0.85, SK: 0.8, BE: 0.8, CH: 0.75, HR: 0.75, SI: 0.65, RS: 0.7, LU: 0.5, LI: 0.35, AD: 0.35, MC: 0.3 };
 
 export default function MapView() {
   const { user } = useUser() ?? {};
