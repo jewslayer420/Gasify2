@@ -97,8 +97,6 @@ async function fetchDetail(id, coords) {
     // Detect country from "CountryName, City, Street" address format
     const parts = rawAddr.split(',').map(p => p.trim());
     const detectedCountry = COUNTRY_NAME_MAP[parts[0]?.toLowerCase()] ?? 'DE';
-    // NL has its own dedicated scraper (brandstof-zoeker.nl) — skip here to avoid duplicates
-    if (detectedCountry === 'NL') return null;
     const city = parts.slice(1).join(', ').trim() || parts[0] || '';
 
     return {
