@@ -9,7 +9,6 @@ const { fetchPortugalStations }  = require('./scrapers/portugal');
 const { fetchAustriaStations }   = require('./scrapers/austria');
 const { fetchPolandStations }    = require('./scrapers/poland');
 const { fetchNLStations }        = require('./scrapers/netherlands');
-const { updateGermanyPrices }    = require('../scripts/update-germany-prices'); // fast price-only update for DE
 const { fetchCroatiaStations }   = require('./scrapers/croatia');
 const { fetchCzechiaStations }   = require('./scrapers/czechia');
 const { fetchSwitzerlandStations } = require('./scrapers/switzerland');
@@ -114,8 +113,6 @@ function scheduleGovernmentAPIs() {
   cron.schedule('40 0,6,12,18 * * *',  () => runSync('Austria',  fetchAustriaStations));
   // Poland: every 6h offset by 50min
   cron.schedule('50 0,6,12,18 * * *',  () => runSync('Poland',   fetchPolandStations));
-  // Germany: fast price-only update every 3h (full station sync via GitHub Actions weekly)
-  cron.schedule('0 1,4,7,10,13,16,19,22 * * *', () => updateGermanyPrices().catch(e => console.error('[sync] Germany price update error:', e.message)));
 }
 
 // ── Slow fuelo.net grid scrapers — once daily ────────────────────────────────
