@@ -1,0 +1,42 @@
+name: Sync Germany Stations
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 0'  # Every Sunday at 3am UTC (weekly full re-sync)
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Write .env file
+        run: |
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
+          echo "TANKERKOENIG_API_KEY=${{ secrets.TANKERKOENIG_API_KEY }}" >> .env
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Sync Germany stations (Tankerkönig full scan)
+        run: node src/scripts/sync-germany.js
+        timeout-minutes: 60
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TANKERKOENIG_API_KEY: ${{ secrets.TANKERKOENIG_API_KEY }}

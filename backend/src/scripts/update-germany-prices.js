@@ -2,15 +2,13 @@ require('dotenv').config({ path: require('path').join(__dirname, '../../.env') }
 const prisma = require('../lib/prisma');
 
 const API_BASE = 'https://creativecommons.tankerkoenig.de/json/prices.php';
-const API_KEY = process.env.TANKERKOENIG_API_KEY || '00000000-0000-0000-0000-000000000002';
 const BATCH = 10;
 const CONCURRENCY = 20;
-
 const FUEL_MAP = { diesel: 'diesel', e5: 'sp95', e10: 'e10' };
 
-async function fetchPrices(ids) {
+async function fetchPrices(ids, apiKey) {
   try {
-    const url = `${API_BASE}?ids=${ids.join(',')}&apikey=${API_KEY}`;
+    const url = `${API_BASE}?ids=${ids.join(',')}&apikey=${apiKey}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
     if (!res.ok) return {};
     const data = await res.json();
@@ -18,12 +16,17 @@ async function fetchPrices(ids) {
   } catch { return {}; }
 }
 
-async function run() {
+async function updateGermanyPrices() {
+  const apiKey = process.env.TANKERKOENIG_API_KEY || '00000000-0000-0000-0000-000000000002';
   const stations = await prisma.station.findMany({
     where: { country: 'DE' },
     select: { id: true, externalId: true },
   });
   console.log(`[update-de] ${stations.length} DE stations to update`);
+  if (!stations.length) {
+    console.log('[update-de] No DE stations in DB — run sync-germany.js first');
+    return;
+  }
 
   const uuidToDbId = new Map(stations.map(s => [s.externalId.replace('DE-', ''), s.id]));
   const uuids = [...uuidToDbId.keys()];
@@ -37,7 +40,7 @@ async function run() {
     for (let j = 0; j < chunk.length; j += BATCH) subBatches.push(chunk.slice(j, j + BATCH));
 
     await Promise.all(subBatches.map(async (batch) => {
-      const prices = await fetchPrices(batch);
+      const prices = await fetchPrices(batch, apiKey);
       const updates = [];
       for (const [uuid, p] of Object.entries(prices)) {
         const dbId = uuidToDbId.get(uuid);
@@ -67,7 +70,15 @@ async function run() {
   }
 
   console.log(`[update-de] Done — ${updated} prices updated`);
+}
+
+async function run() {
+  await updateGermanyPrices();
   await prisma.$disconnect();
 }
 
-run().catch(err => { console.error(err); process.exit(1); });
+if (require.main === module) {
+  run().catch(err => { console.error(err); process.exit(1); });
+}
+
+module.exports = { updateGermanyPrices };
