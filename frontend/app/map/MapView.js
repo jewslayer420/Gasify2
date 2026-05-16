@@ -20,7 +20,7 @@ const FUELS = [
   { key: 'cng',            label: 'CNG' },
 ];
 
-const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', DE: '🇩🇪', CZ: '🇨🇿', SK: '🇸🇰', NL: '🇳🇱', BE: '🇧🇪', CH: '🇨🇭', PL: '🇵🇱', RO: '🇷🇴', HR: '🇭🇷', RS: '🇷🇸', ES: '🇪🇸', IT: '🇮🇹', PT: '🇵🇹', LU: '🇱🇺', LI: '🇱🇮', AD: '🇦🇩', MC: '🇲🇨', BG: '🇧🇬', GR: '🇬🇷', BA: '🇧🇦', ME: '🇲🇪', MK: '🇲🇰', AL: '🇦🇱', XK: '🇽🇰' };
+const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', DE: '🇩🇪', CZ: '🇨🇿', SK: '🇸🇰', NL: '🇳🇱', BE: '🇧🇪', CH: '🇨🇭', PL: '🇵🇱', RO: '🇷🇴', HR: '🇭🇷', RS: '🇷🇸', ES: '🇪🇸', IT: '🇮🇹', PT: '🇵🇹', LU: '🇱🇺', LI: '🇱🇮', AD: '🇦🇩', MC: '🇲🇨', BG: '🇧🇬', GR: '🇬🇷', BA: '🇧🇦', ME: '🇲🇪', MK: '🇲🇰', AL: '🇦🇱', XK: '🇽🇰', GB: '🇬🇧', DK: '🇩🇰' };
 
 function priceColor(p) {
   if (!p) return '#4b5563';
@@ -73,7 +73,7 @@ const pointLayer = {
   },
 };
 
-const COUNTRIES = ['SI', 'AT', 'FR', 'HU', 'DE', 'CZ', 'SK', 'NL', 'BE', 'CH', 'PL', 'RO', 'HR', 'RS', 'ES', 'IT', 'PT', 'LU', 'LI', 'AD', 'MC', 'BG', 'GR', 'BA', 'ME', 'MK', 'AL', 'XK'];
+const COUNTRIES = ['SI', 'AT', 'FR', 'HU', 'DE', 'CZ', 'SK', 'NL', 'BE', 'CH', 'PL', 'RO', 'HR', 'RS', 'ES', 'IT', 'PT', 'LU', 'LI', 'AD', 'MC', 'BG', 'GR', 'BA', 'ME', 'MK', 'AL', 'XK', 'GB', 'DK'];
 
 const COUNTRY_CENTROIDS = {
   SI: { lng: 14.82, lat: 46.15 },
@@ -104,9 +104,11 @@ const COUNTRY_CENTROIDS = {
   MK: { lng: 21.70, lat: 41.60 },
   AL: { lng: 20.10, lat: 41.10 },
   XK: { lng: 20.90, lat: 42.60 },
+  GB: { lng: -1.50, lat: 53.00 },
+  DK: { lng: 10.00, lat: 56.00 },
 };
 
-const COUNTRY_SCALE = { ES: 1.2, IT: 1.15, FR: 1.25, DE: 1.2, PL: 1.1, RO: 1.0, AT: 1.0, HU: 1.0, PT: 0.9, CZ: 0.95, NL: 0.85, SK: 0.8, BE: 0.8, CH: 0.75, HR: 0.75, SI: 0.65, RS: 0.7, LU: 0.5, LI: 0.35, AD: 0.35, MC: 0.3, BG: 0.8, GR: 1.0, BA: 0.75, ME: 0.5, MK: 0.55, AL: 0.55, XK: 0.4 };
+const COUNTRY_SCALE = { ES: 1.2, IT: 1.15, FR: 1.25, DE: 1.2, PL: 1.1, RO: 1.0, AT: 1.0, HU: 1.0, PT: 0.9, CZ: 0.95, NL: 0.85, SK: 0.8, BE: 0.8, CH: 0.75, HR: 0.75, SI: 0.65, RS: 0.7, LU: 0.5, LI: 0.35, AD: 0.35, MC: 0.3, BG: 0.8, GR: 1.0, BA: 0.75, ME: 0.5, MK: 0.55, AL: 0.55, XK: 0.4, GB: 1.2, DK: 0.8 };
 
 export default function MapView() {
   const { user } = useUser() ?? {};
