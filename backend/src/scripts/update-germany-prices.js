@@ -4,15 +4,15 @@ const prisma = require('../lib/prisma');
 // Sparse diesel-only grid scan — fast price refresh for existing DE stations.
 // Uses tankerkoenig.de (main domain) which is reachable without geo-restriction.
 
-const API_BASE = 'https://tankerkoenig.de/json/list.php';
+const API_BASE = 'https://creativecommons.tankerkoenig.de/json/list.php';
 const RADIUS = 15;
 const GRID_STEP = 0.36; // coarser than full sync → ~570 cells instead of 2288
 const BOUNDS = { latMin: 47.2, latMax: 55.1, lngMin: 5.9, lngMax: 15.2 };
 const CONCURRENCY = 8;
 
-function parseResponse(text) {
-  const inner = text.trim().replace(/^\(\[/, '[').replace(/\]\)\s*$/, ']');
-  try { return JSON.parse(inner); } catch { return []; }
+function parseResponse(data) {
+  if (!data.ok || !Array.isArray(data.stations)) return [];
+  return data.stations;
 }
 
 async function updateGermanyPrices() {
@@ -39,7 +39,7 @@ async function updateGermanyPrices() {
       try {
         const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(20000) });
         if (!res.ok) return;
-        const stations = parseResponse(await res.text());
+        const stations = parseResponse(await res.json());
         for (const s of stations) {
           if (!s.id || !uuidToDbId.has(s.id)) continue;
           const price = parseFloat(s.price);

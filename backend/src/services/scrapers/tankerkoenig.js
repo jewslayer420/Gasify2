@@ -1,8 +1,8 @@
-// Germany fuel prices via tankerkoenig.de (official MTS-K data) — CC BY 4.0
-// Main domain returns one fuel type per request in JSONP format: ([{...}])
+// Germany fuel prices via creativecommons.tankerkoenig.de (official MTS-K data) — CC BY 4.0
+// list.php returns { ok, stations: [{id, name, brand, street, houseNumber, place, lat, lng, price, ...}] }
 // Three passes per grid scan (diesel / e5 / e10).
 
-const API_BASE = 'https://tankerkoenig.de/json/list.php';
+const API_BASE = 'https://creativecommons.tankerkoenig.de/json/list.php';
 const API_KEY = process.env.TANKERKOENIG_API_KEY || '00000000-0000-0000-0000-000000000002';
 const RADIUS = 15;
 const GRID_STEP = 0.18;
@@ -15,12 +15,6 @@ const FUEL_TYPES = [
   { type: 'e10',    ft: 'e10'    },
 ];
 
-function parseResponse(text) {
-  // Strip the JSONP wrapper ([...]) → valid JSON array
-  const inner = text.trim().replace(/^\(\[/, '[').replace(/\]\)\s*$/, ']');
-  try { return JSON.parse(inner); } catch { return []; }
-}
-
 async function fetchCell(lat, lng, type, ft, stationMap) {
   const url = `${API_BASE}?lat=${lat}&lng=${lng}&rad=${RADIUS}&sort=dist&type=${type}&apikey=${API_KEY}`;
   try {
@@ -29,21 +23,21 @@ async function fetchCell(lat, lng, type, ft, stationMap) {
       signal: AbortSignal.timeout(30000),
     });
     if (!res.ok) return;
-    const stations = parseResponse(await res.text());
-    if (!Array.isArray(stations)) return;
-    for (const s of stations) {
+    const data = await res.json();
+    if (!data.ok || !Array.isArray(data.stations)) return;
+    for (const s of data.stations) {
       if (!s.id) continue;
       const price = parseFloat(s.price);
       if (!price || price <= 0) continue;
       if (!stationMap.has(s.id)) {
         stationMap.set(s.id, {
           externalId: `DE-${s.id}`,
-          name: (s.brand || `Station ${s.id}`).trim(),
+          name: (s.brand || s.name || `Station ${s.id}`).trim(),
           brand: s.brand?.trim() || null,
           lat: parseFloat(s.lat),
           lng: parseFloat(s.lng),
-          address: [s.street, s.nr].filter(Boolean).join(' ') || null,
-          city: s.city || '',
+          address: [s.street, s.houseNumber].filter(Boolean).join(' ') || null,
+          city: s.place || '',
           country: 'DE',
           prices: [],
         });
