@@ -9,6 +9,7 @@ const { fetchPortugalStations }  = require('./scrapers/portugal');
 const { fetchAustriaStations }   = require('./scrapers/austria');
 const { fetchPolandStations }    = require('./scrapers/poland');
 const { fetchNLStations }        = require('./scrapers/netherlands');
+const { updateGermanyPrices }    = require('../scripts/update-germany-prices');
 const { fetchCroatiaStations }   = require('./scrapers/croatia');
 const { fetchCzechiaStations }   = require('./scrapers/czechia');
 const { fetchSwitzerlandStations } = require('./scrapers/switzerland');
@@ -113,6 +114,8 @@ function scheduleGovernmentAPIs() {
   cron.schedule('40 0,6,12,18 * * *',  () => runSync('Austria',  fetchAustriaStations));
   // Poland: every 6h offset by 50min
   cron.schedule('50 0,6,12,18 * * *',  () => runSync('Poland',   fetchPolandStations));
+  // Germany: sparse diesel scan every 6h — uses tankerkoenig.de main domain (no geo-restriction)
+  cron.schedule('0 2,8,14,20 * * *',   () => updateGermanyPrices().catch(e => console.error('[sync] DE price update error:', e.message)));
 }
 
 // ── Slow fuelo.net grid scrapers — once daily ────────────────────────────────
