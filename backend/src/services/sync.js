@@ -24,6 +24,7 @@ const { fetchMontenegroStations } = require('./scrapers/montenegro');
 const { fetchNorthMacedoniaStations } = require('./scrapers/northmacedonia');
 const { fetchAlbaniaStations }   = require('./scrapers/albania');
 const { fetchDenmarkStations }   = require('./scrapers/denmark');
+const { fetchUKStations }        = require('./scrapers/uk');
 
 const CHUNK = 500;
 
@@ -140,6 +141,7 @@ async function runNightlySlowSync() {
   await runSync('NorthMacedonia', fetchNorthMacedoniaStations);
   await runSync('Albania',        fetchAlbaniaStations);
   await runSync('Denmark',        fetchDenmarkStations);
+  await runSync('UK',             fetchUKStations);
   console.log('[sync] Nightly slow sync complete');
 }
 
