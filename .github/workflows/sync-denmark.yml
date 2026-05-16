@@ -1,0 +1,39 @@
+name: Sync Denmark Stations
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 1'  # Every Monday at 4am UTC
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Write .env file
+        run: echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Sync Denmark stations (Shell + Q8/F24 + Circle K + Nominatim geocoding)
+        run: node src/scripts/sync-denmark.js
+        timeout-minutes: 60
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
