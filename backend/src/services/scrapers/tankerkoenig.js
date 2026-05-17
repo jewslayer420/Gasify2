@@ -15,6 +15,18 @@ const FUEL_TYPES = [
   { type: 'e10',    ft: 'e10'    },
 ];
 
+async function probeApiKey() {
+  const url = `${API_BASE}?lat=51.2&lng=10.5&rad=5&sort=dist&type=diesel&apikey=${API_KEY}`;
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Gasify/1.0)' },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.message || data.status || 'API returned ok=false');
+  return true;
+}
+
 async function fetchCell(lat, lng, type, ft, stationMap) {
   const url = `${API_BASE}?lat=${lat}&lng=${lng}&rad=${RADIUS}&sort=dist&type=${type}&apikey=${API_KEY}`;
   try {
@@ -22,12 +34,8 @@ async function fetchCell(lat, lng, type, ft, stationMap) {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Gasify/1.0)' },
       signal: AbortSignal.timeout(30000),
     });
-    if (!res.ok) { if (stationMap.size === 0) console.log(`[tankerkoenig] HTTP ${res.status} for first cell`); return; }
-    const text = await res.text();
-    let data;
-    try { data = JSON.parse(text); }
-    catch { if (stationMap.size === 0) console.log(`[tankerkoenig] JSON parse failed, response starts: ${text.slice(0, 120)}`); return; }
-    if (stationMap.size === 0) console.log(`[tankerkoenig] first cell: ok=${data.ok} stations=${data.stations?.length ?? 'N/A'} msg=${data.message || data.status || ''}`);
+    if (!res.ok) return;
+    const data = await res.json();
     if (!data.ok || !Array.isArray(data.stations)) return;
     for (const s of data.stations) {
       if (!s.id) continue;
@@ -55,6 +63,9 @@ async function fetchCell(lat, lng, type, ft, stationMap) {
 }
 
 async function fetchGermanyStations() {
+  await probeApiKey();
+  console.log('[tankerkoenig] API key valid — starting full scan');
+
   const stationMap = new Map();
   const cells = [];
   for (let lat = BOUNDS.latMin; lat < BOUNDS.latMax; lat += GRID_STEP)
