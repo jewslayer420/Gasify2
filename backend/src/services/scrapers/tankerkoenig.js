@@ -23,8 +23,11 @@ async function fetchCell(lat, lng, type, ft, stationMap) {
       signal: AbortSignal.timeout(30000),
     });
     if (!res.ok) { if (stationMap.size === 0) console.log(`[tankerkoenig] HTTP ${res.status} for first cell`); return; }
-    const data = await res.json();
-    if (stationMap.size === 0) console.log(`[tankerkoenig] first cell response: ok=${data.ok} stations=${data.stations?.length} msg=${data.message || data.license || ''}`);
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch { if (stationMap.size === 0) console.log(`[tankerkoenig] JSON parse failed, response starts: ${text.slice(0, 120)}`); return; }
+    if (stationMap.size === 0) console.log(`[tankerkoenig] first cell: ok=${data.ok} stations=${data.stations?.length ?? 'N/A'} msg=${data.message || data.status || ''}`);
     if (!data.ok || !Array.isArray(data.stations)) return;
     for (const s of data.stations) {
       if (!s.id) continue;
