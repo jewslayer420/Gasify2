@@ -21,6 +21,7 @@ const FUELS = [
 ];
 
 const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', DE: '🇩🇪', CZ: '🇨🇿', SK: '🇸🇰', NL: '🇳🇱', BE: '🇧🇪', CH: '🇨🇭', PL: '🇵🇱', RO: '🇷🇴', HR: '🇭🇷', RS: '🇷🇸', ES: '🇪🇸', IT: '🇮🇹', PT: '🇵🇹', LU: '🇱🇺', LI: '🇱🇮', AD: '🇦🇩', MC: '🇲🇨', BG: '🇧🇬', GR: '🇬🇷', BA: '🇧🇦', ME: '🇲🇪', MK: '🇲🇰', AL: '🇦🇱', XK: '🇽🇰', GB: '🇬🇧', DK: '🇩🇰' };
+const COUNTRY_LABEL = { GB: 'UK' };
 
 function priceColor(p) {
   if (!p) return '#4b5563';
@@ -465,7 +466,7 @@ export default function MapView() {
             <div className={styles.detailHeader}>
               <div className={styles.detailTitleBlock}>
                 <div className={styles.detailName}>{selected.name}</div>
-                <div className={styles.detailCity}>{FLAGS[selected.country] ?? selected.country} {selected.city} · {selected.country}</div>
+                <div className={styles.detailCity}>{FLAGS[selected.country] ?? selected.country} {selected.city} · {COUNTRY_LABEL[selected.country] ?? selected.country}</div>
               </div>
               <div className={styles.detailActions}>
                 {user && (
