@@ -1,84 +1,120 @@
-// Ireland fuel prices — Circle K chain API (prices already in EUR)
-// Accepts coordsCache (Map externalId→{lat,lng}) to skip re-geocoding known stations
+// Ireland fuel prices via ie.fuelo.net — no API key needed
+const PHASE1_URL = 'https://ie.fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
+const PHASE2_BASE = 'https://ie.fuelo.net/ajax/get_infowindow_content';
+const GRID_STEP = 0.15;
+const BOUNDS = { latMin: 51.4, latMax: 55.5, lngMin: -10.6, lngMax: -5.9 };
+const UA = 'Mozilla/5.0 (compatible; Gasify/1.0)';
 
-const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
-const UA = 'Mozilla/5.0 (compatible; Gasify/1.0; +https://gasify.app)';
-
-function eur(price) {
-  const n = parseFloat(price);
-  return isNaN(n) || n <= 0 ? 0 : +n.toFixed(3);
+async function runConcurrent(items, fn, concurrency = 10) {
+  for (let i = 0; i < items.length; i += concurrency)
+    await Promise.all(items.slice(i, i + concurrency).map(fn));
 }
 
-function mapFuel(name) {
-  const n = (name || '').toLowerCase();
-  if (n.includes('hvo') || n.includes('cng') || n.includes('lpg') || n.includes('kwh') || n.includes('electric')) return null;
-  if ((n.includes('diesel') || n.startsWith('miles d') || n.startsWith('milesplus')) && (n.includes('+') || n.includes('plus') || n.includes('premium') || n.includes('upgrade'))) return 'diesel_premium';
-  if (n.includes('diesel') || n.startsWith('miles d')) return 'diesel';
+function mapFuelType(name) {
+  if (!name) return null;
+  const n = name.toLowerCase().trim();
+  if (n.includes('lpg') || n.includes('autogas') || n.includes('gpl')) return 'lpg';
+  if (n.includes('cng')) return 'cng';
   if (n.includes('e10')) return 'e10';
-  if (n.includes('95') || n.includes('unleaded')) return 'sp95';
-  if (n.includes('98')) return 'sp98';
+  const isDiesel = n.includes('diesel');
+  const isPremium = n.includes('premium') || n.includes('plus') || n.includes('ultimate') || n.includes('extra') || n.includes('xtr');
+  if (isDiesel && isPremium) return 'diesel_premium';
+  if (isDiesel) return 'diesel';
+  if (n.includes('98') || n.includes('v-power')) return 'sp98';
+  if (n.includes('95') || n.includes('unleaded') || n.includes('a95') || n.includes('eurosuper') || n.includes('super')) return 'sp95';
   return null;
 }
 
-async function geocode(query) {
-  await new Promise(r => setTimeout(r, 1150));
+function parsePrices(html) {
+  const seen = new Set();
+  const prices = [];
+  const regex = /title="([^:]+):\s*([\d.,]+)\s*([A-Z€]+)\/l/gi;
+  let m;
+  while ((m = regex.exec(html)) !== null) {
+    const ft = mapFuelType(m[1]);
+    const raw = parseFloat(m[2].replace(',', '.'));
+    if (!ft || isNaN(raw) || raw <= 0 || raw > 5 || seen.has(ft)) continue;
+    seen.add(ft);
+    prices.push({ fuelType: ft, price: +raw.toFixed(3) });
+  }
+  return prices;
+}
+
+async function fetchCell(latMin, latMax, lngMin, lngMax, stationIdMap) {
+  const body = `lat_min=${latMin}&lat_max=${latMax}&lon_min=${lngMin}&lon_max=${lngMax}&zoom=14`;
   try {
-    const url = `${NOMINATIM}?q=${encodeURIComponent(query)}&countrycodes=ie&format=json&limit=1`;
-    const res = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(12000) });
+    const res = await fetch(PHASE1_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA, 'Referer': 'https://ie.fuelo.net/' },
+      body, signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    for (const s of (data.gasstations || [])) {
+      const id = String(s.id ?? '');
+      if (!id || id === 'null' || stationIdMap.has(id)) continue;
+      const lat = parseFloat(s.lat), lng = parseFloat(s.lon ?? s.lng);
+      if (!isNaN(lat) && !isNaN(lng)) stationIdMap.set(id, { lat, lng });
+    }
+  } catch { /* skip */ }
+}
+
+async function fetchDetail(id, coords) {
+  try {
+    const res = await fetch(`${PHASE2_BASE}/${id}?lang=en`, {
+      headers: { 'User-Agent': UA, Accept: 'application/json' },
+      signal: AbortSignal.timeout(15000),
+    });
     if (!res.ok) return null;
     const data = await res.json();
-    return data.length ? { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) } : null;
+    const html = data.text || '';
+    if (!html) return null;
+    const nameMatch = html.match(/<h4[^>]*>([^<]+)<\/h4>/);
+    const addrMatch = html.match(/<h5[^>]*>([^<]+)<\/h5>/);
+    const rawAddr = addrMatch ? addrMatch[1].trim() : '';
+    const parts = rawAddr.split(',').map(p => p.trim());
+    if (parts[0]?.toLowerCase() !== 'ireland') return null;
+    const prices = parsePrices(html);
+    if (!prices.length) return null;
+    const city = parts[1] || '';
+    const street = parts.slice(2).join(', ').trim();
+    return {
+      externalId: `IE-${id}`,
+      name: nameMatch ? nameMatch[1].trim() : `Station ${id}`,
+      brand: null,
+      lat: coords.lat, lng: coords.lng,
+      address: street || null,
+      city,
+      country: 'IE',
+      prices,
+    };
   } catch { return null; }
 }
 
-async function fetchIrelandStations(coordsCache = new Map()) {
-  let sites = [];
-  try {
-    const res = await fetch('https://api.circlek.com/eu/prices/v1/fuel/countries/IE', {
-      headers: { 'User-Agent': UA, 'X-App-Name': 'PRICES' },
-      signal: AbortSignal.timeout(30000),
-    });
-    if (!res.ok) { console.log('[ireland] Circle K failed:', res.status); return []; }
-    sites = (await res.json()).sites || [];
-  } catch (e) { console.log('[ireland] Circle K error:', e.message); return []; }
+async function fetchIrelandStations() {
+  const stationIdMap = new Map();
+  const cells = [];
+  for (let lat = BOUNDS.latMin; lat < BOUNDS.latMax; lat += GRID_STEP)
+    for (let lng = BOUNDS.lngMin; lng < BOUNDS.lngMax; lng += GRID_STEP)
+      cells.push({ latMin: +lat.toFixed(2), latMax: +(lat + GRID_STEP).toFixed(2), lngMin: +lng.toFixed(2), lngMax: +(lng + GRID_STEP).toFixed(2) });
 
-  const result = [];
-  let geocoded = 0;
-  for (const s of sites) {
-    const prices = [];
-    for (const p of (s.fuelPrices || [])) {
-      const ft = mapFuel(p.displayName || '');
-      if (!ft) continue;
-      const price = eur(p.price);
-      if (price > 0) prices.push({ fuelType: ft, price });
-    }
-    if (!prices.length) continue;
+  let done = 0;
+  await runConcurrent(cells, async (c) => {
+    await fetchCell(c.latMin, c.latMax, c.lngMin, c.lngMax, stationIdMap);
+    if (++done % 50 === 0) console.log(`[ireland] Phase 1: ${done}/${cells.length} cells, ${stationIdMap.size} stations`);
+  });
+  console.log(`[ireland] Phase 1 done — ${stationIdMap.size} unique station IDs`);
 
-    const externalId = `IE-CK-${s.id}`;
-    const cached = coordsCache.get(externalId);
-    let coords = cached ? { lat: Number(cached.lat), lng: Number(cached.lng) } : null;
-    if (!coords) {
-      const addr = s.address || {};
-      const query = [addr.street, addr.postalCode, addr.city, 'Ireland'].filter(Boolean).join(', ');
-      coords = await geocode(query);
-      if (coords) geocoded++;
-    }
-    if (!coords) continue;
-
-    const addr = s.address || {};
-    result.push({
-      externalId,
-      name: s.name || 'Circle K',
-      brand: 'Circle K',
-      lat: coords.lat, lng: coords.lng,
-      address: addr.street || null,
-      city: addr.city || '',
-      country: 'IE',
-      prices,
-    });
-  }
-  console.log(`[ireland] Circle K: ${result.length} stations (${geocoded} new geocoded)`);
-  return result;
+  const stations = [];
+  const ids = [...stationIdMap.entries()];
+  let i = 0;
+  await runConcurrent(ids, async ([id, coords]) => {
+    const s = await fetchDetail(id, coords);
+    if (s) stations.push(s);
+    if (++i % 50 === 0) console.log(`[ireland] Phase 2: ${i}/${ids.length}, ${stations.length} IE stations`);
+  });
+  console.log(`[ireland] Done — ${stations.length} stations`);
+  return stations;
 }
 
 module.exports = { fetchIrelandStations };
