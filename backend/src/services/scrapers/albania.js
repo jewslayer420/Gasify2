@@ -1,6 +1,6 @@
-// Albania fuel prices via al.fuelo.net — no API key needed
-const PHASE1_URL = 'https://al.fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
-const PHASE2_BASE = 'https://al.fuelo.net/ajax/get_infowindow_content';
+// Albania fuel prices via fuelo.net — al.fuelo.net subdomain is dead, use main domain
+const PHASE1_URL = 'https://fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
+const PHASE2_BASE = 'https://fuelo.net/ajax/get_infowindow_content';
 const GRID_STEP = 0.15;
 const BOUNDS = { latMin: 39.6, latMax: 42.7, lngMin: 19.3, lngMax: 21.1 };
 

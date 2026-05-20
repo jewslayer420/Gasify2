@@ -1,6 +1,6 @@
-// Montenegro fuel prices via me.fuelo.net — no API key needed
-const PHASE1_URL = 'https://me.fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
-const PHASE2_BASE = 'https://me.fuelo.net/ajax/get_infowindow_content';
+// Montenegro fuel prices via fuelo.net — me.fuelo.net subdomain is dead, use main domain
+const PHASE1_URL = 'https://fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
+const PHASE2_BASE = 'https://fuelo.net/ajax/get_infowindow_content';
 const GRID_STEP = 0.12;
 const BOUNDS = { latMin: 41.8, latMax: 43.6, lngMin: 18.4, lngMax: 20.4 };
 
