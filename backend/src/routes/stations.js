@@ -55,7 +55,7 @@ async function buildGeojson(fuel) {
     properties: { id: s.id, name: s.name, city: s.city, country: s.country, price: Number(s.price) },
   }));
   const str = JSON.stringify({ type: 'FeatureCollection', features });
-  geojsonCache.set(fuel, { str, expiresAt: Date.now() + 30 * 60 * 1000 });
+  geojsonCache.set(fuel, { str, expiresAt: Date.now() + 10 * 60 * 1000 });
   console.log(`[geojson] cached ${fuel}: ${rows.length} stations, ${(str.length / 1024).toFixed(0)} KB`);
   return str;
 }
