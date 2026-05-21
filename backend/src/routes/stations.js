@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { geocodeCity } = require('../utils/geo');
 const prisma = require('../lib/prisma');
-const { fetchTankerkoenigArea } = require('../services/scrapers/tankerkoenig');
+const { fetchTankerkoenigArea } = require('../services/scrapers/germany');
 
 const DE_BOUNDS = { latMin: 47.2, latMax: 55.1, lngMin: 5.9, lngMax: 15.2 };
 
