@@ -63,13 +63,13 @@ async function buildGeojson(fuel) {
 // Pre-warm diesel cache on startup so the first user doesn't wait
 setTimeout(() => buildGeojson('diesel').catch(() => {}), 5000);
 
-// GET /api/stations/geojson?fuel=diesel  — full station set as minimal GeoJSON, cached 30 min
+// GET /api/stations/geojson?fuel=diesel&bust=1  — bust=1 forces cache rebuild
 router.get('/geojson', async (req, res) => {
-  const { fuel = 'diesel' } = req.query;
+  const { fuel = 'diesel', bust } = req.query;
   const cached = geojsonCache.get(fuel);
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-store');
-  if (cached && cached.expiresAt > Date.now()) {
+  if (cached && cached.expiresAt > Date.now() && bust !== '1') {
     return res.send(cached.str);
   }
   try {
