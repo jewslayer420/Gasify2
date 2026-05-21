@@ -9,6 +9,7 @@ const { fetchPortugalStations }  = require('./scrapers/portugal');
 const { fetchAustriaStations }   = require('./scrapers/austria');
 const { fetchPolandStations }    = require('./scrapers/poland');
 const { fetchNLStations }        = require('./scrapers/netherlands');
+const { fetchGermanyStations }   = require('./scrapers/tankerkoenig');
 const { updateGermanyPrices }    = require('../scripts/update-germany-prices');
 const { fetchCroatiaStations }   = require('./scrapers/croatia');
 const { fetchCzechiaStations }   = require('./scrapers/czechia');
@@ -156,6 +157,7 @@ async function runNightlySlowSync() {
   await runSync('Lithuania',      fetchLithuaniaStations);
   await runSync('Estonia',        fetchEstoniaStations);
   await runSync('Turkey',         fetchTurkeyStations);
+  await runSync('Germany',        fetchGermanyStations);
   console.log('[sync] Nightly slow sync complete');
 }
 
@@ -167,6 +169,7 @@ function startSyncScheduler() {
   setTimeout(() => runSync('Portugal',    fetchPortugalStations), 45000);
   setTimeout(() => runSync('Austria',     fetchAustriaStations),  60000);
   setTimeout(() => runSync('Poland',      fetchPolandStations),   75000);
+  setTimeout(() => runSync('Germany',     fetchGermanyStations),  90000);
   setTimeout(() => runNightlySlowSync(),                          120000); // 2 min after start
 
   // Schedule recurring syncs
