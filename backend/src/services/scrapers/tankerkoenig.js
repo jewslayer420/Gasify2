@@ -87,4 +87,42 @@ async function fetchGermanyStations() {
   return stations;
 }
 
-module.exports = { fetchGermanyStations };
+// fuelType in our schema → tankerkoenig type param
+const TK_TYPE = { diesel: 'diesel', sp95: 'e5', e10: 'e10' };
+
+// Single live query for a viewport — used by the stations API for instant DE results.
+// Returns normalized station objects (same shape as normalizeStation output).
+async function fetchTankerkoenigArea(lat, lng, radKm, fuel) {
+  const type = TK_TYPE[fuel];
+  if (!type) return [];
+  const rad = Math.min(25, Math.max(1, Math.round(radKm)));
+  const url = `${API_BASE}?lat=${lat}&lng=${lng}&rad=${rad}&sort=dist&type=${type}&apikey=${API_KEY}`;
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Gasify/1.0)' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data.ok || !Array.isArray(data.stations)) return [];
+    return data.stations
+      .filter(s => s.id && parseFloat(s.price) > 0)
+      .map(s => ({
+        externalId: `DE-${s.id}`,
+        name: (s.brand || s.name || 'Station').trim(),
+        brand: s.brand?.trim() || null,
+        lat: parseFloat(s.lat),
+        lng: parseFloat(s.lng),
+        city: s.place || '',
+        country: 'DE',
+        price: +parseFloat(s.price).toFixed(3),
+        allPrices: { [fuel]: +parseFloat(s.price).toFixed(3) },
+        distance: null,
+        id: `live-DE-${s.id}`,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+module.exports = { fetchGermanyStations, fetchTankerkoenigArea };
