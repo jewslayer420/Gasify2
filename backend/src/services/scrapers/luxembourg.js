@@ -1,85 +1,109 @@
-// Luxembourg fuel prices — Circle K chain API (prices already in EUR)
-// NOTE: api.circlek.com/eu/prices/v1/fuel/countries/LU returns 400 (not supported on EU endpoint).
-//       fuelo.net also has no Luxembourg data. Returns [] until a working source is found.
-// Accepts coordsCache (Map externalId→{lat,lng}) to skip re-geocoding known stations
+// Luxembourg fuel prices via carbu.com — all stations, prices scraped from HTML data-attributes
+// Luxembourg has government-regulated maximum prices; carbu.com reflects these.
 
-const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
-const UA = 'Mozilla/5.0 (compatible; Gasify/1.0; +https://gasify.app)';
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+const BASE = 'https://carbu.com';
 
-function eur(price) {
-  const n = parseFloat(price);
-  return isNaN(n) || n <= 0 ? 0 : +n.toFixed(3);
+// 5 query hubs spread across Luxembourg to maximise coverage
+const LOCATIONS = [
+  { city: 'Luxembourg',       pc: '1009', id: 'LU_lx_2879' },
+  { city: 'Esch-sur-alzette', pc: '4001', id: 'LU_lx_4313' },
+  { city: 'Ettelbruck',       pc: '9001', id: 'LU_di_6718' },
+  { city: 'Echternach',       pc: '6401', id: 'LU_gr_5543' },
+  { city: 'Wiltz',            pc: '9501', id: 'LU_di_7030' },
+];
+
+// carbu.com fuel codes → our internal types
+const FUEL_MAP = { GO: 'diesel', E10: 'sp95', SP98: 'sp98' };
+
+const BRAND_MAP = {
+  esso: 'Esso', shell: 'Shell', total: 'Total', totalfit: 'Total',
+  q8: 'Q8', bp: 'BP', texaco: 'Texaco', avia: 'Avia', tamoil: 'Tamoil',
+  jet: 'JET', api: 'API', intermarche: 'Intermarché', carrefour: 'Carrefour',
+  cora: 'Cora', louis: 'Louis',
+};
+
+function brandFromLogo(logo) {
+  const key = (logo || '').replace('.gif', '').toLowerCase();
+  return BRAND_MAP[key] || null;
 }
 
-function mapFuel(name) {
-  const n = (name || '').toLowerCase();
-  if (n.includes('hvo') || n.includes('cng') || n.includes('lpg') || n.includes('kwh') || n.includes('electric')) return null;
-  if ((n.includes('diesel') || n.startsWith('miles d') || n.startsWith('milesplus')) && (n.includes('+') || n.includes('plus') || n.includes('premium') || n.includes('upgrade'))) return 'diesel_premium';
-  if (n.includes('diesel') || n.startsWith('miles d') || n.includes('gasoil')) return 'diesel';
-  if (n.includes('e10')) return 'e10';
-  if (n.includes('95') || n.includes('sans plomb')) return 'sp95';
-  if (n.includes('98')) return 'sp98';
-  return null;
+function parseAddress(raw) {
+  const clean = raw.replace(/<br\s*\/?>/gi, '|').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&apos;/g, "'");
+  const parts = clean.split('|');
+  const street = (parts[0] || '').trim() || null;
+  const rest = (parts[1] || '').trim();
+  const spaceIdx = rest.indexOf(' ');
+  const city = spaceIdx > 0 ? rest.slice(spaceIdx + 1).trim() : rest;
+  return { street, city };
 }
 
-async function geocode(query) {
-  await new Promise(r => setTimeout(r, 1150));
+function parseItems(html) {
+  const items = [];
+  // Match each id="item_XXXX" block up to its closing class="stationItem" attr
+  const blockRe = /id="item_(\d+)"([\s\S]*?)class="stationItem/g;
+  let m;
+  while ((m = blockRe.exec(html)) !== null) {
+    const id = m[1];
+    const block = m[2];
+    const get = (attr) => { const a = block.match(new RegExp(`data-${attr}="([^"]*)"`)); return a ? a[1] : ''; };
+    const lat = parseFloat(get('lat'));
+    const lng = parseFloat(get('lng'));
+    const price = parseFloat(get('price'));
+    if (isNaN(lat) || isNaN(lng) || isNaN(price) || price <= 0) continue;
+    items.push({ id, lat, lng, name: get('name'), logo: get('logo'), price, address: get('address') });
+  }
+  return items;
+}
+
+async function fetchPage(loc, fuelCode) {
+  const url = `${BASE}/luxembourg/liste-stations-service/${fuelCode}/${encodeURIComponent(loc.city)}/${loc.pc}/${loc.id}`;
   try {
-    const url = `${NOMINATIM}?q=${encodeURIComponent(query)}&countrycodes=lu&format=json&limit=1`;
-    const res = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(12000) });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.length ? { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) } : null;
-  } catch { return null; }
-}
-
-async function fetchLuxembourgStations(coordsCache = new Map()) {
-  let sites = [];
-  try {
-    const res = await fetch('https://api.circlek.com/eu/prices/v1/fuel/countries/LU', {
-      headers: { 'User-Agent': UA, 'X-App-Name': 'PRICES' },
-      signal: AbortSignal.timeout(30000),
+    const res = await fetch(url, {
+      headers: { 'User-Agent': UA, Referer: BASE + '/luxembourg/', Accept: 'text/html' },
+      signal: AbortSignal.timeout(20000),
     });
-    if (!res.ok) { console.log('[luxembourg] Circle K failed:', res.status); return []; }
-    sites = (await res.json()).sites || [];
-  } catch (e) { console.log('[luxembourg] Circle K error:', e.message); return []; }
+    if (!res.ok) return '';
+    return res.text();
+  } catch { return ''; }
+}
+
+async function fetchLuxembourgStations() {
+  // Map: stationId → { base info + Map<fuelType, price> }
+  const stationMap = new Map();
+
+  for (const loc of LOCATIONS) {
+    for (const [fuelCode, fuelType] of Object.entries(FUEL_MAP)) {
+      const html = await fetchPage(loc, fuelCode);
+      for (const item of parseItems(html)) {
+        if (!stationMap.has(item.id)) {
+          const { street, city } = parseAddress(item.address);
+          stationMap.set(item.id, {
+            externalId: `LU-CARBU-${item.id}`,
+            name: item.name || 'Station',
+            brand: brandFromLogo(item.logo),
+            lat: item.lat,
+            lng: item.lng,
+            address: street,
+            city,
+            country: 'LU',
+            prices: new Map(),
+          });
+        }
+        stationMap.get(item.id).prices.set(fuelType, +item.price.toFixed(3));
+      }
+      await new Promise(r => setTimeout(r, 400));
+    }
+  }
 
   const result = [];
-  let geocoded = 0;
-  for (const s of sites) {
-    const prices = [];
-    for (const p of (s.fuelPrices || [])) {
-      const ft = mapFuel(p.displayName || '');
-      if (!ft) continue;
-      const price = eur(p.price);
-      if (price > 0) prices.push({ fuelType: ft, price });
-    }
+  for (const s of stationMap.values()) {
+    const prices = [...s.prices.entries()].map(([fuelType, price]) => ({ fuelType, price }));
     if (!prices.length) continue;
-
-    const externalId = `LU-CK-${s.id}`;
-    const cached = coordsCache.get(externalId);
-    let coords = cached ? { lat: Number(cached.lat), lng: Number(cached.lng) } : null;
-    if (!coords) {
-      const addr = s.address || {};
-      const query = [addr.street, addr.postalCode, addr.city, 'Luxembourg'].filter(Boolean).join(', ');
-      coords = await geocode(query);
-      if (coords) geocoded++;
-    }
-    if (!coords) continue;
-
-    const addr = s.address || {};
-    result.push({
-      externalId,
-      name: s.name || 'Circle K',
-      brand: 'Circle K',
-      lat: coords.lat, lng: coords.lng,
-      address: addr.street || null,
-      city: addr.city || '',
-      country: 'LU',
-      prices,
-    });
+    result.push({ ...s, prices });
   }
-  console.log(`[luxembourg] Circle K: ${result.length} stations (${geocoded} new geocoded)`);
+
+  console.log(`[luxembourg] carbu.com: ${result.length} stations`);
   return result;
 }
 

@@ -169,7 +169,7 @@ async function runNightlySlowSync() {
   await runSync('Germany',        fetchGermanyStations);
   await runSync('Norway',    () => buildCoordsCache('NO-CK-').then(c => fetchNorwayStations(c)));
   await runSync('Sweden',    () => buildCoordsCache('SE-CK-').then(c => fetchSwedenStations(c)));
-  await runSync('Luxembourg', () => buildCoordsCache('LU-CK-').then(c => fetchLuxembourgStations(c)));
+  await runSync('Luxembourg', fetchLuxembourgStations);
   console.log('[sync] Nightly slow sync complete');
 }
 
@@ -184,7 +184,7 @@ function startSyncScheduler() {
   setTimeout(() => runSync('Germany',     fetchGermanyStations),  90000);
   setTimeout(() => runSync('Norway',      () => buildCoordsCache('NO-CK-').then(c => fetchNorwayStations(c))),    105000);
   setTimeout(() => runSync('Sweden',      () => buildCoordsCache('SE-CK-').then(c => fetchSwedenStations(c))),    110000);
-  setTimeout(() => runSync('Luxembourg',  () => buildCoordsCache('LU-CK-').then(c => fetchLuxembourgStations(c))), 115000);
+  setTimeout(() => runSync('Luxembourg',  fetchLuxembourgStations), 115000);
   setTimeout(() => runNightlySlowSync(),                          120000); // 2 min after start
 
   // Schedule recurring syncs
