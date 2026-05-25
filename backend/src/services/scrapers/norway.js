@@ -1,8 +1,17 @@
-// Norway fuel prices via Konkurransetilsynet API
-// Norwegian law requires all fuel stations to report daily prices to the Competition Authority.
-// API: https://api.konkurransetilsynet.no/drivstoff/v2/bensinstasjoner?lat=X&lng=Y&radius=50
-// NOTE: DNS for api.konkurransetilsynet.no fails on some Windows machines but resolves fine
-//       from Linux (Render). This scraper will return [] locally but works in production.
+// Norway fuel prices — NO PUBLIC API EXISTS (returning [])
+//
+// Why: The Norwegian Competition Authority (Konkurransetilsynet) issued a regulatory order in
+// 2020 (extended to 2030) FORBIDDING Circle K, YX, and Uno-X from publishing fuel prices online,
+// to prevent price coordination. These three chains cover ~85% of Norwegian stations.
+//
+// What we tried and ruled out:
+//   api.konkurransetilsynet.no  — NXDOMAIN globally (subdomain never existed)
+//   Circle K NO / Uno-X / YX   — no public price APIs; chains bound by competition order
+//   ST1 Norway / Shell NO       — no accessible price endpoints
+//   DrivstoffAppen (api.drivstoffappen.no) — exists but requires app authentication
+//   fuelo.net / polttoaine.net  — no Nordic coverage
+//
+// If a public source becomes available, replace this stub.
 
 const NOK_EUR = 1 / 11.60;
 const UA = 'Mozilla/5.0 (compatible; Gasify/1.0; +https://gasify.app)';

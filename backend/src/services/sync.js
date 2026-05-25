@@ -166,10 +166,9 @@ async function runNightlySlowSync() {
   await runSync('Lithuania',      fetchLithuaniaStations);
   await runSync('Estonia',        fetchEstoniaStations);
   await runSync('Turkey',         fetchTurkeyStations);
-  await runSync('Germany',        fetchGermanyStations);
-  await runSync('Norway',     fetchNorwayStations);
-  await runSync('Sweden',     fetchSwedenStations);
+  await runSync('Germany',    fetchGermanyStations);
   await runSync('Luxembourg', fetchLuxembourgStations);
+  // Norway/Sweden skipped — no public price APIs (see scrapers/*.js)
   console.log('[sync] Nightly slow sync complete');
 }
 
@@ -182,9 +181,9 @@ function startSyncScheduler() {
   setTimeout(() => runSync('Austria',     fetchAustriaStations),  60000);
   setTimeout(() => runSync('Poland',      fetchPolandStations),   75000);
   setTimeout(() => runSync('Germany',     fetchGermanyStations),  90000);
-  setTimeout(() => runSync('Norway',     fetchNorwayStations),    105000);
-  setTimeout(() => runSync('Sweden',     fetchSwedenStations),   110000);
-  setTimeout(() => runSync('Luxembourg',  fetchLuxembourgStations), 115000);
+  // Norway returns [] — no public price API exists (see scrapers/norway.js)
+  // Sweden returns [] — no public price API exists (see scrapers/sweden.js)
+  setTimeout(() => runSync('Luxembourg',  fetchLuxembourgStations), 105000);
   setTimeout(() => runNightlySlowSync(),                          120000); // 2 min after start
 
   // Schedule recurring syncs
