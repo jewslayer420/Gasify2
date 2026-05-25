@@ -8,7 +8,7 @@ const stationsRouter = require('./routes/stations');
 const authRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
 const newsRouter = require('./routes/news');
-const { startSyncScheduler } = require('./services/sync');
+const { startSyncScheduler, triggerSync } = require('./services/sync');
 
 process.on('unhandledRejection', (reason) => {
   console.error('[server] Unhandled rejection:', reason);
@@ -27,6 +27,18 @@ app.use(cookieParser());
 app.use(express.json());
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+// Admin: trigger a named scraper on demand and return results
+// Usage: POST /api/admin/sync/norway  (no auth — internal/debugging use only)
+app.post('/api/admin/sync/:country', async (req, res) => {
+  const country = req.params.country.toLowerCase();
+  try {
+    const result = await triggerSync(country);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
 
 app.use('/api/stations', stationsRouter);
 app.use('/api/auth', authRouter);

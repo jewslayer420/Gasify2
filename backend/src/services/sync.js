@@ -192,4 +192,51 @@ function startSyncScheduler() {
   cron.schedule('0 2 * * *', runNightlySlowSync); // slow scrapers at 2am UTC daily
 }
 
-module.exports = { startSyncScheduler };
+// Map of country slugs → fetch functions for on-demand triggering
+const SCRAPERS = {
+  france:         fetchFranceStations,
+  spain:          fetchSpainStations,
+  italy:          fetchItalyStations,
+  portugal:       fetchPortugalStations,
+  austria:        fetchAustriaStations,
+  poland:         fetchPolandStations,
+  germany:        fetchGermanyStations,
+  norway:         fetchNorwayStations,
+  sweden:         fetchSwedenStations,
+  luxembourg:     fetchLuxembourgStations,
+  slovenia:       fetchSloveniaStations,
+  netherlands:    fetchNLStations,
+  croatia:        fetchCroatiaStations,
+  czechia:        fetchCzechiaStations,
+  switzerland:    fetchSwitzerlandStations,
+  slovakia:       fetchSlovakiaStations,
+  hungary:        fetchHungaryStations,
+  romania:        fetchRomaniaStations,
+  serbia:         fetchSerbiaStations,
+  bulgaria:       fetchBulgariaStations,
+  greece:         fetchGreeceStations,
+  bosnia:         fetchBosniaStations,
+  montenegro:     fetchMontenegroStations,
+  northmacedonia: fetchNorthMacedoniaStations,
+  albania:        fetchAlbaniaStations,
+  denmark:        fetchDenmarkStations,
+  uk:             fetchUKStations,
+  ireland:        fetchIrelandStations,
+  belgium:        fetchBelgiumStations,
+  finland:        fetchFinlandStations,
+  latvia:         fetchLatviaStations,
+  lithuania:      fetchLithuaniaStations,
+  estonia:        fetchEstoniaStations,
+  turkey:         fetchTurkeyStations,
+};
+
+async function triggerSync(country) {
+  const fetchFn = SCRAPERS[country];
+  if (!fetchFn) throw new Error(`Unknown country: ${country}. Available: ${Object.keys(SCRAPERS).join(', ')}`);
+  console.log(`[sync] Manual trigger: ${country}`);
+  const stations = await fetchFn();
+  await bulkUpsertStations(stations, country);
+  return { country, stationsFetched: stations.length };
+}
+
+module.exports = { startSyncScheduler, triggerSync };
