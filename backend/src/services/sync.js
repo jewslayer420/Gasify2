@@ -32,6 +32,9 @@ const { fetchLatviaStations }    = require('./scrapers/latvia');
 const { fetchLithuaniaStations } = require('./scrapers/lithuania');
 const { fetchEstoniaStations }   = require('./scrapers/estonia');
 const { fetchTurkeyStations }    = require('./scrapers/turkey');
+const { fetchNorwayStations }    = require('./scrapers/norway');
+const { fetchSwedenStations }    = require('./scrapers/sweden');
+const { fetchLuxembourgStations } = require('./scrapers/luxembourg');
 
 const CHUNK = 500;
 
@@ -97,6 +100,15 @@ async function bulkUpsertStations(stations, label) {
   console.log(`[sync] ${label} done — ${totalNew} new prices, ${totalUpdated} updated`);
 }
 
+// Build a lat/lng cache from existing DB stations to avoid re-geocoding on every run
+async function buildCoordsCache(prefix) {
+  const rows = await prisma.station.findMany({
+    where: { externalId: { startsWith: prefix } },
+    select: { externalId: true, lat: true, lng: true },
+  });
+  return new Map(rows.map(r => [r.externalId, { lat: r.lat, lng: r.lng }]));
+}
+
 async function runSync(label, fetchFn) {
   console.log(`[sync] Starting ${label}…`);
   try {
@@ -155,6 +167,9 @@ async function runNightlySlowSync() {
   await runSync('Estonia',        fetchEstoniaStations);
   await runSync('Turkey',         fetchTurkeyStations);
   await runSync('Germany',        fetchGermanyStations);
+  await runSync('Norway',    () => buildCoordsCache('NO-CK-').then(c => fetchNorwayStations(c)));
+  await runSync('Sweden',    () => buildCoordsCache('SE-CK-').then(c => fetchSwedenStations(c)));
+  await runSync('Luxembourg', () => buildCoordsCache('LU-CK-').then(c => fetchLuxembourgStations(c)));
   console.log('[sync] Nightly slow sync complete');
 }
 
@@ -167,6 +182,9 @@ function startSyncScheduler() {
   setTimeout(() => runSync('Austria',     fetchAustriaStations),  60000);
   setTimeout(() => runSync('Poland',      fetchPolandStations),   75000);
   setTimeout(() => runSync('Germany',     fetchGermanyStations),  90000);
+  setTimeout(() => runSync('Norway',      () => buildCoordsCache('NO-CK-').then(c => fetchNorwayStations(c))),    105000);
+  setTimeout(() => runSync('Sweden',      () => buildCoordsCache('SE-CK-').then(c => fetchSwedenStations(c))),    110000);
+  setTimeout(() => runSync('Luxembourg',  () => buildCoordsCache('LU-CK-').then(c => fetchLuxembourgStations(c))), 115000);
   setTimeout(() => runNightlySlowSync(),                          120000); // 2 min after start
 
   // Schedule recurring syncs
