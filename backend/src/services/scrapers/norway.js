@@ -1,4 +1,6 @@
 // Norway fuel prices — Circle K chain API (prices in NOK, converted to EUR)
+// NOTE: api.circlek.com/eu/prices/v1/fuel/countries/NO returns 400 (not supported on EU endpoint).
+//       This scraper will return [] until a working Norway data source is found.
 // Accepts coordsCache (Map externalId→{lat,lng}) to skip re-geocoding known stations
 
 const NOK_EUR = 1 / 11.60;

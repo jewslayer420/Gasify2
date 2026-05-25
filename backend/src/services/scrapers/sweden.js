@@ -1,4 +1,6 @@
 // Sweden fuel prices — Circle K chain API (prices in SEK, converted to EUR)
+// NOTE: api.circlek.com/eu/prices/v1/fuel/countries/SE returns 400 (not supported on EU endpoint).
+//       This scraper will return [] until a working Sweden data source is found.
 // Accepts coordsCache (Map externalId→{lat,lng}) to skip re-geocoding known stations
 
 const SEK_EUR = 1 / 11.53;

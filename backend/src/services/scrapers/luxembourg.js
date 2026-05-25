@@ -1,4 +1,6 @@
 // Luxembourg fuel prices — Circle K chain API (prices already in EUR)
+// NOTE: api.circlek.com/eu/prices/v1/fuel/countries/LU returns 400 (not supported on EU endpoint).
+//       fuelo.net also has no Luxembourg data. Returns [] until a working source is found.
 // Accepts coordsCache (Map externalId→{lat,lng}) to skip re-geocoding known stations
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
