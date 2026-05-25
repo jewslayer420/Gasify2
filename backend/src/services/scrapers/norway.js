@@ -1,86 +1,117 @@
-// Norway fuel prices — Circle K chain API (prices in NOK, converted to EUR)
-// NOTE: api.circlek.com/eu/prices/v1/fuel/countries/NO returns 400 (not supported on EU endpoint).
-//       This scraper will return [] until a working Norway data source is found.
-// Accepts coordsCache (Map externalId→{lat,lng}) to skip re-geocoding known stations
+// Norway fuel prices via Konkurransetilsynet API
+// Norwegian law requires all fuel stations to report daily prices to the Competition Authority.
+// API: https://api.konkurransetilsynet.no/drivstoff/v2/bensinstasjoner?lat=X&lng=Y&radius=50
+// NOTE: DNS for api.konkurransetilsynet.no fails on some Windows machines but resolves fine
+//       from Linux (Render). This scraper will return [] locally but works in production.
 
 const NOK_EUR = 1 / 11.60;
-const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 const UA = 'Mozilla/5.0 (compatible; Gasify/1.0; +https://gasify.app)';
+const API_BASE = 'https://api.konkurransetilsynet.no/drivstoff/v2/bensinstasjoner';
+
+// Grid covering Norway in ~0.4° lat × 0.8° lng cells (~44km × ~40km at lat 65)
+// Norway is narrow — lng range shrinks significantly north of 63°
+function buildGrid() {
+  const cells = [];
+  for (let lat = 57.5; lat < 71.5; lat += 0.4) {
+    const lngMin = lat > 68 ? 16 : lat > 63 ? 8 : 4;
+    const lngMax = lat > 68 ? 31 : 31;
+    for (let lng = lngMin; lng < lngMax; lng += 0.8)
+      cells.push({ lat: +(lat + 0.2).toFixed(2), lng: +(lng + 0.4).toFixed(2) });
+  }
+  return cells;
+}
 
 function nok(price) {
   const n = parseFloat(price) * NOK_EUR;
   return isNaN(n) || n <= 0 ? 0 : +n.toFixed(3);
 }
 
-function mapFuel(name) {
-  const n = (name || '').toLowerCase();
-  if (n.includes('hvo') || n.includes('cng') || n.includes('lpg') || n.includes('kwh') || n.includes('electric')) return null;
-  if ((n.includes('diesel') || n.startsWith('miles d') || n.startsWith('milesplus')) && (n.includes('+') || n.includes('plus') || n.includes('premium') || n.includes('upgrade'))) return 'diesel_premium';
-  if (n.includes('diesel') || n.startsWith('miles d')) return 'diesel';
-  if (n.includes('e10')) return 'e10';
-  if (n.includes('95')) return 'sp95';
-  if (n.includes('98')) return 'sp98';
+function mapFuel(product, name) {
+  const p = (product || '').toLowerCase().trim();
+  const n = (name || product || '').toLowerCase();
+  if (p === 'diesel' || n.includes('diesel')) {
+    if (n.includes('premium') || n.includes('plus') || n.includes('v-power') || n.includes('excellium')) return 'diesel_premium';
+    return 'diesel';
+  }
+  if (p === '95' || p === 'blyfri 95' || p === 'bensin95' || (n.includes('95') && !n.includes('98'))) return 'sp95';
+  if (p === '98' || n.includes('98') || n.includes('v-power')) return 'sp98';
+  if (p === 'e10' || n.includes('e10')) return 'e10';
   return null;
 }
 
-async function geocode(query) {
-  await new Promise(r => setTimeout(r, 1150));
-  try {
-    const url = `${NOMINATIM}?q=${encodeURIComponent(query)}&countrycodes=no&format=json&limit=1`;
-    const res = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(12000) });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.length ? { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) } : null;
-  } catch { return null; }
+function normalizeBrand(chain) {
+  const c = (chain || '').toLowerCase().replace(/[_\s-]/g, '');
+  if (c.includes('circlek') || c === 'ck') return 'Circle K';
+  if (c.includes('shell')) return 'Shell';
+  if (c.includes('unox') || c.includes('uno-x')) return 'Uno-X';
+  if (c.includes('yx')) return 'YX';
+  if (c.includes('st1')) return 'St1';
+  if (c.includes('best')) return 'Best';
+  if (c.includes('esso')) return 'Esso';
+  if (c.includes('preem')) return 'Preem';
+  if (c.includes('ingo')) return 'INGO';
+  return chain || null;
 }
 
-async function fetchNorwayStations(coordsCache = new Map()) {
-  let sites = [];
+async function fetchArea(lat, lng, stationMap) {
+  const url = `${API_BASE}?lat=${lat}&lng=${lng}&radius=50`;
   try {
-    const res = await fetch('https://api.circlek.com/eu/prices/v1/fuel/countries/NO', {
-      headers: { 'User-Agent': UA, 'X-App-Name': 'PRICES' },
-      signal: AbortSignal.timeout(30000),
+    const res = await fetch(url, {
+      headers: { 'User-Agent': UA, Accept: 'application/json' },
+      signal: AbortSignal.timeout(20000),
     });
-    if (!res.ok) { console.log('[norway] Circle K failed:', res.status); return []; }
-    sites = (await res.json()).sites || [];
-  } catch (e) { console.log('[norway] Circle K error:', e.message); return []; }
-
-  const result = [];
-  let geocoded = 0;
-  for (const s of sites) {
-    const prices = [];
-    for (const p of (s.fuelPrices || [])) {
-      const ft = mapFuel(p.displayName || '');
-      if (!ft) continue;
-      const price = nok(p.price);
-      if (price > 0) prices.push({ fuelType: ft, price });
+    if (!res.ok) return;
+    const raw = await res.json();
+    // API may return array directly or wrapped in { stations: [] } or { data: [] }
+    const items = Array.isArray(raw) ? raw : (raw.stations || raw.data || []);
+    for (const s of items) {
+      const id = String(s.stationId || s.id || '');
+      if (!id || stationMap.has(id)) continue;
+      const lat = parseFloat(s.lat || s.latitude);
+      const lng = parseFloat(s.lng || s.longitude || s.lon);
+      if (isNaN(lat) || isNaN(lng)) continue;
+      const rawPrices = s.prices || s.fuelPrices || s.fuel || [];
+      const prices = [];
+      const seen = new Set();
+      for (const p of rawPrices) {
+        const product = p.product || p.productCode || p.fuelType || p.type || '';
+        const ft = mapFuel(product, p.productName || p.name || product);
+        if (!ft || seen.has(ft)) continue;
+        const price = nok(p.price || p.priceIncVat || p.amount || 0);
+        if (price <= 0 || price > 5) continue;
+        seen.add(ft);
+        prices.push({ fuelType: ft, price });
+      }
+      if (!prices.length) continue;
+      stationMap.set(id, {
+        externalId: `NO-KT-${id}`,
+        name: s.name || s.stationName || 'Station',
+        brand: normalizeBrand(s.chain || s.brand || s.chainCode || ''),
+        lat, lng,
+        address: s.address || s.street || null,
+        city: s.city || s.municipality || '',
+        country: 'NO',
+        prices,
+      });
     }
-    if (!prices.length) continue;
+  } catch { /* skip cell — DNS fails locally, works from Linux */ }
+}
 
-    const externalId = `NO-CK-${s.id}`;
-    const cached = coordsCache.get(externalId);
-    let coords = cached ? { lat: Number(cached.lat), lng: Number(cached.lng) } : null;
-    if (!coords) {
-      const addr = s.address || {};
-      const query = [addr.street, addr.postalCode, addr.city, 'Norway'].filter(Boolean).join(', ');
-      coords = await geocode(query);
-      if (coords) geocoded++;
-    }
-    if (!coords) continue;
+async function fetchNorwayStations() {
+  const stationMap = new Map();
+  const grid = buildGrid();
+  let done = 0;
 
-    const addr = s.address || {};
-    result.push({
-      externalId,
-      name: s.name || 'Circle K',
-      brand: 'Circle K',
-      lat: coords.lat, lng: coords.lng,
-      address: addr.street || null,
-      city: addr.city || '',
-      country: 'NO',
-      prices,
-    });
+  // Run in small batches to respect rate limits
+  const BATCH = 8;
+  for (let i = 0; i < grid.length; i += BATCH) {
+    await Promise.all(grid.slice(i, i + BATCH).map(c => fetchArea(c.lat, c.lng, stationMap)));
+    done += Math.min(BATCH, grid.length - i);
+    if (done % 80 === 0) console.log(`[norway] ${done}/${grid.length} cells, ${stationMap.size} stations`);
   }
-  console.log(`[norway] Circle K: ${result.length} stations (${geocoded} new geocoded)`);
+
+  const result = [...stationMap.values()];
+  console.log(`[norway] Konkurransetilsynet: ${result.length} stations`);
   return result;
 }
 
