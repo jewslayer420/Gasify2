@@ -4,6 +4,6 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "postinstall": "cd backend && npm install && npx prisma generate"
+    "postinstall": "cd backend && npm install"
   }
 }
