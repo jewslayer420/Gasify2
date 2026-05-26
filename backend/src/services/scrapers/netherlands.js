@@ -1,90 +1,119 @@
-// Netherlands fuel prices via brandstof-zoeker.nl — coordinate-based, no auth needed
-// Grid-scans NL with 4 fuel types; deduplicates by station ID then combines prices.
-
-const FUEL_TYPES = [
-  { param: 'diesel',  db: 'diesel' },
-  { param: 'euro95',  db: 'sp95' },
-  { param: 'euro98',  db: 'sp98' },
-  { param: 'lpg',     db: 'lpg' },
-];
-const GRID_STEP = 0.2;
-const RADIUS = 0.098;
+// Netherlands fuel prices via fuelo.net — main domain (nl.fuelo.net subdomain is dead)
+// Stations labeled "Netherlands, City, Street" in address h5
+const PHASE1_URL = 'https://fuelo.net/ajax/get_gasstations_within_bounds_mysql_clustering';
+const PHASE2_BASE = 'https://fuelo.net/ajax/get_infowindow_content';
+const GRID_STEP = 0.15;
 const BOUNDS = { latMin: 50.75, latMax: 53.60, lngMin: 3.35, lngMax: 7.23 };
-const BASE = 'https://www.brandstof-zoeker.nl/ajax/stations/';
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+const UA = 'Mozilla/5.0 (compatible; Gasify/1.0)';
 
-async function runConcurrent(items, fn, concurrency = 15) {
+async function runConcurrent(items, fn, concurrency = 10) {
   for (let i = 0; i < items.length; i += concurrency)
     await Promise.all(items.slice(i, i + concurrency).map(fn));
 }
 
-async function fetchCell(lat, lng, fuelParam, priceMap) {
-  const url = `${BASE}?pageType=geo%2FpostalCode&type=${fuelParam}&latitude=${lat}&longitude=${lng}&radius=${RADIUS}`;
+function mapFuelType(name) {
+  if (!name) return null;
+  const n = name.toLowerCase().trim();
+  if (n.includes('lpg') || n.includes('autogas') || n.includes('autolpg')) return 'lpg';
+  if (n.includes('cng') || n.includes('gnv')) return 'cng';
+  if (n.includes('e10')) return 'e10';
+  const isDiesel = n.includes('diesel') || n.includes('gasoil');
+  const isPremium = n.includes('premium') || n.includes('plus') || n.includes('ultimate') || n.includes('extra') || n.includes('v-power');
+  if (isDiesel && isPremium) return 'diesel_premium';
+  if (isDiesel) return 'diesel';
+  if (n.includes('98') || n.includes('supreme')) return 'sp98';
+  if (n.includes('95') || n.includes('eurosuper') || n.includes('unleaded') || n.includes('super')) return 'sp95';
+  return null;
+}
+
+function parsePrices(html) {
+  const seen = new Set();
+  const prices = [];
+  const regex = /title="([^:]+):\s*([\d.,]+)\s*([A-Z€]+)\/l/gi;
+  let m;
+  while ((m = regex.exec(html)) !== null) {
+    const ft = mapFuelType(m[1]);
+    const raw = parseFloat(m[2].replace(',', '.'));
+    if (!ft || isNaN(raw) || raw <= 0 || raw > 5 || seen.has(ft)) continue;
+    seen.add(ft);
+    prices.push({ fuelType: ft, price: +raw.toFixed(3) });
+  }
+  return prices;
+}
+
+async function fetchCell(latMin, latMax, lngMin, lngMax, stationIdMap) {
+  const body = `lat_min=${latMin}&lat_max=${latMax}&lon_min=${lngMin}&lon_max=${lngMax}&zoom=14`;
   try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': UA },
-      signal: AbortSignal.timeout(15000),
+    const res = await fetch(PHASE1_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA, 'Referer': 'https://fuelo.net/' },
+      body, signal: AbortSignal.timeout(20000),
     });
     if (!res.ok) return;
     const data = await res.json();
-    if (!Array.isArray(data)) return;
-    for (const item of data) {
-      const sid = item.station?.id;
-      const price = parseFloat(item.fuelPrice?.prijs);
-      if (!sid || isNaN(price) || price <= 0) continue;
-      if (!priceMap.has(sid)) {
-        priceMap.set(sid, {
-          id: sid,
-          name: item.station.chain || item.station.naam || `Station ${sid}`,
-          brand: item.station.chain || null,
-          lat: item.station.latitude,
-          lng: item.station.longitude,
-          address: item.station.adres || null,
-          city: item.station.plaats || item.station.naam || '',
-          price,
-        });
-      }
+    for (const s of (data.gasstations || [])) {
+      const id = String(s.id ?? '');
+      if (!id || id === 'null' || stationIdMap.has(id)) continue;
+      const lat = parseFloat(s.lat), lng = parseFloat(s.lon ?? s.lng);
+      if (!isNaN(lat) && !isNaN(lng)) stationIdMap.set(id, { lat, lng });
     }
   } catch { /* skip */ }
 }
 
+async function fetchDetail(id, coords) {
+  try {
+    const res = await fetch(`${PHASE2_BASE}/${id}?lang=en`, {
+      headers: { 'User-Agent': UA, Accept: 'application/json' },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const html = data.text || '';
+    if (!html) return null;
+    const nameMatch = html.match(/<h4[^>]*>([^<]+)<\/h4>/);
+    const addrMatch = html.match(/<h5[^>]*>([^<]+)<\/h5>/);
+    const rawAddr = addrMatch ? addrMatch[1].trim() : '';
+    const parts = rawAddr.split(',').map(p => p.trim());
+    if (parts[0]?.toLowerCase() !== 'netherlands') return null;
+    const prices = parsePrices(html);
+    if (!prices.length) return null;
+    const city = parts[1] || '';
+    const street = parts.slice(2).join(', ').trim();
+    return {
+      externalId: `NL-${id}`,
+      name: nameMatch ? nameMatch[1].trim() : `Station ${id}`,
+      brand: null,
+      lat: coords.lat, lng: coords.lng,
+      address: street || null,
+      city,
+      country: 'NL',
+      prices,
+    };
+  } catch { return null; }
+}
+
 async function fetchNLStations() {
+  const stationIdMap = new Map();
   const cells = [];
   for (let lat = BOUNDS.latMin; lat < BOUNDS.latMax; lat += GRID_STEP)
     for (let lng = BOUNDS.lngMin; lng < BOUNDS.lngMax; lng += GRID_STEP)
-      cells.push({ lat: +(lat + GRID_STEP / 2).toFixed(4), lng: +(lng + GRID_STEP / 2).toFixed(4) });
+      cells.push({ latMin: +lat.toFixed(2), latMax: +(lat + GRID_STEP).toFixed(2), lngMin: +lng.toFixed(2), lngMax: +(lng + GRID_STEP).toFixed(2) });
 
-  const stationPrices = new Map(); // id → { ...stationData, prices: [{fuelType, price}] }
+  let done = 0;
+  await runConcurrent(cells, async (c) => {
+    await fetchCell(c.latMin, c.latMax, c.lngMin, c.lngMax, stationIdMap);
+    if (++done % 50 === 0) console.log(`[netherlands] Phase 1: ${done}/${cells.length} cells, ${stationIdMap.size} stations`);
+  });
+  console.log(`[netherlands] Phase 1 done — ${stationIdMap.size} unique station IDs`);
 
-  for (const { param, db } of FUEL_TYPES) {
-    const priceMap = new Map();
-    let done = 0;
-    await runConcurrent(cells, async (c) => {
-      await fetchCell(c.lat, c.lng, param, priceMap);
-      done++;
-      if (done % 50 === 0) console.log(`[netherlands] ${param}: ${done}/${cells.length} cells, ${priceMap.size} stations`);
-    });
-    console.log(`[netherlands] ${param} done — ${priceMap.size} stations`);
-
-    for (const [sid, info] of priceMap) {
-      if (!stationPrices.has(sid)) {
-        stationPrices.set(sid, {
-          externalId: `NL-${sid}`,
-          name: info.name,
-          brand: info.brand,
-          lat: info.lat,
-          lng: info.lng,
-          address: info.address,
-          city: info.city,
-          country: 'NL',
-          prices: [],
-        });
-      }
-      stationPrices.get(sid).prices.push({ fuelType: db, price: info.price });
-    }
-  }
-
-  const stations = [...stationPrices.values()].filter(s => s.prices.length > 0);
+  const stations = [];
+  const ids = [...stationIdMap.entries()];
+  let i = 0;
+  await runConcurrent(ids, async ([id, coords]) => {
+    const s = await fetchDetail(id, coords);
+    if (s) stations.push(s);
+    if (++i % 100 === 0) console.log(`[netherlands] Phase 2: ${i}/${ids.length}, ${stations.length} NL stations`);
+  });
   console.log(`[netherlands] Done — ${stations.length} stations`);
   return stations;
 }
