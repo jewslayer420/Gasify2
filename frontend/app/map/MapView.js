@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import Map, { Marker } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { getStationsGeoJSON, getStation, getStationHistory, geocodeCity, addFavorite, removeFavorite, getFavorites, getCountryCounts } from '../../lib/api';
+import { getStationsGeoJSON, getStation, getStationHistory, geocodeCity, addFavorite, removeFavorite, getFavorites } from '../../lib/api';
 import { useUser } from '../../lib/context/UserContext';
 import styles from './map.module.css';
 
@@ -144,9 +144,6 @@ export default function MapView() {
   fuelRef.current = fuel;
   modeRef.current = mode;
 
-  useEffect(() => {
-    getCountryCounts().then(setCountryTotals).catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (user) getFavorites().then(favs => setFavorites(new Set(favs.map(f => f.id))));
@@ -197,6 +194,9 @@ export default function MapView() {
         distance: null,
         allPrices: {},
       }));
+      const counts = {};
+      for (const s of allStations.current) counts[s.country] = (counts[s.country] || 0) + 1;
+      setCountryTotals(counts);
       updateSidebar();
     } catch {}
     setLoading(false);
