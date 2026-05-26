@@ -1,0 +1,9 @@
+{
+  "name": "gasify-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "postinstall": "cd backend && npm install && npx prisma generate"
+  }
+}
