@@ -35,6 +35,7 @@ const { fetchTurkeyStations }    = require('./scrapers/turkey');
 const { fetchNorwayStations }    = require('./scrapers/norway');
 const { fetchSwedenStations }    = require('./scrapers/sweden');
 const { fetchLuxembourgStations } = require('./scrapers/luxembourg');
+const { fetchAustraliaStations }  = require('./scrapers/australia');
 
 const CHUNK = 500;
 
@@ -135,6 +136,8 @@ function scheduleGovernmentAPIs() {
   cron.schedule('40 0,6,12,18 * * *',  () => runSync('Austria',  fetchAustriaStations));
   // Poland: every 6h offset by 50min
   cron.schedule('50 0,6,12,18 * * *',  () => runSync('Poland',   fetchPolandStations));
+  // Australia: every 6h offset by 55min (WA FuelWatch + NSW FuelCheck)
+  cron.schedule('55 0,6,12,18 * * *',  () => runSync('Australia', fetchAustraliaStations));
 }
 
 // ── Slow fuelo.net grid scrapers — once daily ────────────────────────────────
@@ -184,7 +187,8 @@ function startSyncScheduler() {
   // Norway returns [] — no public price API exists (see scrapers/norway.js)
   // Sweden returns [] — no public price API exists (see scrapers/sweden.js)
   setTimeout(() => runSync('Luxembourg',  fetchLuxembourgStations), 105000);
-  setTimeout(() => runNightlySlowSync(),                          120000); // 2 min after start
+  setTimeout(() => runSync('Australia',   fetchAustraliaStations), 120000);
+  setTimeout(() => runNightlySlowSync(),                          150000); // 2.5 min after start
 
   // Schedule recurring syncs
   scheduleGovernmentAPIs();
@@ -227,6 +231,7 @@ const SCRAPERS = {
   lithuania:      fetchLithuaniaStations,
   estonia:        fetchEstoniaStations,
   turkey:         fetchTurkeyStations,
+  australia:      fetchAustraliaStations,
 };
 
 async function triggerSync(country) {
