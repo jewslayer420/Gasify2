@@ -134,8 +134,8 @@ export default function MapView() {
   const [citySearch, setCitySearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('bbox');
-  const [showCountryBadges, setShowCountryBadges] = useState(false);
-  const [mapZoom, setMapZoom] = useState(5.5);
+  const [showCountryBadges, setShowCountryBadges] = useState(true);
+  const [mapZoom, setMapZoom] = useState(2);
   const [countryTotals, setCountryTotals] = useState({});
 
   const mapRef = useRef(null);
@@ -143,7 +143,7 @@ export default function MapView() {
   const mapLoaded = useRef(false);
   const modeRef = useRef('bbox');
   const fuelRef = useRef(fuel);
-  const prevZoomBelow7 = useRef(false);
+  const prevZoomBelow7 = useRef(true);
   fuelRef.current = fuel;
   modeRef.current = mode;
 
@@ -374,9 +374,10 @@ export default function MapView() {
         <div className={styles.map}>
           <Map
             ref={mapRef}
-            initialViewState={{ longitude: 15.5, latitude: 48.5, zoom: 5.5 }}
+            initialViewState={{ longitude: 15, latitude: 20, zoom: 2 }}
             onMove={e => {
               const z = e.viewState.zoom;
+              setMapZoom(z);
               const below7 = z < 5.5;
               if (below7 !== prevZoomBelow7.current) {
                 prevZoomBelow7.current = below7;
@@ -392,7 +393,7 @@ export default function MapView() {
             mapStyle={MAP_STYLE}
             style={{ position: 'absolute', inset: 0 }}
             renderWorldCopies={false}
-            minZoom={3}
+            minZoom={1.5}
             attributionControl={false}
           >
             {userPos && (
