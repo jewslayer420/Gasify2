@@ -39,6 +39,7 @@ const { fetchAustraliaStations }  = require('./scrapers/australia');
 const { fetchIcelandStations }    = require('./scrapers/iceland');
 const { fetchQLDStations }        = require('./scrapers/australia_qld');
 const { fetchVICStations }        = require('./scrapers/australia_vic');
+const { fetchMexicoStations }     = require('./scrapers/mexico');
 
 const CHUNK = 500;
 
@@ -143,6 +144,8 @@ function scheduleGovernmentAPIs() {
   cron.schedule('55 0,6,12,18 * * *',  () => runSync('Australia', fetchAustraliaStations));
   // Iceland: every 6h (Gasvaktin updates every 15 min — no key required)
   cron.schedule('5 1,7,13,19 * * *',   () => runSync('Iceland',   fetchIcelandStations));
+  // Mexico: every 4h (CRE XML updates every 4h, no auth)
+  cron.schedule('15 0,4,8,12,16,20 * * *', () => runSync('Mexico', fetchMexicoStations));
 }
 
 // ── Slow fuelo.net grid scrapers — once daily ────────────────────────────────
@@ -196,7 +199,8 @@ function startSyncScheduler() {
   setTimeout(() => runSync('Luxembourg',  fetchLuxembourgStations), 105000);
   setTimeout(() => runSync('Australia',   fetchAustraliaStations), 120000);
   setTimeout(() => runSync('Iceland',     fetchIcelandStations),   135000);
-  setTimeout(() => runNightlySlowSync(),                          150000); // 2.5 min after start
+  setTimeout(() => runSync('Mexico',      fetchMexicoStations),    150000);
+  setTimeout(() => runNightlySlowSync(),                          165000); // 2.75 min after start
 
   // Schedule recurring syncs
   scheduleGovernmentAPIs();
@@ -243,6 +247,7 @@ const SCRAPERS = {
   iceland:        fetchIcelandStations,
   qld:            fetchQLDStations,
   vic:            fetchVICStations,
+  mexico:         fetchMexicoStations,
 };
 
 async function triggerSync(country) {
