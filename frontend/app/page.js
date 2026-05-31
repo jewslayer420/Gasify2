@@ -1,22 +1,76 @@
+'use client';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import styles from './page.module.css';
 
+const FLAGS = {
+  SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', DE: '🇩🇪', CZ: '🇨🇿', SK: '🇸🇰',
+  NL: '🇳🇱', BE: '🇧🇪', CH: '🇨🇭', PL: '🇵🇱', RO: '🇷🇴', HR: '🇭🇷', RS: '🇷🇸',
+  ES: '🇪🇸', IT: '🇮🇹', PT: '🇵🇹', LU: '🇱🇺', BG: '🇧🇬', GR: '🇬🇷', BA: '🇧🇦',
+  ME: '🇲🇪', MK: '🇲🇰', AL: '🇦🇱', XK: '🇽🇰', GB: '🇬🇧', DK: '🇩🇰', NO: '🇳🇴',
+  SE: '🇸🇪', FI: '🇫🇮', IE: '🇮🇪', LV: '🇱🇻', LT: '🇱🇹', EE: '🇪🇪', TR: '🇹🇷',
+  AU: '🇦🇺', IS: '🇮🇸', MX: '🇲🇽',
+};
+
+const COUNTRY_NAMES = {
+  SI: 'Slovenia', FR: 'France', AT: 'Austria', HU: 'Hungary', DE: 'Germany',
+  CZ: 'Czechia', SK: 'Slovakia', NL: 'Netherlands', BE: 'Belgium', CH: 'Switzerland',
+  PL: 'Poland', RO: 'Romania', HR: 'Croatia', RS: 'Serbia', ES: 'Spain', IT: 'Italy',
+  PT: 'Portugal', LU: 'Luxembourg', BG: 'Bulgaria', GR: 'Greece', BA: 'Bosnia',
+  ME: 'Montenegro', MK: 'N. Macedonia', AL: 'Albania', XK: 'Kosovo', GB: 'UK',
+  DK: 'Denmark', NO: 'Norway', SE: 'Sweden', FI: 'Finland', IE: 'Ireland',
+  LV: 'Latvia', LT: 'Lithuania', EE: 'Estonia', TR: 'Turkey', AU: 'Australia',
+  IS: 'Iceland', MX: 'Mexico',
+};
+
 export default function LandingPage() {
+  const [counts, setCounts] = useState({});
+
+  useEffect(() => {
+    fetch('/api/stations/counts')
+      .then(r => r.ok ? r.json() : {})
+      .then(d => setCounts(d))
+      .catch(() => {});
+  }, []);
+
+  const covered = Object.keys(FLAGS).filter(c => counts[c] > 0);
+  const totalStations = Object.values(counts).reduce((a, b) => a + b, 0);
+
   return (
     <main className={styles.landing}>
       <section className={styles.hero}>
         <div className={styles.heroContent}>
-          <span className={styles.badge}>🇸🇮 Slovenia · More coming soon</span>
+          <span className={styles.badge}>
+            {covered.length > 0 ? `${covered.length} countries · ${totalStations.toLocaleString()}+ stations` : 'Real-time fuel prices worldwide'}
+          </span>
           <h1 className={styles.headline}>
             Find the <span className={styles.accent}>cheapest fuel</span><br />near you
           </h1>
           <p className={styles.sub}>
-            Real-time prices from 500+ gas stations. Search by location or city — no account required.
+            Real-time prices from gas stations across Europe, Australia, Mexico and more — no account required.
           </p>
           <div className={styles.cta}>
             <Link href="/map" className={styles.btnPrimary}>Open Map</Link>
             <Link href="/auth/register" className={styles.btnSecondary}>Create Account</Link>
           </div>
+        </div>
+      </section>
+
+      <section className={styles.countries}>
+        <h2 className={styles.countriesTitle}>Covered Countries</h2>
+        <div className={styles.countryGrid}>
+          {Object.entries(FLAGS).map(([code, flag]) => {
+            const count = counts[code];
+            return (
+              <div key={code} className={`${styles.countryCard} ${count ? styles.countryCardActive : styles.countryCardInactive}`}>
+                <span className={styles.countryFlag}>{flag}</span>
+                <span className={styles.countryName}>{COUNTRY_NAMES[code]}</span>
+                {count > 0 && (
+                  <span className={styles.countryCount}>{count >= 1000 ? (count / 1000).toFixed(1) + 'k' : count}</span>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 

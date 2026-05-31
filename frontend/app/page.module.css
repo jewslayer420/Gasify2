@@ -86,3 +86,57 @@
 .featureIcon { font-size: 28px; margin-bottom: 12px; }
 .feature h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
 .feature p { font-size: 0.875rem; color: var(--text-muted); line-height: 1.5; }
+
+.countries {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 24px 60px;
+}
+
+.countriesTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.countryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.countryCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.countryCardActive {
+  background: var(--bg-card);
+}
+
+.countryCardInactive {
+  background: transparent;
+  opacity: 0.4;
+}
+
+.countryFlag { font-size: 24px; line-height: 1; }
+
+.countryName {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.countryCount {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--green);
+}
