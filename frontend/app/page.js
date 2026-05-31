@@ -9,7 +9,7 @@ const FLAGS = {
   ES: '🇪🇸', IT: '🇮🇹', PT: '🇵🇹', LU: '🇱🇺', BG: '🇧🇬', GR: '🇬🇷', BA: '🇧🇦',
   ME: '🇲🇪', MK: '🇲🇰', AL: '🇦🇱', XK: '🇽🇰', GB: '🇬🇧', DK: '🇩🇰', NO: '🇳🇴',
   SE: '🇸🇪', FI: '🇫🇮', IE: '🇮🇪', LV: '🇱🇻', LT: '🇱🇹', EE: '🇪🇪', TR: '🇹🇷',
-  AU: '🇦🇺', IS: '🇮🇸', MX: '🇲🇽',
+  AU: '🇦🇺', IS: '🇮🇸', MX: '🇲🇽', TW: '🇹🇼',
 };
 
 const COUNTRY_NAMES = {
@@ -20,7 +20,7 @@ const COUNTRY_NAMES = {
   ME: 'Montenegro', MK: 'N. Macedonia', AL: 'Albania', XK: 'Kosovo', GB: 'UK',
   DK: 'Denmark', NO: 'Norway', SE: 'Sweden', FI: 'Finland', IE: 'Ireland',
   LV: 'Latvia', LT: 'Lithuania', EE: 'Estonia', TR: 'Turkey', AU: 'Australia',
-  IS: 'Iceland', MX: 'Mexico',
+  IS: 'Iceland', MX: 'Mexico', TW: 'Taiwan',
 };
 
 export default function LandingPage() {
