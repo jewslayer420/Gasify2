@@ -36,6 +36,9 @@ const { fetchNorwayStations }    = require('./scrapers/norway');
 const { fetchSwedenStations }    = require('./scrapers/sweden');
 const { fetchLuxembourgStations } = require('./scrapers/luxembourg');
 const { fetchAustraliaStations }  = require('./scrapers/australia');
+const { fetchIcelandStations }    = require('./scrapers/iceland');
+const { fetchQLDStations }        = require('./scrapers/australia_qld');
+const { fetchVICStations }        = require('./scrapers/australia_vic');
 
 const CHUNK = 500;
 
@@ -136,8 +139,10 @@ function scheduleGovernmentAPIs() {
   cron.schedule('40 0,6,12,18 * * *',  () => runSync('Austria',  fetchAustriaStations));
   // Poland: every 6h offset by 50min
   cron.schedule('50 0,6,12,18 * * *',  () => runSync('Poland',   fetchPolandStations));
-  // Australia: every 6h offset by 55min (WA FuelWatch + NSW FuelCheck)
+  // Australia: every 6h offset by 55min (WA FuelWatch + NSW FuelCheck + TAS)
   cron.schedule('55 0,6,12,18 * * *',  () => runSync('Australia', fetchAustraliaStations));
+  // Iceland: every 6h (Gasvaktin updates every 15 min — no key required)
+  cron.schedule('5 1,7,13,19 * * *',   () => runSync('Iceland',   fetchIcelandStations));
 }
 
 // ── Slow fuelo.net grid scrapers — once daily ────────────────────────────────
@@ -172,6 +177,8 @@ async function runNightlySlowSync() {
   await runSync('Germany',    fetchGermanyStations);
   await runSync('Luxembourg', fetchLuxembourgStations);
   // Norway/Sweden skipped — no public price APIs (see scrapers/*.js)
+  await runSync('QLD',  fetchQLDStations);   // requires QLD_FUEL_API_KEY
+  await runSync('VIC',  fetchVICStations);   // requires VIC_FUEL_API_KEY
   console.log('[sync] Nightly slow sync complete');
 }
 
@@ -188,6 +195,7 @@ function startSyncScheduler() {
   // Sweden returns [] — no public price API exists (see scrapers/sweden.js)
   setTimeout(() => runSync('Luxembourg',  fetchLuxembourgStations), 105000);
   setTimeout(() => runSync('Australia',   fetchAustraliaStations), 120000);
+  setTimeout(() => runSync('Iceland',     fetchIcelandStations),   135000);
   setTimeout(() => runNightlySlowSync(),                          150000); // 2.5 min after start
 
   // Schedule recurring syncs
@@ -232,6 +240,9 @@ const SCRAPERS = {
   estonia:        fetchEstoniaStations,
   turkey:         fetchTurkeyStations,
   australia:      fetchAustraliaStations,
+  iceland:        fetchIcelandStations,
+  qld:            fetchQLDStations,
+  vic:            fetchVICStations,
 };
 
 async function triggerSync(country) {
