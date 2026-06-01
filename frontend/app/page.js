@@ -10,6 +10,7 @@ const FLAGS = {
   ME: '🇲🇪', MK: '🇲🇰', AL: '🇦🇱', XK: '🇽🇰', GB: '🇬🇧', DK: '🇩🇰', NO: '🇳🇴',
   SE: '🇸🇪', FI: '🇫🇮', IE: '🇮🇪', LV: '🇱🇻', LT: '🇱🇹', EE: '🇪🇪', TR: '🇹🇷',
   AU: '🇦🇺', IS: '🇮🇸', MX: '🇲🇽', TW: '🇹🇼',
+  MY: '🇲🇾', TH: '🇹🇭', NZ: '🇳🇿', KR: '🇰🇷',
 };
 
 const COUNTRY_NAMES = {
@@ -21,6 +22,7 @@ const COUNTRY_NAMES = {
   DK: 'Denmark', NO: 'Norway', SE: 'Sweden', FI: 'Finland', IE: 'Ireland',
   LV: 'Latvia', LT: 'Lithuania', EE: 'Estonia', TR: 'Turkey', AU: 'Australia',
   IS: 'Iceland', MX: 'Mexico', TW: 'Taiwan',
+  MY: 'Malaysia', TH: 'Thailand', NZ: 'New Zealand', KR: 'South Korea',
 };
 
 export default function LandingPage() {

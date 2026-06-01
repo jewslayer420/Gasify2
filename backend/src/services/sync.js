@@ -41,6 +41,10 @@ const { fetchQLDStations }        = require('./scrapers/australia_qld');
 const { fetchVICStations }        = require('./scrapers/australia_vic');
 const { fetchMexicoStations }     = require('./scrapers/mexico');
 const { fetchTaiwanStations }     = require('./scrapers/taiwan');
+const { fetchMalaysiaStations }   = require('./scrapers/malaysia');
+const { fetchThailandStations }   = require('./scrapers/thailand');
+const { fetchNewZealandStations } = require('./scrapers/newzealand');
+const { fetchSouthKoreaStations } = require('./scrapers/southkorea');
 
 const CHUNK = 500;
 
@@ -149,6 +153,14 @@ function scheduleGovernmentAPIs() {
   cron.schedule('15 0,4,8,12,16,20 * * *', () => runSync('Mexico', fetchMexicoStations));
   // Taiwan: daily (CPC updates prices weekly on Thursdays)
   cron.schedule('30 2 * * *', () => runSync('Taiwan', fetchTaiwanStations));
+  // Malaysia: weekly (data.gov.my updates every Wednesday; OSM stations stable)
+  cron.schedule('0 3 * * 3', () => runSync('Malaysia', fetchMalaysiaStations));
+  // Thailand: daily (thai-oil-api prices can change daily)
+  cron.schedule('0 3 * * *', () => runSync('Thailand', fetchThailandStations));
+  // New Zealand: weekly (MBIE CSV updates Wednesdays)
+  cron.schedule('30 3 * * 3', () => runSync('NewZealand', fetchNewZealandStations));
+  // South Korea: daily (Opinet prices update daily)
+  cron.schedule('15 3 * * *', () => runSync('SouthKorea', fetchSouthKoreaStations));
 }
 
 // ── Slow fuelo.net grid scrapers — once daily ────────────────────────────────
@@ -204,7 +216,11 @@ function startSyncScheduler() {
   setTimeout(() => runSync('Iceland',     fetchIcelandStations),   135000);
   setTimeout(() => runSync('Mexico',      fetchMexicoStations),    150000);
   setTimeout(() => runSync('Taiwan',      fetchTaiwanStations),    165000);
-  setTimeout(() => runNightlySlowSync(),                          165000); // 2.75 min after start
+  setTimeout(() => runSync('Malaysia',    fetchMalaysiaStations),  180000);
+  setTimeout(() => runSync('Thailand',    fetchThailandStations),  195000);
+  setTimeout(() => runSync('NewZealand',  fetchNewZealandStations), 210000);
+  setTimeout(() => runSync('SouthKorea',  fetchSouthKoreaStations), 225000);
+  setTimeout(() => runNightlySlowSync(),                          240000); // 4 min after start
 
   // Schedule recurring syncs
   scheduleGovernmentAPIs();
@@ -253,6 +269,10 @@ const SCRAPERS = {
   vic:            fetchVICStations,
   mexico:         fetchMexicoStations,
   taiwan:         fetchTaiwanStations,
+  malaysia:       fetchMalaysiaStations,
+  thailand:       fetchThailandStations,
+  newzealand:     fetchNewZealandStations,
+  southkorea:     fetchSouthKoreaStations,
 };
 
 async function triggerSync(country) {
