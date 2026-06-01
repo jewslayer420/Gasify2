@@ -45,6 +45,7 @@ const { fetchMalaysiaStations }   = require('./scrapers/malaysia');
 const { fetchThailandStations }   = require('./scrapers/thailand');
 const { fetchNewZealandStations } = require('./scrapers/newzealand');
 const { fetchSouthKoreaStations } = require('./scrapers/southkorea');
+const { fetchCanadaStations }     = require('./scrapers/canada');
 
 const CHUNK = 500;
 
@@ -161,6 +162,8 @@ function scheduleGovernmentAPIs() {
   cron.schedule('30 3 * * 3', () => runSync('NewZealand', fetchNewZealandStations));
   // South Korea: daily (Opinet prices update daily)
   cron.schedule('15 3 * * *', () => runSync('SouthKorea', fetchSouthKoreaStations));
+  // Canada: monthly (Ontario CSV updates monthly; OSM stations stable)
+  cron.schedule('0 4 1 * *', () => runSync('Canada', fetchCanadaStations));
 }
 
 // ── Slow fuelo.net grid scrapers — once daily ────────────────────────────────
@@ -220,7 +223,8 @@ function startSyncScheduler() {
   setTimeout(() => runSync('Thailand',    fetchThailandStations),  195000);
   setTimeout(() => runSync('NewZealand',  fetchNewZealandStations), 210000);
   setTimeout(() => runSync('SouthKorea',  fetchSouthKoreaStations), 225000);
-  setTimeout(() => runNightlySlowSync(),                          240000); // 4 min after start
+  setTimeout(() => runSync('Canada',      fetchCanadaStations),    240000);
+  setTimeout(() => runNightlySlowSync(),                          270000); // 4.5 min after start
 
   // Schedule recurring syncs
   scheduleGovernmentAPIs();
@@ -273,6 +277,7 @@ const SCRAPERS = {
   thailand:       fetchThailandStations,
   newzealand:     fetchNewZealandStations,
   southkorea:     fetchSouthKoreaStations,
+  canada:         fetchCanadaStations,
 };
 
 async function triggerSync(country) {
