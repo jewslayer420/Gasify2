@@ -14,8 +14,8 @@
 const NZD_EUR = 1 / 1.85; // 1 EUR ≈ 1.85 NZD
 const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
 const OVERPASS_MIRRORS = [
-  'https://overpass.openstreetmap.ru/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
 ];
 
 function nzdCentsToEur(val) {

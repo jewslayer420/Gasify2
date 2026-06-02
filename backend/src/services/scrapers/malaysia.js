@@ -13,8 +13,8 @@
 const MYR_EUR = 1 / 4.9; // 1 EUR ≈ 4.9 MYR
 const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
 const OVERPASS_MIRRORS = [
-  'https://overpass.openstreetmap.ru/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
 ];
 
 function myrToEur(val) {
