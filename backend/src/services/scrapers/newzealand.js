@@ -13,7 +13,10 @@
 
 const NZD_EUR = 1 / 1.85; // 1 EUR ≈ 1.85 NZD
 const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
-const OVERPASS = 'https://overpass.kumi.systems/api/interpreter';
+const OVERPASS_MIRRORS = [
+  'https://overpass.openstreetmap.ru/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+];
 
 function nzdCentsToEur(val) {
   const n = parseFloat(val);
@@ -85,18 +88,21 @@ async function fetchNewZealandStations() {
   // bbox: [latMin,lngMin,latMax,lngMax] — covers New Zealand (excl. Chatham Islands)
   const query = `[out:json][timeout:90][bbox:-47.5,165.5,-34.0,178.5];(node["amenity"="fuel"];way["amenity"="fuel"];);out center body;`;
   let elements = [];
-  try {
-    const r = await fetch(`${OVERPASS}?` + new URLSearchParams({ data: query }), {
-      headers: { Accept: '*/*', 'User-Agent': UA },
-      signal: AbortSignal.timeout(120000),
-    });
-    if (!r.ok) throw new Error(`Overpass HTTP ${r.status}`);
-    const json = await r.json();
-    elements = json.elements || [];
-  } catch (err) {
-    console.error('[newzealand] OSM fetch error:', err.message);
-    return [];
+  for (const mirror of OVERPASS_MIRRORS) {
+    try {
+      const r = await fetch(`${mirror}?` + new URLSearchParams({ data: query }), {
+        headers: { Accept: '*/*', 'User-Agent': UA },
+        signal: AbortSignal.timeout(150000),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const json = await r.json();
+      elements = json.elements || [];
+      break;
+    } catch (err) {
+      console.warn(`[newzealand] ${mirror} failed:`, err.message);
+    }
   }
+  if (!elements.length) { console.error('[newzealand] all Overpass mirrors failed'); return []; }
 
   const stations = [];
   for (const e of elements) {
