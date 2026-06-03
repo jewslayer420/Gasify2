@@ -35,12 +35,12 @@ const heatmapLayer = {
   id: 'stations-heat',
   type: 'heatmap',
   source: 'stations',
-  minzoom: 3,
+  minzoom: 2,
   maxzoom: 12,
   paint: {
     'heatmap-weight': 1,
-    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 3, 0.01, 5, 0.05, 7, 0.3, 12, 1.2],
-    'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 3, 6, 7, 6, 12, 22],
+    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 2, 0.02, 3, 0.03, 5, 0.05, 7, 0.3, 12, 1.2],
+    'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 2, 5, 3, 6, 7, 6, 12, 22],
     'heatmap-color': [
       'interpolate', ['linear'], ['heatmap-density'],
       0,   'rgba(0,0,0,0)',
