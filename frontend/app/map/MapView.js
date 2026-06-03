@@ -49,7 +49,7 @@ const heatmapLayer = {
       0.8,  'rgba(239,68,68,0.85)',
       1,    'rgba(239,68,68,0.95)',
     ],
-    'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.85, 12, 0],
+    'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0.85, 9, 0],
   },
 };
 
@@ -58,7 +58,7 @@ const pointLayer = {
   id: 'points',
   type: 'circle',
   source: 'stations',
-  minzoom: 11,
+  minzoom: 7,
   paint: {
     'circle-color': [
       'case',
@@ -67,10 +67,10 @@ const pointLayer = {
       ['<', ['get', 'price'], 1.90], '#f97316',
       '#ef4444',
     ],
-    'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 5, 14, 9],
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 2.5, 11, 5, 14, 9],
     'circle-stroke-width': 1.5,
     'circle-stroke-color': 'rgba(255,255,255,0.25)',
-    'circle-opacity': ['interpolate', ['linear'], ['zoom'], 11, 0, 12, 0.92],
+    'circle-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0, 8.5, 0.9],
   },
 };
 
