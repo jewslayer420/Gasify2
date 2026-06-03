@@ -384,7 +384,7 @@ export default function MapView() {
         <div className={styles.map}>
           <Map
             ref={mapRef}
-            initialViewState={{ longitude: 15, latitude: 20, zoom: 2 }}
+            initialViewState={{ longitude: 15, latitude: 50, zoom: 4.3 }}
             onMove={e => {
               const z = e.viewState.zoom;
               setMapZoom(z);
@@ -403,7 +403,7 @@ export default function MapView() {
             mapStyle={MAP_STYLE}
             style={{ position: 'absolute', inset: 0 }}
             renderWorldCopies={false}
-            minZoom={1.5}
+            minZoom={3.7}
             attributionControl={false}
           >
             {userPos && (
