@@ -49,7 +49,7 @@ const heatmapLayer = {
       0.8,  'rgba(239,68,68,0.85)',
       1,    'rgba(239,68,68,0.95)',
     ],
-    'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0.85, 9, 0],
+    'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0.7, 8, 0],
   },
 };
 
@@ -70,7 +70,7 @@ const pointLayer = {
     'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 2.5, 11, 5, 14, 9],
     'circle-stroke-width': 1.5,
     'circle-stroke-color': 'rgba(255,255,255,0.25)',
-    'circle-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0, 8.5, 0.9],
+    'circle-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0, 8, 0.9],
   },
 };
 
