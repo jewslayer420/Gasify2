@@ -47,6 +47,7 @@ const { fetchNewZealandStations } = require('./scrapers/newzealand');
 const { fetchSouthKoreaStations } = require('./scrapers/southkorea');
 const { fetchCanadaStations }     = require('./scrapers/canada');
 const { fetchChileStations }      = require('./scrapers/chile');
+const { fetchBrazilStations }     = require('./scrapers/brazil');
 
 const CHUNK = 500;
 
@@ -167,6 +168,8 @@ function scheduleGovernmentAPIs() {
   cron.schedule('0 4 1 * *', () => runSync('Canada', fetchCanadaStations));
   // Chile: daily (CNE Bencina en Línea updates daily; needs CL_CNE_EMAIL/PASSWORD)
   cron.schedule('45 3 * * *', () => runSync('Chile', fetchChileStations));
+  // Brazil: weekly (ANP national avg updates Fridays; OSM stations stable) — Sat 04:30
+  cron.schedule('30 4 * * 6', () => runSync('Brazil', fetchBrazilStations));
 }
 
 // ── Slow fuelo.net grid scrapers — once daily ────────────────────────────────
@@ -228,7 +231,8 @@ function startSyncScheduler() {
   setTimeout(() => runSync('SouthKorea',  fetchSouthKoreaStations), 225000);
   setTimeout(() => runSync('Canada',      fetchCanadaStations),    240000);
   setTimeout(() => runSync('Chile',       fetchChileStations),     255000);
-  setTimeout(() => runNightlySlowSync(),                          285000); // ~4.75 min after start
+  setTimeout(() => runSync('Brazil',      fetchBrazilStations),    270000);
+  setTimeout(() => runNightlySlowSync(),                          330000); // ~5.5 min after start
 
   // Schedule recurring syncs
   scheduleGovernmentAPIs();
@@ -283,6 +287,7 @@ const SCRAPERS = {
   southkorea:     fetchSouthKoreaStations,
   canada:         fetchCanadaStations,
   chile:          fetchChileStations,
+  brazil:         fetchBrazilStations,
 };
 
 async function triggerSync(country) {
