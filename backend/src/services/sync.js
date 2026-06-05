@@ -47,7 +47,6 @@ const { fetchNewZealandStations } = require('./scrapers/newzealand');
 const { fetchSouthKoreaStations } = require('./scrapers/southkorea');
 const { fetchCanadaStations }     = require('./scrapers/canada');
 const { fetchChileStations }      = require('./scrapers/chile');
-const { fetchArgentinaStations }  = require('./scrapers/argentina');
 
 const CHUNK = 500;
 
@@ -168,8 +167,6 @@ function scheduleGovernmentAPIs() {
   cron.schedule('0 4 1 * *', () => runSync('Canada', fetchCanadaStations));
   // Chile: daily (CNE Bencina en Línea updates daily; needs CL_CNE_EMAIL/PASSWORD)
   cron.schedule('45 3 * * *', () => runSync('Chile', fetchChileStations));
-  // Argentina: daily (Secretaría de Energía surtidor CSV; host may be AR-geo-restricted)
-  cron.schedule('0 4 * * *', () => runSync('Argentina', fetchArgentinaStations));
 }
 
 // ── Slow fuelo.net grid scrapers — once daily ────────────────────────────────
@@ -231,7 +228,6 @@ function startSyncScheduler() {
   setTimeout(() => runSync('SouthKorea',  fetchSouthKoreaStations), 225000);
   setTimeout(() => runSync('Canada',      fetchCanadaStations),    240000);
   setTimeout(() => runSync('Chile',       fetchChileStations),     255000);
-  setTimeout(() => runSync('Argentina',   fetchArgentinaStations), 262000);
   setTimeout(() => runNightlySlowSync(),                          285000); // ~4.75 min after start
 
   // Schedule recurring syncs
@@ -287,7 +283,6 @@ const SCRAPERS = {
   southkorea:     fetchSouthKoreaStations,
   canada:         fetchCanadaStations,
   chile:          fetchChileStations,
-  argentina:      fetchArgentinaStations,
 };
 
 async function triggerSync(country) {
