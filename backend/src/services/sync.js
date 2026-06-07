@@ -50,6 +50,7 @@ const { fetchChileStations }      = require('./scrapers/chile');
 const { fetchBrazilStations }     = require('./scrapers/brazil');
 const { fetchArgentinaStations }  = require('./scrapers/argentina');
 const { fetchUSAStations }        = require('./scrapers/usa');
+const { fetchSouthAfricaStations } = require('./scrapers/southafrica');
 
 const CHUNK = 500;
 
@@ -176,6 +177,8 @@ function scheduleGovernmentAPIs() {
   cron.schedule('0 4 * * *', () => runSync('Argentina', fetchArgentinaStations));
   // USA: weekly (EIA national avg updates Mondays; OSM stations stable) — Sun 05:00
   cron.schedule('0 5 * * 0', () => runSync('USA', fetchUSAStations));
+  // South Africa: weekly (DMPR regulated price set monthly; OSM stable) — Sun 05:30
+  cron.schedule('30 5 * * 0', () => runSync('SouthAfrica', fetchSouthAfricaStations));
 }
 
 // ── Slow fuelo.net grid scrapers — once daily ────────────────────────────────
@@ -240,7 +243,8 @@ function startSyncScheduler() {
   setTimeout(() => runSync('Brazil',      fetchBrazilStations),    270000);
   setTimeout(() => runSync('Argentina',   fetchArgentinaStations), 300000);
   setTimeout(() => runSync('USA',         fetchUSAStations),       330000);
-  setTimeout(() => runNightlySlowSync(),                          420000); // 7 min after start
+  setTimeout(() => runSync('SouthAfrica', fetchSouthAfricaStations), 390000);
+  setTimeout(() => runNightlySlowSync(),                          450000); // 7.5 min after start
 
   // Schedule recurring syncs
   scheduleGovernmentAPIs();
@@ -298,6 +302,7 @@ const SCRAPERS = {
   brazil:         fetchBrazilStations,
   argentina:      fetchArgentinaStations,
   usa:            fetchUSAStations,
+  southafrica:    fetchSouthAfricaStations,
 };
 
 async function triggerSync(country) {
