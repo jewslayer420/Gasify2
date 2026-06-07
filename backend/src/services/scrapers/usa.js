@@ -121,15 +121,17 @@ async function fetchUSAStations() {
 
   const stationMap = new Map();
   for (const [latMin, lngMin, latMax, lngMax] of bboxes) {
-    const query = `[out:json][timeout:120][bbox:${latMin},${lngMin},${latMax},${lngMax}];node["amenity"="fuel"];out body;`;
+    // nwr = nodes + ways + relations; "out center" gives ways/relations a centroid.
+    const query = `[out:json][timeout:180][bbox:${latMin},${lngMin},${latMax},${lngMax}];nwr["amenity"="fuel"];out center;`;
     const json = await fetchOverpass(query);
     if (!json) { console.error(`[usa] all mirrors failed for bbox [${latMin},${lngMin}..${latMax},${lngMax}]`); continue; }
     for (const e of (json.elements || [])) {
-      const lat = e.lat, lng = e.lon;
-      if (!lat || !lng || stationMap.has(e.id)) continue;
+      const lat = e.lat ?? e.center?.lat, lng = e.lon ?? e.center?.lon;
+      const key = `${e.type}/${e.id}`;          // node & way ids share a namespace — key by type+id
+      if (!lat || !lng || stationMap.has(key)) continue;
       const tags = e.tags || {};
-      stationMap.set(e.id, {
-        externalId: `US-OSM-${e.id}`,
+      stationMap.set(key, {
+        externalId: `US-OSM-${e.type}-${e.id}`,
         name: tags.name || tags.brand || tags.operator || 'Gas Station',
         brand: tags.brand || tags.operator || null,
         lat, lng,
