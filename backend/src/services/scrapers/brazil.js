@@ -133,15 +133,16 @@ async function fetchBrazilStations() {
 
   const stationMap = new Map();
   for (const [latMin, lngMin, latMax, lngMax] of bboxes) {
-    const query = `[out:json][timeout:90][bbox:${latMin},${lngMin},${latMax},${lngMax}];node["amenity"="fuel"];out body;`;
+    const query = `[out:json][timeout:180][bbox:${latMin},${lngMin},${latMax},${lngMax}];nwr["amenity"="fuel"];out center;`;
     const json = await fetchOverpass(query);
     if (!json) { console.error(`[brazil] all mirrors failed for bbox [${latMin},${lngMin}..${latMax},${lngMax}]`); continue; }
     for (const e of (json.elements || [])) {
-      const lat = e.lat, lng = e.lon;
-      if (!lat || !lng || stationMap.has(e.id)) continue;
+      const lat = e.lat ?? e.center?.lat, lng = e.lon ?? e.center?.lon;
+      const key = `${e.type}/${e.id}`;
+      if (!lat || !lng || stationMap.has(key)) continue;
       const tags = e.tags || {};
-      stationMap.set(e.id, {
-        externalId: `BR-OSM-${e.id}`,
+      stationMap.set(key, {
+        externalId: `BR-OSM-${e.type}-${e.id}`,
         name: tags.name || tags['name:pt'] || tags.brand || tags.operator || 'Posto de Combustível',
         brand: tags.brand || tags.operator || null,
         lat, lng,

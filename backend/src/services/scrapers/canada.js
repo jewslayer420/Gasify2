@@ -100,7 +100,7 @@ async function fetchCanadaStations() {
 
   const stationMap = new Map();
   for (const [latMin, lngMin, latMax, lngMax] of bboxes) {
-    const query = `[out:json][timeout:90][bbox:${latMin},${lngMin},${latMax},${lngMax}];node["amenity"="fuel"];out body;`;
+    const query = `[out:json][timeout:180][bbox:${latMin},${lngMin},${latMax},${lngMax}];nwr["amenity"="fuel"];out center;`;
     let json = null;
     // Try each mirror until one succeeds
     for (const mirror of OVERPASS_MIRRORS) {
@@ -122,14 +122,15 @@ async function fetchCanadaStations() {
       for (const e of (json.elements || [])) {
         const lat = e.lat ?? e.center?.lat;
         const lng = e.lon ?? e.center?.lon;
-        if (!lat || !lng || stationMap.has(e.id)) continue;
+        const key = `${e.type}/${e.id}`;
+        if (!lat || !lng || stationMap.has(key)) continue;
         const tags = e.tags || {};
         const name = tags.name || tags['name:en'] || tags.brand || tags.operator || 'Fuel Station';
         const brand = tags.brand || tags.operator || null;
         const city = tags['addr:city'] || tags['addr:suburb'] || tags['addr:town'] || '';
         const addrParts = [tags['addr:housenumber'], tags['addr:street']].filter(Boolean);
-        stationMap.set(e.id, {
-          externalId: `CA-OSM-${e.id}`,
+        stationMap.set(key, {
+          externalId: `CA-OSM-${e.type}-${e.id}`,
           name, brand, lat, lng,
           address: addrParts.length ? addrParts.join(' ') : null,
           city, country: 'CA', prices: priceList,

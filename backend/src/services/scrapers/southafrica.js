@@ -65,15 +65,16 @@ async function fetchSouthAfricaStations() {
 
   const stationMap = new Map();
   for (const [latMin, lngMin, latMax, lngMax] of bboxes) {
-    const query = `[out:json][timeout:120][bbox:${latMin},${lngMin},${latMax},${lngMax}];node["amenity"="fuel"];out body;`;
+    const query = `[out:json][timeout:180][bbox:${latMin},${lngMin},${latMax},${lngMax}];nwr["amenity"="fuel"];out center;`;
     const json = await fetchOverpass(query);
     if (!json) { console.error(`[southafrica] all mirrors failed for bbox [${latMin},${lngMin}..${latMax},${lngMax}]`); continue; }
     for (const e of (json.elements || [])) {
-      const lat = e.lat, lng = e.lon;
-      if (!lat || !lng || stationMap.has(e.id)) continue;
+      const lat = e.lat ?? e.center?.lat, lng = e.lon ?? e.center?.lon;
+      const key = `${e.type}/${e.id}`;
+      if (!lat || !lng || stationMap.has(key)) continue;
       const tags = e.tags || {};
-      stationMap.set(e.id, {
-        externalId: `ZA-OSM-${e.id}`,
+      stationMap.set(key, {
+        externalId: `ZA-OSM-${e.type}-${e.id}`,
         name: tags.name || tags.brand || tags.operator || 'Filling Station',
         brand: tags.brand || tags.operator || null,
         lat, lng,
