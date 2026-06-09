@@ -60,8 +60,9 @@ async function buildGeojson(fuel) {
   return str;
 }
 
-// Pre-warm diesel cache on startup so the first user doesn't wait
-setTimeout(() => buildGeojson('diesel').catch(() => {}), 5000);
+// GeoJSON builds lazily on the first /geojson request (below) and is cached.
+// The old eager boot prewarm was removed — building the whole-DB GeoJSON at
+// startup, alongside the sync storm, contributed to OOM on the 512MB instance.
 
 // GET /api/stations/geojson?fuel=diesel&bust=1  — bust=1 forces cache rebuild
 router.get('/geojson', async (req, res) => {

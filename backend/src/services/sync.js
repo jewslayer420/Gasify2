@@ -218,35 +218,54 @@ async function runNightlySlowSync() {
   console.log('[sync] Nightly slow sync complete');
 }
 
-function startSyncScheduler() {
-  // Run all syncs once on startup (staggered to avoid hammering APIs)
-  setTimeout(() => runSync('France',      fetchFranceStations),   0);
-  setTimeout(() => runSync('Spain',       fetchSpainStations),    15000);
-  setTimeout(() => runSync('Italy',       fetchItalyStations),    30000);
-  setTimeout(() => runSync('Portugal',    fetchPortugalStations), 45000);
-  setTimeout(() => runSync('Austria',     fetchAustriaStations),  60000);
-  setTimeout(() => runSync('Poland',      fetchPolandStations),   75000);
-  setTimeout(() => runSync('Germany',     fetchGermanyStations),  90000);
-  // Norway returns [] — no public price API exists (see scrapers/norway.js)
-  // Sweden returns [] — no public price API exists (see scrapers/sweden.js)
-  setTimeout(() => runSync('Luxembourg',  fetchLuxembourgStations), 105000);
-  setTimeout(() => runSync('Australia',   fetchAustraliaStations), 120000);
-  setTimeout(() => runSync('Iceland',     fetchIcelandStations),   135000);
-  setTimeout(() => runSync('Mexico',      fetchMexicoStations),    150000);
-  setTimeout(() => runSync('Taiwan',      fetchTaiwanStations),    165000);
-  setTimeout(() => runSync('Malaysia',    fetchMalaysiaStations),  180000);
-  setTimeout(() => runSync('Thailand',    fetchThailandStations),  195000);
-  setTimeout(() => runSync('NewZealand',  fetchNewZealandStations), 210000);
-  setTimeout(() => runSync('SouthKorea',  fetchSouthKoreaStations), 225000);
-  setTimeout(() => runSync('Canada',      fetchCanadaStations),    240000);
-  setTimeout(() => runSync('Chile',       fetchChileStations),     255000);
-  setTimeout(() => runSync('Brazil',      fetchBrazilStations),    270000);
-  setTimeout(() => runSync('Argentina',   fetchArgentinaStations), 300000);
-  setTimeout(() => runSync('USA',         fetchUSAStations),       330000);
-  setTimeout(() => runSync('SouthAfrica', fetchSouthAfricaStations), 390000);
-  setTimeout(() => runNightlySlowSync(),                          450000); // 7.5 min after start
+// Run every scraper once, strictly one at a time. Peak memory stays at a single
+// scraper's working set (which steady-state has proven fits in 512MB), avoiding
+// the boot-time concurrency spike that OOM-killed the free Render instance when
+// ~25 staggered setTimeout syncs overlapped with the GeoJSON prewarm.
+async function runAllSyncsOnce() {
+  console.log('[sync] Boot sync starting (sequential)…');
+  const seq = [
+    ['France',      fetchFranceStations],
+    ['Spain',       fetchSpainStations],
+    ['Italy',       fetchItalyStations],
+    ['Portugal',    fetchPortugalStations],
+    ['Austria',     fetchAustriaStations],
+    ['Poland',      fetchPolandStations],
+    ['Germany',     fetchGermanyStations],
+    ['Luxembourg',  fetchLuxembourgStations],
+    ['Australia',   fetchAustraliaStations],
+    ['Iceland',     fetchIcelandStations],
+    ['Mexico',      fetchMexicoStations],
+    ['Taiwan',      fetchTaiwanStations],
+    ['Malaysia',    fetchMalaysiaStations],
+    ['Thailand',    fetchThailandStations],
+    ['NewZealand',  fetchNewZealandStations],
+    ['SouthKorea',  fetchSouthKoreaStations],
+    ['Canada',      fetchCanadaStations],
+    ['Chile',       fetchChileStations],
+    ['Brazil',      fetchBrazilStations],
+    ['Argentina',   fetchArgentinaStations],
+    ['USA',         fetchUSAStations],
+    ['SouthAfrica', fetchSouthAfricaStations],
+  ];
+  for (const [label, fn] of seq) await runSync(label, fn);
+  await runNightlySlowSync(); // the slow fuelo.net scrapers (already sequential)
+  console.log('[sync] Boot sync complete');
+}
 
-  // Schedule recurring syncs
+function startSyncScheduler() {
+  // Boot sync is OFF by default. The free 512MB instance OOM-killed when the old
+  // staggered startup storm ran ~25 scrapers concurrently alongside the GeoJSON
+  // prewarm. Cron (below) keeps data fresh on schedule, and Neon retains data
+  // across restarts, so re-scraping the world on every deploy is unnecessary.
+  // Set SYNC_ON_BOOT=true to opt in — it then runs strictly sequentially.
+  if (process.env.SYNC_ON_BOOT === 'true') {
+    setTimeout(() => runAllSyncsOnce().catch(e => console.error('[sync] boot sync error:', e.message)), 10000);
+  } else {
+    console.log('[sync] SYNC_ON_BOOT not set — skipping boot sync; cron will refresh on schedule');
+  }
+
+  // Schedule recurring syncs (these are spread across the day, never concurrent)
   scheduleGovernmentAPIs();
   cron.schedule('0 2 * * *', runNightlySlowSync); // slow scrapers at 2am UTC daily
 }
