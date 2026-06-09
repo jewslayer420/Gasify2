@@ -1,4 +1,5 @@
 const express = require('express');
+const zlib = require('zlib');
 const router = express.Router();
 const { geocodeCity } = require('../utils/geo');
 const prisma = require('../lib/prisma');
@@ -11,8 +12,12 @@ function overlapsDe(minLat, minLng, maxLat, maxLng) {
          maxLng > DE_BOUNDS.lngMin && minLng < DE_BOUNDS.lngMax;
 }
 
-// In-memory GeoJSON cache — keyed by fuel type, expires after 30 minutes
-const geojsonCache = new Map();
+// In-memory GeoJSON cache — keyed by fuel type. Stores the *gzipped* buffer
+// (~10-15MB each) rather than the raw ~60MB string, so all fuels cached cost
+// tens of MB instead of hundreds. Expires after 10 minutes.
+const geojsonCache = new Map();   // fuel -> { gz: Buffer, count, expiresAt }
+const geojsonInflight = new Map(); // fuel -> Promise<Buffer>  (dedupe same-fuel builds)
+let geojsonBuildGate = Promise.resolve(); // serialize ALL builds so two fuels can't build at once
 
 // GET /api/stations/geocode?city=Koper  — must be before /:id
 router.get('/geocode', async (req, res) => {
@@ -43,41 +48,94 @@ router.get('/counts', async (req, res) => {
   }
 });
 
-async function buildGeojson(fuel) {
-  const rows = await prisma.$queryRaw`
-    SELECT s.id, s.lat, s.lng, s.name, s.city, s.country, fp.price
-    FROM "Station" s
-    INNER JOIN "FuelPrice" fp ON fp."stationId" = s.id AND fp."fuelType" = ${fuel} AND fp.price > 0
-  `;
-  const features = rows.map(s => ({
-    type: 'Feature',
-    geometry: { type: 'Point', coordinates: [+Number(s.lng).toFixed(5), +Number(s.lat).toFixed(5)] },
-    properties: { id: s.id, name: s.name, city: s.city, country: s.country, price: Number(s.price) },
-  }));
-  const str = JSON.stringify({ type: 'FeatureCollection', features });
-  geojsonCache.set(fuel, { str, expiresAt: Date.now() + 10 * 60 * 1000 });
-  console.log(`[geojson] cached ${fuel}: ${rows.length} stations, ${(str.length / 1024).toFixed(0)} KB`);
-  return str;
+const GEOJSON_CHUNK = 20000; // rows per DB page — bounds peak memory
+
+// Build the whole-world GeoJSON for a fuel type without ever holding the full
+// payload in memory. Rows are pulled in keyset-paginated chunks and piped
+// straight into a gzip stream; only one chunk (~4MB) plus the growing gzipped
+// output (~12MB) is resident at once. At 327k stations this peaks ~150MB RSS
+// instead of the 561MB the old all-at-once build hit (which OOM-killed 512MB).
+async function buildGeojsonGz(fuel) {
+  const gzip = zlib.createGzip();
+  const out = [];
+  gzip.on('data', (d) => out.push(d));
+  const finished = new Promise((resolve, reject) => {
+    gzip.on('end', resolve);
+    gzip.on('error', reject);
+  });
+
+  gzip.write('{"type":"FeatureCollection","features":[');
+  let first = true;
+  let cursor = '';
+  let total = 0;
+  for (;;) {
+    // Keyset pagination on the Station PK (cuid text) — stable, index-friendly.
+    const rows = await prisma.$queryRaw`
+      SELECT s.id, s.lat, s.lng, s.name, s.city, s.country, fp.price
+      FROM "Station" s
+      INNER JOIN "FuelPrice" fp ON fp."stationId" = s.id AND fp."fuelType" = ${fuel} AND fp.price > 0
+      WHERE s.id > ${cursor}
+      ORDER BY s.id ASC
+      LIMIT ${GEOJSON_CHUNK}
+    `;
+    if (rows.length === 0) break;
+    let buf = '';
+    for (const s of rows) {
+      buf += (first ? '' : ',') + JSON.stringify({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [+Number(s.lng).toFixed(5), +Number(s.lat).toFixed(5)] },
+        properties: { id: s.id, name: s.name, city: s.city, country: s.country, price: Number(s.price) },
+      });
+      first = false;
+    }
+    gzip.write(buf);
+    cursor = rows[rows.length - 1].id;
+    total += rows.length;
+    if (rows.length < GEOJSON_CHUNK) break;
+  }
+  gzip.write(']}');
+  gzip.end();
+  await finished;
+
+  const gz = Buffer.concat(out);
+  geojsonCache.set(fuel, { gz, count: total, expiresAt: Date.now() + 10 * 60 * 1000 });
+  console.log(`[geojson] cached ${fuel}: ${total} stations, gz ${(gz.length / 1048576).toFixed(1)}MB`);
+  return gz;
 }
 
-// GeoJSON builds lazily on the first /geojson request (below) and is cached.
-// The old eager boot prewarm was removed — building the whole-DB GeoJSON at
-// startup, alongside the sync storm, contributed to OOM on the 512MB instance.
+// Dedupe + serialize builds. Same-fuel requests share one in-flight build;
+// across fuels, builds run strictly one at a time (chained on geojsonBuildGate)
+// so concurrent map loads of different fuels can't stack two 300k scans and
+// blow past 512MB. Each waiter re-checks the cache in case it was just built.
+function getGeojsonGz(fuel) {
+  if (geojsonInflight.has(fuel)) return geojsonInflight.get(fuel);
+  const p = geojsonBuildGate.then(() => {
+    const cached = geojsonCache.get(fuel);
+    if (cached && cached.expiresAt > Date.now()) return cached.gz;
+    return buildGeojsonGz(fuel);
+  }).finally(() => geojsonInflight.delete(fuel));
+  geojsonInflight.set(fuel, p);
+  geojsonBuildGate = p.catch(() => {}); // next build waits for this one; swallow errors in the chain
+  return p;
+}
 
 // GET /api/stations/geojson?fuel=diesel&bust=1  — bust=1 forces cache rebuild
 router.get('/geojson', async (req, res) => {
   const { fuel = 'diesel', bust } = req.query;
   const cached = geojsonCache.get(fuel);
+  // Always gzipped — set Content-Encoding so the compression middleware skips it.
   res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Encoding', 'gzip');
   res.setHeader('Cache-Control', 'no-store');
   if (cached && cached.expiresAt > Date.now() && bust !== '1') {
-    return res.send(cached.str);
+    return res.end(cached.gz);
   }
   try {
-    const str = await buildGeojson(fuel);
-    res.send(str);
+    const gz = await getGeojsonGz(fuel);
+    res.end(gz);
   } catch (err) {
-    console.error(err);
+    console.error('[geojson] build failed:', err.message);
+    res.removeHeader('Content-Encoding');
     res.status(500).json({ error: 'Failed' });
   }
 });
