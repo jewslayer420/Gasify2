@@ -9,6 +9,7 @@ const authRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
 const newsRouter = require('./routes/news');
 const { startSyncScheduler, triggerSync } = require('./services/sync');
+const { probePeru } = require('./services/probes/peru'); // TEMP — remove after Peru scraper is built
 
 process.on('unhandledRejection', (reason) => {
   console.error('[server] Unhandled rejection:', reason);
@@ -37,6 +38,15 @@ app.post('/api/admin/sync/:country', async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// TEMP — Peru reachability + schema-discovery probe (delete with probes/peru.js once Peru scraper lands)
+app.get('/api/admin/probe/peru', async (req, res) => {
+  try {
+    res.json(await probePeru());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
