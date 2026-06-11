@@ -76,15 +76,25 @@ function extractMapRegions(html) {
 
 function sniffResults(text) {
   const lower = text.toLowerCase();
+  const tableIdx = text.search(/<table/i);
+  const coordSamples = (text.match(/-?\d{1,2}\.\d{4,}/g) || []).slice(0, 8);
+  // grab a chunk around the first table (or first coord) so we can design a parser
+  let resultChunk = null;
+  if (tableIdx >= 0) resultChunk = text.slice(tableIdx, tableIdx + 1200);
+  else if (coordSamples.length) {
+    const ci = text.indexOf(coordSamples[0]);
+    resultChunk = text.slice(Math.max(0, ci - 400), ci + 400);
+  }
   return {
     length: text.length,
-    hasTable: /<table/i.test(text),
+    hasTable: tableIdx >= 0,
     rowCount: (text.match(/<tr\b/gi) || []).length,
     mentionsPrecio: lower.includes('precio'),
     mentionsLatLng: /lat(itud)?|lng|longitud/i.test(text),
     mentionsRazonSocial: /raz[oó]n\s*social/i.test(text),
     mentionsNoData: lower.includes('no se encontr') || lower.includes('sin resultado') || lower.includes('no existe'),
-    coordSamples: (text.match(/-?\d{1,2}\.\d{4,}/g) || []).slice(0, 8),
+    coordSamples,
+    resultChunk: resultChunk ? resultChunk.replace(/\s+/g, ' ').trim() : null,
   };
 }
 
@@ -121,7 +131,7 @@ async function runFlow(dept, recaptcha, baseCookie) {
 }
 
 async function probePeru() {
-  const out = { ranAt: new Date().toISOString(), version: 'v5', steps: {}, flows: [] };
+  const out = { ranAt: new Date().toISOString(), version: 'v6', steps: {}, flows: [] };
 
   // 1) GET page: cookies + map regions + inline scripts
   let cookie = '';
@@ -142,16 +152,15 @@ async function probePeru() {
     return out;
   }
 
-  // 2) Candidate departamento values to try (real names + common codes).
-  //    Derive from map areas where possible, then fall back to known names.
-  const derived = (out.steps.getPage.areas || [])
-    .map(a => {
-      // pull an arg from onclick like fn('LIMA') or a data-* value
-      const onArg = (a.onclick && (a.onclick.match(/['"]([^'"]+)['"]/) || [])[1]) || null;
-      return onArg || a.title;
-    })
-    .filter(Boolean);
-  const candidates = [...new Set([...derived.slice(0, 3), 'LIMA', 'AMAZONAS', '15', '1'])].slice(0, 6);
+  // 2) Departamento codes come from href="javaScript:makeAction(NNNN)" on each
+  //    map area. Build a name->code list and try Lima (most stations) + Amazonas.
+  const codeMap = (out.steps.getPage.areas || [])
+    .map(a => ({ title: a.title, code: (String(a.href || '').match(/makeAction\(\s*(\d+)\s*\)/) || [])[1] || null }))
+    .filter(x => x.code);
+  out.steps.codeMap = codeMap;
+  const wanted = ['150000', '40000', '10000']; // Lima, Arequipa, Amazonas
+  const present = codeMap.map(x => x.code);
+  const candidates = [...new Set([...wanted.filter(c => present.includes(c)), ...present])].slice(0, 3);
   out.steps.candidates = candidates;
 
   // 3) Run the flow for the first candidate with EMPTY recaptcha (enforcement test)
