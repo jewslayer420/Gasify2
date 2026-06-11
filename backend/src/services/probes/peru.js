@@ -1,25 +1,24 @@
-// TEMPORARY Facilito endpoint-discovery probe for Peru. Run from Render
-// (Facilito is geo-fenced from the dev sandbox; Render's IP gets 200).
-// Delete this file + its route once the Peru scraper is built.
+// TEMPORARY Peru data-source probe. Run from Render (Osinergmin/Facilito are
+// geo-fenced from the dev sandbox; Render's IP gets 200).
+// Delete this file + its route once the Peru scraper is built (or Peru is dropped).
 //
-// Established (v1-v4): Facilito liquid fuel is a Struts Post/Redirect/Get flow.
-//   - GET buscadorEESS.jsp  -> sets JSESSIONID + SERVERID cookies, renders a
-//     Peru map (<img usemap>) + <form name="form"> with 3 hidden fields:
-//       departamento_elegido | nameRedirectfile=buscadorEESS | g-recaptcha-response
-//   - Clicking a map region sets departamento_elegido, runs reCAPTCHA v3, and
-//     POSTs to PreciosCombustibleAutomotorAction.do?method=inicio
-//   - The action stores the dept in session and 302-redirects back to
-//     buscadorEESS.jsp, which then renders the station table for that dept.
+// Established (v1-v7): Facilito's liquid-fuel search (buscadorEESS.jsp ->
+// PreciosCombustibleAutomotorAction.do?method=inicio) is gated by ENFORCED
+// reCAPTCHA v3 — an empty token always 302s back to the dept selector, so a
+// plain-HTTP scraper of Facilito is impossible.
 //
-// v5 goal: (a) capture the map regions + inline scripts so we learn the exact
-// departamento_elegido values; (b) run the FULL flow with real dept values and
-// an EMPTY reCAPTCHA token, follow the redirect with the session cookie, and
-// check whether the station table actually renders (= reCAPTCHA not enforced).
+// v8 goal: hunt for a captcha-free bulk source. Harvest Osinergmin's "PRICE" /
+// SCOP registro de precios (linked in the Facilito footer) and nearby portals
+// for downloadable data (CSV/XLSX) or open query endpoints.
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
-const ORIGIN = 'https://www.facilito.gob.pe';
-const EESS_PAGE = ORIGIN + '/facilito/pages/facilito/buscadorEESS.jsp';
-const ACTION = ORIGIN + '/facilito/actions/PreciosCombustibleAutomotorAction.do?method=inicio';
+
+const SEEDS = [
+  'https://www.osinergmin.gob.pe/empresas/hidrocarburos/Paginas/SCOP-DOCS/scop_docs.htm',
+  'https://www.facilito.gob.pe/facilito/pages/facilito/menuPrecios.jsp',
+  'https://www.osinergmin.gob.pe/seccion/institucional/regulacion-tarifaria/precios-referencia-combustibles',
+  'https://www.gob.pe/osinergmin',
+];
 
 async function fetchRaw(url, opts = {}) {
   const r = await fetch(url, {
@@ -30,163 +29,62 @@ async function fetchRaw(url, opts = {}) {
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       ...(opts.headers || {}),
     },
-    body: opts.body,
-    redirect: 'manual',
+    redirect: opts.redirect || 'follow',
     signal: AbortSignal.timeout(opts.timeout || 25000),
   });
-  const text = await r.text();
-  let setCookie = [];
-  try { setCookie = r.headers.getSetCookie ? r.headers.getSetCookie() : []; } catch { /* noop */ }
-  return { status: r.status, contentType: r.headers.get('content-type'), location: r.headers.get('location'), length: text.length, setCookie, text };
+  let text = '';
+  const ct = r.headers.get('content-type') || '';
+  // only read body for textual responses
+  if (/text|html|json|xml|javascript/i.test(ct) || !ct) text = await r.text();
+  return { status: r.status, url: r.url, contentType: ct, location: r.headers.get('location'), length: text.length, text };
 }
 
-function cookieHeaderFrom(setCookieArr) {
-  return (setCookieArr || []).map(c => c.split(';')[0]).filter(Boolean).join('; ');
-}
-
-function extractInlineScripts(html) {
-  const inline = [];
-  const re = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
-  let m;
-  while ((m = re.exec(html)) !== null) {
-    if (/\bsrc\s*=/i.test(m[1] || '')) continue;
-    const body = (m[2] || '').trim();
-    if (body) inline.push(body);
-  }
-  return inline;
-}
-
-// Capture <area> tags (map regions) and any element wiring departamento_elegido.
-function extractMapRegions(html) {
-  const areas = [];
-  const areaRe = /<area\b[^>]*>/gi;
-  let m;
-  while ((m = areaRe.exec(html)) !== null) {
-    const a = m[0];
-    areas.push({
-      title: (a.match(/\b(?:data-title|title|alt)\s*=\s*["']([^"']*)["']/i) || [])[1] || null,
-      href: (a.match(/\bhref\s*=\s*["']([^"']*)["']/i) || [])[1] || null,
-      onclick: (a.match(/\bonclick\s*=\s*["']([^"']*)["']/i) || [])[1] || null,
-      dataAttrs: (a.match(/\bdata-[a-z-]+\s*=\s*["'][^"']*["']/gi) || []),
-    });
-    if (areas.length >= 30) break;
-  }
-  return areas;
-}
-
-function sniffResults(text) {
-  const lower = text.toLowerCase();
-  const tableIdx = text.search(/<table/i);
-  const coordSamples = (text.match(/-?\d{1,2}\.\d{4,}/g) || []).slice(0, 8);
-  // grab a chunk around the first table (or first coord) so we can design a parser
-  let resultChunk = null;
-  if (tableIdx >= 0) resultChunk = text.slice(tableIdx, tableIdx + 1200);
-  else if (coordSamples.length) {
-    const ci = text.indexOf(coordSamples[0]);
-    resultChunk = text.slice(Math.max(0, ci - 400), ci + 400);
-  }
-  return {
-    length: text.length,
-    hasTable: tableIdx >= 0,
-    rowCount: (text.match(/<tr\b/gi) || []).length,
-    mentionsPrecio: lower.includes('precio'),
-    mentionsLatLng: /lat(itud)?|lng|longitud/i.test(text),
-    mentionsRazonSocial: /raz[oó]n\s*social/i.test(text),
-    mentionsNoData: lower.includes('no se encontr') || lower.includes('sin resultado') || lower.includes('no existe'),
-    coordSamples,
-    resultChunk: resultChunk ? resultChunk.replace(/\s+/g, ' ').trim() : null,
+// Harvest anchors / script srcs / form actions, keeping ones that look like data.
+function harvestLinks(html, baseUrl) {
+  const DATA_RE = /(\.csv|\.xlsx?|\.json|\.zip|\.pdf|descarga|download|datos|dataset|open[-_]?data|datosabiertos|api|consulta|reporte|report|precio|price|combustible|grifo|estacion|eess|\.do\b|\.aspx|\.jsp)/i;
+  const out = { all: 0, interesting: [] };
+  const seen = new Set();
+  const push = (href, text) => {
+    if (!href) return;
+    out.all++;
+    if (!DATA_RE.test(href) && !(text && DATA_RE.test(text))) return;
+    let abs = href;
+    try { abs = new URL(href, baseUrl).href; } catch { /* keep raw */ }
+    if (seen.has(abs)) return;
+    seen.add(abs);
+    if (out.interesting.length < 40) out.interesting.push({ href: abs, text: (text || '').replace(/\s+/g, ' ').trim().slice(0, 60) });
   };
-}
-
-// Run POST(dept) -> follow 302 -> GET buscador with session cookie -> sniff.
-async function runFlow(dept, recaptcha, baseCookie) {
-  const params = new URLSearchParams({
-    departamento_elegido: dept,
-    nameRedirectfile: 'buscadorEESS',
-    'g-recaptcha-response': recaptcha,
-  });
-  const post = await fetchRaw(ACTION, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Origin': ORIGIN, 'Referer': EESS_PAGE,
-      ...(baseCookie ? { 'Cookie': baseCookie } : {}),
-    },
-    body: params.toString(),
-    timeout: 30000,
-  });
-  // merge any new cookies from the POST onto the base session
-  const merged = [baseCookie, cookieHeaderFrom(post.setCookie)].filter(Boolean).join('; ');
-  let followed = null;
-  if (post.status >= 300 && post.status < 400 && post.location) {
-    const loc = post.location.startsWith('http') ? post.location : ORIGIN + post.location;
-    const g = await fetchRaw(loc, { headers: { 'Referer': EESS_PAGE, ...(merged ? { 'Cookie': merged } : {}) }, timeout: 30000 });
-    followed = { url: loc, status: g.status, contentType: g.contentType, sniff: sniffResults(g.text), sample: g.text.slice(0, 400) };
-  }
-  return {
-    dept, recaptchaSent: recaptcha ? 'nonempty' : 'EMPTY',
-    post: { status: post.status, location: post.location, length: post.length },
-    followed,
-  };
+  let m;
+  const aRe = /<a\b[^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  while ((m = aRe.exec(html)) !== null) push(m[1], m[2].replace(/<[^>]+>/g, ' '));
+  const srcRe = /<(?:script|iframe)\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/gi;
+  while ((m = srcRe.exec(html)) !== null) push(m[1], '');
+  const formRe = /<form\b[^>]*\baction\s*=\s*["']([^"']+)["']/gi;
+  while ((m = formRe.exec(html)) !== null) push(m[1], '[form action]');
+  return out;
 }
 
 async function probePeru() {
-  const out = { ranAt: new Date().toISOString(), version: 'v7', steps: {}, flows: [] };
+  const out = { ranAt: new Date().toISOString(), version: 'v8', note: 'Facilito reCAPTCHA v3 enforced; hunting captcha-free bulk source', seeds: [] };
 
-  // 1) GET page: cookies + map regions + inline scripts
-  let cookie = '';
-  let pageText = '';
-  try {
-    const page = await fetchRaw(EESS_PAGE);
-    cookie = cookieHeaderFrom(page.setCookie);
-    pageText = page.text;
-    out.steps.getPage = {
-      status: page.status, length: page.length,
-      setCookie: page.setCookie.map(c => c.split(';')[0]),
-      mapName: (pageText.match(/<map\b[^>]*\bname\s*=\s*["']([^"']*)["']/i) || [])[1] || null,
-      areas: extractMapRegions(pageText),
-      inlineScripts: extractInlineScripts(pageText),
-    };
-  } catch (e) {
-    out.steps.getPage = { error: e.cause ? (e.cause.code || e.cause.message) : e.message };
-    return out;
-  }
-
-  // 2) Departamento codes come from href="javaScript:makeAction(NNNN)" on each
-  //    map area. Build a name->code list and try Lima (most stations) + Amazonas.
-  const codeMap = (out.steps.getPage.areas || [])
-    .map(a => ({ title: a.title, code: (String(a.href || '').match(/makeAction\(\s*(\d+)\s*\)/) || [])[1] || null }))
-    .filter(x => x.code);
-  out.steps.codeMap = codeMap;
-  const wanted = ['150000', '40000', '10000']; // Lima, Arequipa, Amazonas
-  const present = codeMap.map(x => x.code);
-  const candidates = [...new Set([...wanted.filter(c => present.includes(c)), ...present])].slice(0, 3);
-  out.steps.candidates = candidates;
-
-  // 3) Run the flow for Lima with EMPTY recaptcha, and return the FULL followed
-  //    page so we can read how/where results render (or confirm it's a shell).
-  try {
-    const flow = await runFlow('150000', '', cookie);
-    out.flows.push(flow);
-  } catch (e) {
-    out.flows.push({ dept: '150000', error: e.cause ? (e.cause.code || e.cause.message) : e.message });
-  }
-  // Full cold page body for offline reading (look for results container / 2nd form).
-  out.fullPage = pageText;
-
-  // 4) Brute a list of method= variants on the action; report status/type/len/sample.
-  const methods = ['inicio', 'listar', 'listarEESS', 'buscar', 'buscarEESS', 'consultar',
-    'consultarEESS', 'listarPrecios', 'obtenerEESS', 'eess', 'grid', 'datos', 'json', 'mapa',
-    'getEESS', 'listarGrifos', 'precios'];
-  out.methodProbe = [];
-  for (const mth of methods) {
-    const url = ORIGIN + '/facilito/actions/PreciosCombustibleAutomotorAction.do?method=' + mth;
+  for (const seed of SEEDS) {
+    const r = { seed };
     try {
-      const r = await fetchRaw(url, { headers: { Referer: EESS_PAGE, ...(cookie ? { Cookie: cookie } : {}) }, timeout: 15000 });
-      out.methodProbe.push({ mth, status: r.status, contentType: r.contentType, location: r.location, length: r.length, sample: r.length ? r.text.slice(0, 160).replace(/\s+/g, ' ').trim() : '' });
+      const resp = await fetchRaw(seed, { timeout: 25000 });
+      r.status = resp.status;
+      r.finalUrl = resp.url;
+      r.contentType = resp.contentType;
+      r.length = resp.length;
+      if (resp.text) {
+        const h = harvestLinks(resp.text, resp.url);
+        r.totalLinks = h.all;
+        r.interesting = h.interesting;
+        r.titleSample = (resp.text.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1]?.replace(/\s+/g, ' ').trim() || null;
+      }
     } catch (e) {
-      out.methodProbe.push({ mth, error: e.message });
+      r.error = e.cause ? (e.cause.code || e.cause.message) : e.message;
     }
+    out.seeds.push(r);
   }
 
   return out;
