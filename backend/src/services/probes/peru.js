@@ -131,7 +131,7 @@ async function runFlow(dept, recaptcha, baseCookie) {
 }
 
 async function probePeru() {
-  const out = { ranAt: new Date().toISOString(), version: 'v6', steps: {}, flows: [] };
+  const out = { ranAt: new Date().toISOString(), version: 'v7', steps: {}, flows: [] };
 
   // 1) GET page: cookies + map regions + inline scripts
   let cookie = '';
@@ -163,12 +163,29 @@ async function probePeru() {
   const candidates = [...new Set([...wanted.filter(c => present.includes(c)), ...present])].slice(0, 3);
   out.steps.candidates = candidates;
 
-  // 3) Run the flow for the first candidate with EMPTY recaptcha (enforcement test)
-  for (const c of candidates.slice(0, 3)) {
+  // 3) Run the flow for Lima with EMPTY recaptcha, and return the FULL followed
+  //    page so we can read how/where results render (or confirm it's a shell).
+  try {
+    const flow = await runFlow('150000', '', cookie);
+    out.flows.push(flow);
+  } catch (e) {
+    out.flows.push({ dept: '150000', error: e.cause ? (e.cause.code || e.cause.message) : e.message });
+  }
+  // Full cold page body for offline reading (look for results container / 2nd form).
+  out.fullPage = pageText;
+
+  // 4) Brute a list of method= variants on the action; report status/type/len/sample.
+  const methods = ['inicio', 'listar', 'listarEESS', 'buscar', 'buscarEESS', 'consultar',
+    'consultarEESS', 'listarPrecios', 'obtenerEESS', 'eess', 'grid', 'datos', 'json', 'mapa',
+    'getEESS', 'listarGrifos', 'precios'];
+  out.methodProbe = [];
+  for (const mth of methods) {
+    const url = ORIGIN + '/facilito/actions/PreciosCombustibleAutomotorAction.do?method=' + mth;
     try {
-      out.flows.push(await runFlow(c, '', cookie));
+      const r = await fetchRaw(url, { headers: { Referer: EESS_PAGE, ...(cookie ? { Cookie: cookie } : {}) }, timeout: 15000 });
+      out.methodProbe.push({ mth, status: r.status, contentType: r.contentType, location: r.location, length: r.length, sample: r.length ? r.text.slice(0, 160).replace(/\s+/g, ' ').trim() : '' });
     } catch (e) {
-      out.flows.push({ dept: c, error: e.cause ? (e.cause.code || e.cause.message) : e.message });
+      out.methodProbe.push({ mth, error: e.message });
     }
   }
 
