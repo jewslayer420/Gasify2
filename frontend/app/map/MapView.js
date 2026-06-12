@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import Map, { Marker } from 'react-map-gl/maplibre';
+import Map, { Marker, AttributionControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { getStationsGeoJSON, getStation, getStationHistory, geocodeCity, addFavorite, removeFavorite, getFavorites, getCountryCounts } from '../../lib/api';
@@ -411,6 +411,15 @@ export default function MapView() {
             minZoom={3.7}
             attributionControl={false}
           >
+            {/* Required attribution for OpenStreetMap (ODbL) basemap data and CARTO tiles.
+                Compact = a small "ⓘ" that expands; the credits are always reachable. */}
+            <AttributionControl
+              compact
+              customAttribution={[
+                '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
+                '© <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>',
+              ]}
+            />
             {userPos && (
               <Marker longitude={userPos.lng} latitude={userPos.lat} anchor="center">
                 <div style={{
