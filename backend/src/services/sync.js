@@ -51,6 +51,7 @@ const { fetchBrazilStations }     = require('./scrapers/brazil');
 const { fetchArgentinaStations }  = require('./scrapers/argentina');
 const { fetchUSAStations }        = require('./scrapers/usa');
 const { fetchSouthAfricaStations } = require('./scrapers/southafrica');
+const { fetchEUBulletinStations } = require('./scrapers/eu_oil_bulletin');
 
 const CHUNK = 500;
 
@@ -322,7 +323,19 @@ const SCRAPERS = {
   argentina:      fetchArgentinaStations,
   usa:            fetchUSAStations,
   southafrica:    fetchSouthAfricaStations,
+  eubulletin:     fetchEUBulletinStations, // EU national prices (Oil Bulletin) + OSM stations
 };
+
+// ── EU Oil Bulletin cutover (STAGED — not yet enabled in automatic runs) ──────
+// fetchEUBulletinStations covers these EU countries with the official EU Weekly
+// Oil Bulletin (CC BY 4.0) national price over OSM stations, replacing fuelo.net.
+// Before enabling it on the cron/boot path, the matching fuelo.net scrapers must
+// be removed from the scheduled runs AND their existing DB rows purged, or the
+// live map will show duplicate pins (fuelo per-station + EUB OSM-station).
+// Countries replaced: BE BG CZ EE GR HR HU IE LT LV NL PL RO SK.
+// To finish the cutover: (1) drop these from scheduleGovernmentAPIs (Poland) and
+// runNightlySlowSync, (2) add `cron.schedule('0 6 * * 4', () => runSync('EUBulletin',
+// fetchEUBulletinStations))` (Thu, after the Wed bulletin), (3) purge old fuelo rows.
 
 async function triggerSync(country) {
   const fetchFn = SCRAPERS[country];
