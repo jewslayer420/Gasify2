@@ -114,3 +114,61 @@ from this file.
 4. **Confirm 🟡 vendor terms** allow commercial redistribution (Tankerkönig, Chile CNE, AU NSW/VIC/QLD, Finland, Slovenia, Denmark, UK re-publisher).
 5. **Add the in-app credits screen** (this file → data-driven) and government no-endorsement notices.
 6. **App Store**: privacy policy URL, App Privacy labels (precise location + account data), in-app account deletion, IAP-vs-external payment decision, Sign in with Apple if adding third-party login.
+
+---
+
+## 5. fuelo.net replacement plan (researched 2026-06-12)
+
+**Good news: every fuelo.net country has a legal official source — no scraping of a private
+aggregator required anywhere.** They fall into three buckets:
+
+- **(A) Per-station official source** — direct, like-for-like replacement (keeps per-station prices).
+- **(B) National average over OSM stations** — the "Canada model" you already use; legally clean,
+  but every station in a country shows the same (national) price.
+- **(C) Regulated/capped price over OSM stations** — same as B, but the national price is *actually*
+  the legally-binding price (these governments set/cap fuel prices), so accuracy loss is minimal.
+
+The single biggest lever: the **EU Weekly Oil Bulletin** (European Commission, DG Energy) publishes
+weekly national pump prices (Eurosuper 95, diesel, etc.) for **all EU members** under **CC BY 4.0** —
+one source covers most of the EU list at once.
+`https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en` · also on `data.europa.eu`.
+
+| Country | Model | Recommended official source | Licence | Granularity | Notes / effort |
+|---------|:-----:|-----------------------------|---------|-------------|----------------|
+| **Germany** | A | **Tankerkönig** (already built — `tankerkoenig.js`) | CC BY 4.0 (confirm API commercial use) | per-station | Just **delete the de.fuelo.net source**; Tankerkönig already covers DE. |
+| **Turkey** | A | **EPDK** XML web service — dealer sales prices by province (`bildirim.epdk.gov.tr`) | Public-sector info (verify) | per-province / per-dealer ceiling, daily | Official API exists since 2016; best replacement. Medium effort. |
+| **Romania** | A→ | **Consiliul Concurenței** "Monitorul Prețurilor Carburanților" (web + iOS/Android app, updated ~2h) | Gov (verify) | per-station (major networks) | App implies an undocumented JSON API — **probe it** (like the Peru flow). EU Oil Bulletin is the B-fallback. |
+| **Greece** | A→ | **Παρατηρητήριο Τιμών** / fuelprices.gr (Ministry of Development) | Public-sector info | per-station, but **PDF**-published | Data is official but in PDFs; OSS parser exists (`github.com/mavroprovato/fuelpricesgr`). Higher effort; EU Oil Bulletin is the B-fallback. |
+| **Netherlands** | B | **CBS** daily pump prices (`data.overheid.nl` dataset 532/533) | CC BY 4.0 (CBS open data) | national daily avg | Clean. (ANWB has per-station but is commercial.) |
+| **Belgium** | C | **FPS Economy** official max petroleum prices (daily) | Gov open | national (regulated max) | Belgium has program-contract max prices. |
+| **Poland** | B | **GUS** retail averages + station locations on `dane.gov.pl`; or EU Oil Bulletin | Gov open / CC BY | national avg | EU Oil Bulletin simplest. |
+| **Ireland** | B | **EU Oil Bulletin** (no national per-station scheme exists) | CC BY 4.0 | national avg | Ireland has no official per-station data. |
+| **Hungary** | B | **EU Oil Bulletin** | CC BY 4.0 | national avg | No clean official per-station source. |
+| **Czechia** | B | **EU Oil Bulletin** (or ČSÚ weekly) | CC BY 4.0 | national avg | |
+| **Slovakia** | B | **EU Oil Bulletin** (or ŠÚSR) | CC BY 4.0 | national avg | |
+| **Bulgaria** | B | **EU Oil Bulletin** | CC BY 4.0 | national avg | |
+| **Latvia** | B | **EU Oil Bulletin** | CC BY 4.0 | national avg | |
+| **Lithuania** | B | **EU Oil Bulletin** | CC BY 4.0 | national avg | |
+| **Croatia** | C | **Vlada/MINGOR** regulated max prices (Decree every 14 days, `mzoe-gor.hr`); EU Oil Bulletin fallback | Gov open / CC BY | national (regulated max) | Prices are capped → national value is accurate. |
+| **Switzerland** | B | **opendata.swiss** energiedashboard.ch energy prices | Gov open (CC BY) | national avg | Non-EU, so not in Oil Bulletin; opendata.swiss covers it. |
+| **Serbia** | C | **Ministry of Internal & Foreign Trade** weekly max prices (Fridays) | Gov | national (regulated max) | Published as official announcements; aggregate to national price. |
+| **Montenegro** | C | **Ministry of Economy** biweekly set prices | Gov | national (regulated) | Regulated. |
+| **North Macedonia** | C | **ERC** (`erc.org.mk`) regulated max retail prices | Gov | national (regulated max) | OSS reference crawler: `github.com/hilioski/macedonian-fuel-price-crawler`. |
+| **Albania** | C | **Transparency Board** price caps | Gov | national (regulated cap) | Published via official decisions. |
+| **Bosnia & Herzegovina** | C/B | Federal Ministry of Trade (FBiH) avg prices / `komorabih.ba` | Gov | entity/national avg | Less unified; entity-level averages. |
+| **Kosovo** (rides in mk dataset) | C | **ZRRE** / Ministry regulated prices | Gov | national (regulated) | Separate out from the mk.fuelo dataset. |
+
+### Suggested execution order (highest leverage first)
+
+1. **Build one EU-Oil-Bulletin scraper** (CC BY 4.0) → instantly and legally replaces the EU fuelo
+   countries at national-avg granularity (BE, BG, CZ, HU, IE, LV, LT, NL, PL, SK + GR/RO/HR fallback),
+   reusing the existing OSM-station + national-price ("Canada") model.
+2. **Delete the de.fuelo.net source** (Tankerkönig already covers Germany).
+3. **Add per-station upgrades** where worth it: Turkey (EPDK API), Romania (probe the Concurenței app API), Greece (PDF parser).
+4. **Add the regulated-price non-EU Balkans** (RS, ME, MK, AL, BA, XK, CH) from each official regulator.
+5. Remove every `*.fuelo.net`, `carbu.com` (LU) and the borrowed Opinet key once replacements land.
+
+> **Tradeoff to accept:** buckets B/C show one price per country instead of per-station prices.
+> For regulated markets (C) that's the real price; for non-regulated (B) it's a deliberate
+> accuracy-for-legality trade until/unless an official per-station source appears. All "verify"
+> licences above should still be confirmed before launch.
