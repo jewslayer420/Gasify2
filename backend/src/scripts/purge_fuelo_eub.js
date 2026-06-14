@@ -34,11 +34,21 @@ const EU14_PREFIXES = [
 // Germany goes blank on the map. (As of 2026-06-14 the Tankerkönig key is deactivated.)
 const GERMANY_PREFIX = 'DE-fuelo-';
 
+// Turkey's old fuelo rows (externalId `TR-<id>`; the new EPDK rows are
+// `EPDK-TR-OSM-...` and are NOT matched). GATED behind --include-turkey: only purge
+// once the EPDK (turkey_epdk) scraper has populated EPDK-TR- rows.
+const TURKEY_PREFIX = 'TR-';
+
 async function main() {
   const apply = process.argv.includes('--apply');
   const includeGermany = process.argv.includes('--include-germany');
-  const PREFIXES = includeGermany ? [...EU14_PREFIXES, GERMANY_PREFIX] : EU14_PREFIXES;
-  console.log(`[purge] mode: ${apply ? 'APPLY (deleting)' : 'DRY RUN (counts only)'} | Germany: ${includeGermany ? 'INCLUDED' : 'excluded (default)'}`);
+  const includeTurkey = process.argv.includes('--include-turkey');
+  const PREFIXES = [
+    ...EU14_PREFIXES,
+    ...(includeGermany ? [GERMANY_PREFIX] : []),
+    ...(includeTurkey ? [TURKEY_PREFIX] : []),
+  ];
+  console.log(`[purge] mode: ${apply ? 'APPLY (deleting)' : 'DRY RUN (counts only)'} | Germany: ${includeGermany ? 'INCLUDED' : 'excluded'} | Turkey: ${includeTurkey ? 'INCLUDED' : 'excluded'}`);
 
   let grandTotal = 0;
   for (const prefix of PREFIXES) {

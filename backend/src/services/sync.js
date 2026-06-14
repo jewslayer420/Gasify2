@@ -19,7 +19,9 @@ const { fetchAlbaniaStations }   = require('./scrapers/albania');
 const { fetchDenmarkStations }   = require('./scrapers/denmark');
 const { fetchUKStations }        = require('./scrapers/uk');
 const { fetchFinlandStations }   = require('./scrapers/finland');
-const { fetchTurkeyStations }    = require('./scrapers/turkey');
+// Turkey now uses the official EPDK regulator bulletin (apigateway.epdk.gov.tr)
+// over OSM stations, replacing tr.fuelo.net.
+const { fetchTurkeyStations }    = require('./scrapers/turkey_epdk');
 const { fetchNorwayStations }    = require('./scrapers/norway');
 const { fetchSwedenStations }    = require('./scrapers/sweden');
 const { fetchLuxembourgStations } = require('./scrapers/luxembourg');
@@ -142,6 +144,8 @@ function scheduleGovernmentAPIs() {
   cron.schedule('40 0,6,12,18 * * *',  () => runSync('Austria',  fetchAustriaStations));
   // Germany (Tankerkönig MTS-K, CC BY 4.0): daily 01:30 — grid-scans the country
   cron.schedule('30 1 * * *', () => runSync('Germany', fetchGermanyStations));
+  // Turkey (EPDK official dealer-price bulletin + OSM stations): daily 01:45
+  cron.schedule('45 1 * * *', () => runSync('Turkey', fetchTurkeyStations));
   // Australia: every 6h offset by 55min (WA FuelWatch + NSW FuelCheck + TAS)
   cron.schedule('55 0,6,12,18 * * *',  () => runSync('Australia', fetchAustraliaStations));
   // Iceland: every 6h (Gasvaktin updates every 15 min — no key required)
@@ -191,7 +195,6 @@ async function runNightlySlowSync() {
   await runSync('Denmark',        fetchDenmarkStations);
   await runSync('UK',             fetchUKStations);
   await runSync('Finland',        fetchFinlandStations);
-  await runSync('Turkey',         fetchTurkeyStations);
   await runSync('Luxembourg', fetchLuxembourgStations);
   // Norway/Sweden skipped — no public price APIs (see scrapers/*.js)
   await runSync('QLD',  fetchQLDStations);   // requires QLD_FUEL_API_KEY
@@ -228,6 +231,7 @@ async function runAllSyncsOnce() {
     ['USA',         fetchUSAStations],
     ['SouthAfrica', fetchSouthAfricaStations],
     ['EUBulletin',  fetchEUBulletinStations], // 14 EU countries (Oil Bulletin + OSM)
+    ['Turkey',      fetchTurkeyStations],     // EPDK official bulletin + OSM
   ];
   for (const [label, fn] of seq) await runSync(label, fn);
   await runNightlySlowSync(); // the remaining slow scrapers (already sequential)
@@ -300,8 +304,11 @@ const SCRAPERS = {
 // `node src/scripts/purge_fuelo_eub.js` once to delete the stale fuelo rows
 // (prefixes BE- BG- CZ- EE- GR- HR- HU- IE- LT- LV- NL- PL- RO- SK- DE-fuelo-),
 // otherwise the map shows duplicate pins.
-// STILL on fuelo.net (replace next): Switzerland, Turkey, Serbia, Bosnia,
-// Montenegro, North Macedonia, Albania. Also Luxembourg (carbu.com) + Korea key.
+// Turkey also migrated (2026-06-14): de.fuelo.net → EPDK official bulletin
+// (turkey_epdk). After deploy, run `node src/scripts/purge_fuelo_eub.js --include-turkey`
+// to delete the stale `TR-` rows (new rows use the `EPDK-TR-OSM-` prefix).
+// STILL on fuelo.net (replace next): Switzerland (no clean source — parked), Serbia,
+// Bosnia, Montenegro, North Macedonia, Albania. Also Luxembourg (carbu.com) + Korea key.
 
 async function triggerSync(country) {
   const fetchFn = SCRAPERS[country];
