@@ -21,17 +21,24 @@
 
 const prisma = require('../lib/prisma');
 
-// 14 EU Oil Bulletin countries (externalId `<CC>-<id>`) + Germany's old fuelo rows
-// (externalId `DE-fuelo-<id>`; the new Tankerkönig rows are `DE-<id>` and are NOT here).
-const PREFIXES = [
+// 14 EU Oil Bulletin countries (externalId `<CC>-<id>`). These are always purged —
+// the EU Oil Bulletin scraper has already replaced them.
+const EU14_PREFIXES = [
   'BE-', 'BG-', 'CZ-', 'EE-', 'GR-', 'HR-', 'HU-',
   'IE-', 'LT-', 'LV-', 'NL-', 'PL-', 'RO-', 'SK-',
-  'DE-fuelo-',
 ];
+
+// Germany's old fuelo rows (externalId `DE-fuelo-<id>`; the new Tankerkönig rows are
+// `DE-<id>`). GATED behind --include-germany: do NOT purge these until the Tankerkönig
+// API key is valid and a germany sync has actually populated DE-<id> rows, otherwise
+// Germany goes blank on the map. (As of 2026-06-14 the Tankerkönig key is deactivated.)
+const GERMANY_PREFIX = 'DE-fuelo-';
 
 async function main() {
   const apply = process.argv.includes('--apply');
-  console.log(`[purge] mode: ${apply ? 'APPLY (deleting)' : 'DRY RUN (counts only)'}`);
+  const includeGermany = process.argv.includes('--include-germany');
+  const PREFIXES = includeGermany ? [...EU14_PREFIXES, GERMANY_PREFIX] : EU14_PREFIXES;
+  console.log(`[purge] mode: ${apply ? 'APPLY (deleting)' : 'DRY RUN (counts only)'} | Germany: ${includeGermany ? 'INCLUDED' : 'excluded (default)'}`);
 
   let grandTotal = 0;
   for (const prefix of PREFIXES) {
