@@ -8,7 +8,7 @@ IP lawyer before monetising.
 > ⚠️ **Not legal advice.** This is an engineering inventory of what the code calls and
 > the publicly stated terms of each source. Licences and terms change — verify each
 > "⚠️ verify" item directly with the provider before charging money. Last audited:
-> **2026-06-12**.
+> **2026-06-14**.
 
 ## Risk legend
 
@@ -58,12 +58,13 @@ with attribution + share-alike — the issue is the *free shared servers*.
 | Taiwan | CPC Corporation Open Data API | Taiwan gov open data ⚠️ verify | Attribution to CPC. |
 | South Africa | DMRE regulated national price (manually maintained) + OSM stations | Price is a **published fact** (not copyrightable); stations ODbL | Update monthly; cite DMRE. |
 | UK | `fuelcosts.co.uk` re-publishing UK Fuel Finder scheme | Underlying scheme is **OGL v3** (commercial OK + attribution) | ⚠️ You consume the **re-publisher**, not the source — check fuelcosts.co.uk's own ToS, or pull the scheme data directly. |
+| **EU 14** — BE, BG, CZ, EE, GR, HR, HU, IE, LT, LV, NL, PL, RO, SK | **EU Weekly Oil Bulletin** (European Commission, DG Energy) + OSM stations | **CC BY 4.0** | National weekly pump price over OSM `amenity=fuel` stations (the "Canada model"). Attribute "European Commission, Weekly Oil Bulletin". `backend/src/services/scrapers/eu_oil_bulletin.js`. Replaced fuelo.net 2026-06-14. |
 
 ### 🟡 Vendor / official APIs with registration or specific terms (verify commercial use)
 
 | Country | Source | Terms | Action |
 |---------|--------|-------|--------|
-| Germany | **Tankerkönig** `creativecommons.tankerkoenig.de` (MTS-K) | Data **CC BY 4.0** (attribution mandatory); **API terms lean non-commercial** | Confirm commercial permission with Tankerkönig; display "Tankerkönig (MTS-K), CC BY 4.0". Prefer this over the fuelo.net German source. |
+| Germany | **Tankerkönig** `creativecommons.tankerkoenig.de` (MTS-K) — **ACTIVE since 2026-06-14** (replaced de.fuelo.net) | Data **CC BY 4.0** (attribution mandatory); **API terms lean non-commercial** | ⚠️ Confirm commercial permission with Tankerkönig; display "Tankerkönig (MTS-K), CC BY 4.0". Requires `TANKERKOENIG_API_KEY` on Render (the hardcoded demo-key fallback only covers a tiny test area). |
 | Chile | CNE "Bencina en Línea" API (`api.cne.cl`, account login) | Free registration; ⚠️ verify commercial redistribution allowed | Confirm ToS for a paid app. |
 | Australia (NSW + TAS) | FuelCheck `api.onegov.nsw.gov.au` (+ registered key for TAS) | NSW API terms; commercial use may need agreement | Verify key terms cover paid distribution. |
 | Australia (VIC) | Service Victoria "Servo Saver" Public API | API terms; consumer-id auth | Verify commercial terms. |
@@ -77,7 +78,9 @@ with attribution + share-alike — the issue is the *free shared servers*.
 
 | Country / scope | Source | Problem |
 |-----------------|--------|---------|
-| **Albania, Belgium, Bosnia, Bulgaria, Croatia, Czechia, Germany(dup), Greece, Hungary, Ireland, Latvia, Lithuania, Montenegro, Netherlands, North Macedonia (+Kosovo), Poland, Romania, Serbia, Slovakia, Switzerland, Turkey** (~21) | **`*.fuelo.net`** | Scraping a **private commercial aggregator's compiled database**. Exposes EU **database/sui-generis rights** + ToS breach + realistic takedown. ~Half of country coverage. |
+| **Albania, Bosnia, Montenegro, North Macedonia (+Kosovo), Serbia, Switzerland, Turkey** (7) | **`*.fuelo.net`** | Scraping a **private commercial aggregator's compiled database**. Exposes EU **database/sui-generis rights** + ToS breach + realistic takedown. **Down from ~21** — see migrations below. |
+| ~~Belgium, Bulgaria, Czechia, Estonia, Greece, Croatia, Hungary, Ireland, Latvia, Lithuania, Netherlands, Poland, Romania, Slovakia~~ (14) | ~~`*.fuelo.net`~~ → **EU Oil Bulletin** | ✅ **MIGRATED 2026-06-14** to EU Weekly Oil Bulletin (CC BY 4.0) over OSM stations — see 🟢 table. Stale fuelo rows purged via `backend/src/scripts/purge_fuelo_eub.js`. |
+| ~~Germany~~ | ~~`de.fuelo.net`~~ → **Tankerkönig** | ✅ **MIGRATED 2026-06-14** to Tankerkönig MTS-K (CC BY 4.0) — see 🟡 table. Needs `TANKERKOENIG_API_KEY` on Render for full coverage. |
 | Luxembourg | `carbu.com` (HTML scrape) | Private commercial site; scraping + redistribution likely violates ToS. |
 | South Korea | Opinet — **uses a publicly-indexed demo API key** (`F231013281`) | Using someone else's demo key in a paid product = ToS violation, can be revoked. Register your own. |
 | Peru | Osinergmin Facilito | reCAPTCHA-gated; parked. (See memory `reference-peru-facilito`.) |
@@ -108,7 +111,7 @@ from this file.
 
 ## 4. Pre-monetisation checklist
 
-1. **Resolve the fuelo.net dependency (~21 countries)** — replace with genuine open-gov sources, license the data, or ship without those countries at launch.
+1. **Resolve the fuelo.net dependency** — **15 of ~21 done** (14 EU via Oil Bulletin + Germany via Tankerkönig, 2026-06-14). **7 left:** Switzerland, Turkey, Serbia, Bosnia, Montenegro, North Macedonia (+Kosovo), Albania — replace with genuine open-gov sources, license the data, or ship without those at launch.
 2. **Replace borrowed/demo keys** (South Korea Opinet; audit all hardcoded keys) with your own commercially-permitted keys.
 3. **Move geocoding + Overpass off the free OSM public servers** (self-host or paid) before scaling.
 4. **Confirm 🟡 vendor terms** allow commercial redistribution (Tankerkönig, Chile CNE, AU NSW/VIC/QLD, Finland, Slovenia, Denmark, UK re-publisher).
@@ -160,13 +163,15 @@ one source covers most of the EU list at once.
 
 ### Suggested execution order (highest leverage first)
 
-1. **Build one EU-Oil-Bulletin scraper** (CC BY 4.0) → instantly and legally replaces the EU fuelo
-   countries at national-avg granularity (BE, BG, CZ, HU, IE, LV, LT, NL, PL, SK + GR/RO/HR fallback),
-   reusing the existing OSM-station + national-price ("Canada") model.
-2. **Delete the de.fuelo.net source** (Tankerkönig already covers Germany).
-3. **Add per-station upgrades** where worth it: Turkey (EPDK API), Romania (probe the Concurenței app API), Greece (PDF parser).
-4. **Add the regulated-price non-EU Balkans** (RS, ME, MK, AL, BA, XK, CH) from each official regulator.
-5. Remove every `*.fuelo.net`, `carbu.com` (LU) and the borrowed Opinet key once replacements land.
+1. ✅ **DONE (2026-06-14)** — **Built the EU-Oil-Bulletin scraper** (CC BY 4.0, `eu_oil_bulletin.js`),
+   legally replacing the 14 EU fuelo countries at national-avg granularity (BE, BG, CZ, EE, GR, HR, HU,
+   IE, LT, LV, NL, PL, RO, SK) over OSM stations. Wired into boot + weekly cron; the 14 fuelo scrapers
+   were removed from all schedules/triggers in `sync.js`. **Post-deploy:** run `purge_fuelo_eub.js`.
+2. ✅ **DONE (2026-06-14)** — **Replaced de.fuelo.net with Tankerkönig** (`sync.js` now imports
+   `scrapers/tankerkoenig`). ⚠️ Set `TANKERKOENIG_API_KEY` on Render or DE coverage collapses to a test area.
+3. **Add the regulated-price non-EU sources** (CH, RS, ME, MK, AL, BA, XK) from each official regulator — the next fuelo.net batch.
+4. **Add per-station upgrades** where worth it: Turkey (EPDK API), Romania (probe the Concurenței app API), Greece (PDF parser).
+5. Remove every remaining `*.fuelo.net`, `carbu.com` (LU) and the borrowed Opinet key once replacements land.
 
 > **Tradeoff to accept:** buckets B/C show one price per country instead of per-station prices.
 > For regulated markets (C) that's the real price; for non-regulated (B) it's a deliberate

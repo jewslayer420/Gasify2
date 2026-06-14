@@ -7,30 +7,18 @@ const { fetchSpainStations }     = require('./scrapers/spain');
 const { fetchItalyStations }     = require('./scrapers/italy');
 const { fetchPortugalStations }  = require('./scrapers/portugal');
 const { fetchAustriaStations }   = require('./scrapers/austria');
-const { fetchPolandStations }    = require('./scrapers/poland');
-const { fetchNLStations }        = require('./scrapers/netherlands');
-const { fetchGermanyStations }   = require('./scrapers/germany');
-const { fetchCroatiaStations }   = require('./scrapers/croatia');
-const { fetchCzechiaStations }   = require('./scrapers/czechia');
+// Germany now uses the official Tankerkönig MTS-K API (CC BY 4.0), replacing the
+// de.fuelo.net scraper. Needs TANKERKOENIG_API_KEY in env for full coverage.
+const { fetchGermanyStations }   = require('./scrapers/tankerkoenig');
 const { fetchSwitzerlandStations } = require('./scrapers/switzerland');
-const { fetchSlovakiaStations }  = require('./scrapers/slovakia');
-const { fetchHungaryStations }   = require('./scrapers/hungary');
-const { fetchRomaniaStations }   = require('./scrapers/romania');
 const { fetchSerbiaStations }    = require('./scrapers/serbia');
-const { fetchBulgariaStations }  = require('./scrapers/bulgaria');
-const { fetchGreeceStations }    = require('./scrapers/greece');
 const { fetchBosniaStations }    = require('./scrapers/bosnia');
 const { fetchMontenegroStations } = require('./scrapers/montenegro');
 const { fetchNorthMacedoniaStations } = require('./scrapers/northmacedonia');
 const { fetchAlbaniaStations }   = require('./scrapers/albania');
 const { fetchDenmarkStations }   = require('./scrapers/denmark');
 const { fetchUKStations }        = require('./scrapers/uk');
-const { fetchIrelandStations }   = require('./scrapers/ireland');
-const { fetchBelgiumStations }   = require('./scrapers/belgium');
 const { fetchFinlandStations }   = require('./scrapers/finland');
-const { fetchLatviaStations }    = require('./scrapers/latvia');
-const { fetchLithuaniaStations } = require('./scrapers/lithuania');
-const { fetchEstoniaStations }   = require('./scrapers/estonia');
 const { fetchTurkeyStations }    = require('./scrapers/turkey');
 const { fetchNorwayStations }    = require('./scrapers/norway');
 const { fetchSwedenStations }    = require('./scrapers/sweden');
@@ -51,6 +39,8 @@ const { fetchBrazilStations }     = require('./scrapers/brazil');
 const { fetchArgentinaStations }  = require('./scrapers/argentina');
 const { fetchUSAStations }        = require('./scrapers/usa');
 const { fetchSouthAfricaStations } = require('./scrapers/southafrica');
+// EU Weekly Oil Bulletin (CC BY 4.0) national prices over OSM stations — replaces
+// the fuelo.net scrapers for 14 EU countries (BE BG CZ EE GR HR HU IE LT LV NL PL RO SK).
 const { fetchEUBulletinStations } = require('./scrapers/eu_oil_bulletin');
 
 const CHUNK = 500;
@@ -150,8 +140,8 @@ function scheduleGovernmentAPIs() {
   cron.schedule('30 0,6,12,18 * * *',  () => runSync('Portugal', fetchPortugalStations));
   // Austria: every 6h offset by 40min
   cron.schedule('40 0,6,12,18 * * *',  () => runSync('Austria',  fetchAustriaStations));
-  // Poland: every 6h offset by 50min
-  cron.schedule('50 0,6,12,18 * * *',  () => runSync('Poland',   fetchPolandStations));
+  // Germany (Tankerkönig MTS-K, CC BY 4.0): daily 01:30 — grid-scans the country
+  cron.schedule('30 1 * * *', () => runSync('Germany', fetchGermanyStations));
   // Australia: every 6h offset by 55min (WA FuelWatch + NSW FuelCheck + TAS)
   cron.schedule('55 0,6,12,18 * * *',  () => runSync('Australia', fetchAustraliaStations));
   // Iceland: every 6h (Gasvaktin updates every 15 min — no key required)
@@ -180,38 +170,28 @@ function scheduleGovernmentAPIs() {
   cron.schedule('0 5 * * 0', () => runSync('USA', fetchUSAStations));
   // South Africa: weekly (DMPR regulated price set monthly; OSM stable) — Sun 05:30
   cron.schedule('30 5 * * 0', () => runSync('SouthAfrica', fetchSouthAfricaStations));
+  // EU Oil Bulletin (CC BY 4.0): weekly Thu 06:00 — bulletin refreshes weekly (Mon),
+  // covers 14 EU countries (national price over OSM stations). Replaces their fuelo.net scrapers.
+  cron.schedule('0 6 * * 4', () => runSync('EUBulletin', fetchEUBulletinStations));
 }
 
-// ── Slow fuelo.net grid scrapers — once daily ────────────────────────────────
-// Run sequentially overnight to avoid Cloudflare rate limits
+// ── Slow grid / unofficial scrapers — once daily ─────────────────────────────
+// Run sequentially overnight to avoid rate limits. The 14 EU fuelo.net countries
+// were removed here — they're now served by the EU Oil Bulletin (see cron above).
 
 async function runNightlySlowSync() {
   console.log('[sync] Nightly slow sync starting…');
   await runSync('Slovenia',    fetchSloveniaStations);
-  await runSync('Netherlands', fetchNLStations);         // extra NL coverage
-  await runSync('Croatia',     fetchCroatiaStations);
-  await runSync('Czechia',     fetchCzechiaStations);
   await runSync('Switzerland', fetchSwitzerlandStations);
-  await runSync('Slovakia',    fetchSlovakiaStations);
-  await runSync('Hungary',     fetchHungaryStations);
-  await runSync('Romania',     fetchRomaniaStations);
   await runSync('Serbia',         fetchSerbiaStations);
-  await runSync('Bulgaria',       fetchBulgariaStations);
-  await runSync('Greece',         fetchGreeceStations);
   await runSync('Bosnia',         fetchBosniaStations);
   await runSync('Montenegro',     fetchMontenegroStations);
   await runSync('NorthMacedonia', fetchNorthMacedoniaStations);
   await runSync('Albania',        fetchAlbaniaStations);
   await runSync('Denmark',        fetchDenmarkStations);
   await runSync('UK',             fetchUKStations);
-  await runSync('Ireland',        fetchIrelandStations);
-  await runSync('Belgium',        fetchBelgiumStations);
   await runSync('Finland',        fetchFinlandStations);
-  await runSync('Latvia',         fetchLatviaStations);
-  await runSync('Lithuania',      fetchLithuaniaStations);
-  await runSync('Estonia',        fetchEstoniaStations);
   await runSync('Turkey',         fetchTurkeyStations);
-  await runSync('Germany',    fetchGermanyStations);
   await runSync('Luxembourg', fetchLuxembourgStations);
   // Norway/Sweden skipped — no public price APIs (see scrapers/*.js)
   await runSync('QLD',  fetchQLDStations);   // requires QLD_FUEL_API_KEY
@@ -231,7 +211,6 @@ async function runAllSyncsOnce() {
     ['Italy',       fetchItalyStations],
     ['Portugal',    fetchPortugalStations],
     ['Austria',     fetchAustriaStations],
-    ['Poland',      fetchPolandStations],
     ['Germany',     fetchGermanyStations],
     ['Luxembourg',  fetchLuxembourgStations],
     ['Australia',   fetchAustraliaStations],
@@ -248,9 +227,10 @@ async function runAllSyncsOnce() {
     ['Argentina',   fetchArgentinaStations],
     ['USA',         fetchUSAStations],
     ['SouthAfrica', fetchSouthAfricaStations],
+    ['EUBulletin',  fetchEUBulletinStations], // 14 EU countries (Oil Bulletin + OSM)
   ];
   for (const [label, fn] of seq) await runSync(label, fn);
-  await runNightlySlowSync(); // the slow fuelo.net scrapers (already sequential)
+  await runNightlySlowSync(); // the remaining slow scrapers (already sequential)
   console.log('[sync] Boot sync complete');
 }
 
@@ -278,34 +258,20 @@ const SCRAPERS = {
   italy:          fetchItalyStations,
   portugal:       fetchPortugalStations,
   austria:        fetchAustriaStations,
-  poland:         fetchPolandStations,
-  germany:        fetchGermanyStations,
+  germany:        fetchGermanyStations,   // Tankerkönig (MTS-K), CC BY 4.0
   norway:         fetchNorwayStations,
   sweden:         fetchSwedenStations,
   luxembourg:     fetchLuxembourgStations,
   slovenia:       fetchSloveniaStations,
-  netherlands:    fetchNLStations,
-  croatia:        fetchCroatiaStations,
-  czechia:        fetchCzechiaStations,
   switzerland:    fetchSwitzerlandStations,
-  slovakia:       fetchSlovakiaStations,
-  hungary:        fetchHungaryStations,
-  romania:        fetchRomaniaStations,
   serbia:         fetchSerbiaStations,
-  bulgaria:       fetchBulgariaStations,
-  greece:         fetchGreeceStations,
   bosnia:         fetchBosniaStations,
   montenegro:     fetchMontenegroStations,
   northmacedonia: fetchNorthMacedoniaStations,
   albania:        fetchAlbaniaStations,
   denmark:        fetchDenmarkStations,
   uk:             fetchUKStations,
-  ireland:        fetchIrelandStations,
-  belgium:        fetchBelgiumStations,
   finland:        fetchFinlandStations,
-  latvia:         fetchLatviaStations,
-  lithuania:      fetchLithuaniaStations,
-  estonia:        fetchEstoniaStations,
   turkey:         fetchTurkeyStations,
   australia:      fetchAustraliaStations,
   iceland:        fetchIcelandStations,
@@ -326,16 +292,16 @@ const SCRAPERS = {
   eubulletin:     fetchEUBulletinStations, // EU national prices (Oil Bulletin) + OSM stations
 };
 
-// ── EU Oil Bulletin cutover (STAGED — not yet enabled in automatic runs) ──────
-// fetchEUBulletinStations covers these EU countries with the official EU Weekly
-// Oil Bulletin (CC BY 4.0) national price over OSM stations, replacing fuelo.net.
-// Before enabling it on the cron/boot path, the matching fuelo.net scrapers must
-// be removed from the scheduled runs AND their existing DB rows purged, or the
-// live map will show duplicate pins (fuelo per-station + EUB OSM-station).
-// Countries replaced: BE BG CZ EE GR HR HU IE LT LV NL PL RO SK.
-// To finish the cutover: (1) drop these from scheduleGovernmentAPIs (Poland) and
-// runNightlySlowSync, (2) add `cron.schedule('0 6 * * 4', () => runSync('EUBulletin',
-// fetchEUBulletinStations))` (Thu, after the Wed bulletin), (3) purge old fuelo rows.
+// ── fuelo.net cutover status ─────────────────────────────────────────────────
+// DONE for 14 EU countries (BE BG CZ EE GR HR HU IE LT LV NL PL RO SK): their
+// fuelo.net scrapers were removed from all schedules/triggers above and replaced
+// by fetchEUBulletinStations (EU Oil Bulletin, CC BY 4.0). Germany moved from
+// de.fuelo.net to Tankerkönig (MTS-K). After deploying this code, run
+// `node src/scripts/purge_fuelo_eub.js` once to delete the stale fuelo rows
+// (prefixes BE- BG- CZ- EE- GR- HR- HU- IE- LT- LV- NL- PL- RO- SK- DE-fuelo-),
+// otherwise the map shows duplicate pins.
+// STILL on fuelo.net (replace next): Switzerland, Turkey, Serbia, Bosnia,
+// Montenegro, North Macedonia, Albania. Also Luxembourg (carbu.com) + Korea key.
 
 async function triggerSync(country) {
   const fetchFn = SCRAPERS[country];
