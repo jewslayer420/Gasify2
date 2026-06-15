@@ -9,8 +9,12 @@
 // Stations: Overpass API — amenity=fuel nodes in South Korea
 //   POST https://overpass-api.de/api/interpreter
 //
-// Opinet API key F231013281 is Opinet's publicly indexed demo key.
+// Opinet API key: set OPINET_API_KEY to your own registered Opinet key. The
+// fallback (F231013281) is Opinet's publicly-indexed DEMO key — a borrowed key is a
+// ToS violation in a paid product and can be revoked, so register your own before
+// launch (opinet.co.kr). See docs/DATA_SOURCES.md.
 
+const OPINET_KEY = process.env.OPINET_API_KEY || 'F231013281';
 const KRW_EUR = 1 / 1500; // 1 EUR ≈ 1500 KRW
 const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
 const OVERPASS_MIRRORS = [
@@ -35,9 +39,10 @@ function krwToEur(val) {
 async function fetchSouthKoreaStations() {
   // 1. Fetch national average fuel prices from Opinet
   let priceList = [];
+  if (OPINET_KEY === 'F231013281') console.warn('[southkorea] using Opinet DEMO key — set OPINET_API_KEY before launch');
   try {
     const r = await fetch(
-      'https://www.opinet.co.kr/api/avgAllPrice.do?code=F231013281&out=json',
+      `https://www.opinet.co.kr/api/avgAllPrice.do?code=${OPINET_KEY}&out=json`,
       { headers: { 'User-Agent': UA, Accept: 'application/json' }, signal: AbortSignal.timeout(30000) }
     );
     if (!r.ok) throw new Error(`Opinet HTTP ${r.status}`);

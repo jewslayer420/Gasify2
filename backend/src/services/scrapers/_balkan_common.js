@@ -1,4 +1,6 @@
-// Shared helpers for the regulated-price Balkan scrapers (MK, ME, RS, AL, BA).
+// Shared helpers for the regulated/official-max-price scrapers that apply a single
+// national price over OSM stations (North Macedonia ERC, Luxembourg STATEC, and the
+// parked Balkans MK/ME/RS/AL/BA if revisited).
 //
 // These markets all have government-set maximum/regulated retail prices — a
 // published regulated FACT, not a copyrightable database — applied over OSM fuel

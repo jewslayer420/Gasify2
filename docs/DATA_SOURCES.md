@@ -61,6 +61,7 @@ with attribution + share-alike — the issue is the *free shared servers*.
 | **EU 14** — BE, BG, CZ, EE, GR, HR, HU, IE, LT, LV, NL, PL, RO, SK | **EU Weekly Oil Bulletin** (European Commission, DG Energy) + OSM stations | **CC BY 4.0** | National weekly pump price over OSM `amenity=fuel` stations (the "Canada model"). Attribute "European Commission, Weekly Oil Bulletin". `backend/src/services/scrapers/eu_oil_bulletin.js`. Replaced fuelo.net 2026-06-14. |
 | **Turkey** | **EPDK** (Enerji Piyasası Düzenleme Kurumu — official energy regulator) `apigateway.epdk.gov.tr` + OSM stations | Turkish public-sector regulator data ⚠️ verify reuse terms | National dealer-price bulletin (Benzin 95 / Motorin / Otogaz LPG), TRY→EUR via ECB rate, applied over OSM stations. `turkey_epdk.js`. Per-province upgrade possible via EPDK SOAP (`bildirimPetrolAkaryakitFiyatlari`, sorguNo=71). Replaced tr.fuelo.net 2026-06-14. |
 | **North Macedonia** | **ERC** (Energy Regulatory Commission, `erc.org.mk`) regulated max prices + OSM stations | Regulated price = published fact ⚠️ verify reuse terms | Homepage "CeniLista" table (EUROSUPER 95/98, EURODIZEL), MKD→EUR via open.er-api.com (denar pegged ~61.5). `northmacedonia_erc.js` + `_balkan_common.js`. Replaced mk.fuelo.net 2026-06-15. |
+| **Luxembourg** | **STATEC** official max prices via LUSTAT (`lustat.statec.lu`), mirrored on `data.public.lu` | **CC0** | Official "Prix maxima" (Super 95 E10 / 98 / diesel), already EUR/L — no FX. SDMX-CSV API (needs `Accept-Language` header; version 1.0). `luxembourg_statec.js`. Replaced carbu.com 2026-06-16. |
 
 ### 🟡 Vendor / official APIs with registration or specific terms (verify commercial use)
 
@@ -85,8 +86,8 @@ with attribution + share-alike — the issue is the *free shared servers*.
 | ~~North Macedonia~~ | ~~`mk.fuelo.net`~~ → **ERC** | ✅ **MIGRATED 2026-06-15** to the ERC regulator's official homepage price table (`erc.org.mk`, regulated max prices) over OSM stations — see 🟢 table. Stale `MK-` rows purged via `purge_fuelo_eub.js --include-macedonia`. |
 | ~~Belgium, Bulgaria, Czechia, Estonia, Greece, Croatia, Hungary, Ireland, Latvia, Lithuania, Netherlands, Poland, Romania, Slovakia~~ (14) | ~~`*.fuelo.net`~~ → **EU Oil Bulletin** | ✅ **MIGRATED 2026-06-14** to EU Weekly Oil Bulletin (CC BY 4.0) over OSM stations — see 🟢 table. Stale fuelo rows purged via `backend/src/scripts/purge_fuelo_eub.js`. |
 | ~~Germany~~ | ~~`de.fuelo.net`~~ → **Tankerkönig** | ✅ **MIGRATED 2026-06-14** to Tankerkönig MTS-K (CC BY 4.0) — see 🟡 table. Needs `TANKERKOENIG_API_KEY` on Render for full coverage. |
-| Luxembourg | `carbu.com` (HTML scrape) | Private commercial site; scraping + redistribution likely violates ToS. |
-| South Korea | Opinet — **uses a publicly-indexed demo API key** (`F231013281`) | Using someone else's demo key in a paid product = ToS violation, can be revoked. Register your own. |
+| ~~Luxembourg~~ | ~~`carbu.com`~~ → **STATEC** | ✅ **MIGRATED 2026-06-16** to STATEC official max-price open data (`lustat.statec.lu`, **CC0**) over OSM stations — see 🟢 table. Stale `LU-CARBU-` rows purged via `purge_fuelo_eub.js --include-luxembourg`. |
+| South Korea | Opinet (`opinet.co.kr`) — official KNOC source, but key was a **publicly-indexed demo key** (`F231013281`) | ⚠️ **Partially fixed 2026-06-16**: key is now env-configurable (`OPINET_API_KEY`); the demo fallback remains until you **register your own Opinet key** (still required before launch — borrowed key can be revoked). |
 | Peru | Osinergmin Facilito | reCAPTCHA-gated; parked. (See memory `reference-peru-facilito`.) |
 
 ### ⚪ No source yet (returns empty — no legal issue)
@@ -116,7 +117,7 @@ from this file.
 ## 4. Pre-monetisation checklist
 
 1. **Resolve the fuelo.net dependency** — **17 of ~21 done** (14 EU via Oil Bulletin + Germany via Tankerkönig + Turkey via EPDK + North Macedonia via ERC). **5 left, all parked** (no clean automatable source): Switzerland (CPI index only), Serbia, Bosnia, Montenegro, Albania (regulated, but news/article-stream publication only) + Kosovo. Options for these: a manual-constant table (like South Africa), license the data, or ship without them at launch.
-2. **Replace borrowed/demo keys** (South Korea Opinet; audit all hardcoded keys) with your own commercially-permitted keys.
+2. **Replace borrowed/demo keys** with your own commercially-permitted keys. South Korea Opinet is now env-configurable (`OPINET_API_KEY`, 2026-06-16) — **still need to register a real key** to drop the demo fallback. (Luxembourg carbu.com scrape resolved 2026-06-16 → STATEC CC0.) Audit any other hardcoded keys.
 3. **Move geocoding + Overpass off the free OSM public servers** (self-host or paid) before scaling.
 4. **Confirm 🟡 vendor terms** allow commercial redistribution (Tankerkönig, Chile CNE, AU NSW/VIC/QLD, Finland, Slovenia, Denmark, UK re-publisher).
 5. **Add the in-app credits screen** (this file → data-driven) and government no-endorsement notices.

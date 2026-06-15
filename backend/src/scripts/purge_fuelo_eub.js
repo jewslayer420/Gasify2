@@ -44,18 +44,24 @@ const TURKEY_PREFIX = 'TR-';
 // dataset also held some Kosovo stations, which this removes (Kosovo = separate).
 const MACEDONIA_PREFIX = 'MK-';
 
+// Luxembourg's old carbu.com rows (externalId `LU-CARBU-<id>`; new STATEC rows are
+// `REG-LU-OSM-...`). GATED behind --include-luxembourg.
+const LUXEMBOURG_PREFIX = 'LU-CARBU-';
+
 async function main() {
   const apply = process.argv.includes('--apply');
   const includeGermany = process.argv.includes('--include-germany');
   const includeTurkey = process.argv.includes('--include-turkey');
   const includeMacedonia = process.argv.includes('--include-macedonia');
+  const includeLuxembourg = process.argv.includes('--include-luxembourg');
   const PREFIXES = [
     ...EU14_PREFIXES,
     ...(includeGermany ? [GERMANY_PREFIX] : []),
     ...(includeTurkey ? [TURKEY_PREFIX] : []),
     ...(includeMacedonia ? [MACEDONIA_PREFIX] : []),
+    ...(includeLuxembourg ? [LUXEMBOURG_PREFIX] : []),
   ];
-  console.log(`[purge] mode: ${apply ? 'APPLY (deleting)' : 'DRY RUN (counts only)'} | Germany: ${includeGermany ? 'IN' : 'excl'} | Turkey: ${includeTurkey ? 'IN' : 'excl'} | N.Macedonia: ${includeMacedonia ? 'IN' : 'excl'}`);
+  console.log(`[purge] mode: ${apply ? 'APPLY (deleting)' : 'DRY RUN (counts only)'} | DE:${includeGermany ? 'IN' : '-'} TR:${includeTurkey ? 'IN' : '-'} MK:${includeMacedonia ? 'IN' : '-'} LU:${includeLuxembourg ? 'IN' : '-'}`);
 
   let grandTotal = 0;
   for (const prefix of PREFIXES) {

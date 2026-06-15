@@ -26,7 +26,9 @@ const { fetchFinlandStations }   = require('./scrapers/finland');
 const { fetchTurkeyStations }    = require('./scrapers/turkey_epdk');
 const { fetchNorwayStations }    = require('./scrapers/norway');
 const { fetchSwedenStations }    = require('./scrapers/sweden');
-const { fetchLuxembourgStations } = require('./scrapers/luxembourg');
+// Luxembourg now uses the official STATEC max-price open data (CC0, lustat.statec.lu)
+// over OSM stations, replacing the carbu.com scrape.
+const { fetchLuxembourgStations } = require('./scrapers/luxembourg_statec');
 const { fetchAustraliaStations }  = require('./scrapers/australia');
 const { fetchIcelandStations }    = require('./scrapers/iceland');
 const { fetchQLDStations }        = require('./scrapers/australia_qld');
@@ -312,9 +314,13 @@ const SCRAPERS = {
 // North Macedonia also migrated (2026-06-15): mk.fuelo.net → ERC regulator
 // (northmacedonia_erc). After deploy, run `purge_fuelo_eub.js --include-macedonia`
 // to delete stale `MK-` rows (new rows use the `REG-MK-OSM-` prefix).
+// Luxembourg also migrated (2026-06-16): carbu.com → STATEC official max-price open
+// data (CC0, luxembourg_statec). After deploy, run `purge_fuelo_eub.js
+// --include-luxembourg` to delete stale `LU-CARBU-` rows (new rows use `REG-LU-OSM-`).
+// South Korea: Opinet key is now env-configurable (OPINET_API_KEY) — register a real
+// key to drop the demo key before launch.
 // STILL on fuelo.net (parked — no clean automatable source; publish only via
 // news/article streams): Switzerland, Serbia, Bosnia, Montenegro, Albania.
-// Also Luxembourg (carbu.com) + Korea borrowed key.
 
 async function triggerSync(country) {
   const fetchFn = SCRAPERS[country];
