@@ -14,7 +14,9 @@ const { fetchSwitzerlandStations } = require('./scrapers/switzerland');
 const { fetchSerbiaStations }    = require('./scrapers/serbia');
 const { fetchBosniaStations }    = require('./scrapers/bosnia');
 const { fetchMontenegroStations } = require('./scrapers/montenegro');
-const { fetchNorthMacedoniaStations } = require('./scrapers/northmacedonia');
+// North Macedonia now uses the official ERC regulator price (erc.org.mk) over OSM
+// stations, replacing mk.fuelo.net.
+const { fetchNorthMacedoniaStations } = require('./scrapers/northmacedonia_erc');
 const { fetchAlbaniaStations }   = require('./scrapers/albania');
 const { fetchDenmarkStations }   = require('./scrapers/denmark');
 const { fetchUKStations }        = require('./scrapers/uk');
@@ -307,8 +309,12 @@ const SCRAPERS = {
 // Turkey also migrated (2026-06-14): de.fuelo.net → EPDK official bulletin
 // (turkey_epdk). After deploy, run `node src/scripts/purge_fuelo_eub.js --include-turkey`
 // to delete the stale `TR-` rows (new rows use the `EPDK-TR-OSM-` prefix).
-// STILL on fuelo.net (replace next): Switzerland (no clean source — parked), Serbia,
-// Bosnia, Montenegro, North Macedonia, Albania. Also Luxembourg (carbu.com) + Korea key.
+// North Macedonia also migrated (2026-06-15): mk.fuelo.net → ERC regulator
+// (northmacedonia_erc). After deploy, run `purge_fuelo_eub.js --include-macedonia`
+// to delete stale `MK-` rows (new rows use the `REG-MK-OSM-` prefix).
+// STILL on fuelo.net (parked — no clean automatable source; publish only via
+// news/article streams): Switzerland, Serbia, Bosnia, Montenegro, Albania.
+// Also Luxembourg (carbu.com) + Korea borrowed key.
 
 async function triggerSync(country) {
   const fetchFn = SCRAPERS[country];

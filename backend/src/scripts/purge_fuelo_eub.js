@@ -39,16 +39,23 @@ const GERMANY_PREFIX = 'DE-fuelo-';
 // once the EPDK (turkey_epdk) scraper has populated EPDK-TR- rows.
 const TURKEY_PREFIX = 'TR-';
 
+// North Macedonia's old fuelo rows (externalId `MK-<id>`; new ERC rows are
+// `REG-MK-OSM-...`). GATED behind --include-macedonia. NOTE: the old mk.fuelo
+// dataset also held some Kosovo stations, which this removes (Kosovo = separate).
+const MACEDONIA_PREFIX = 'MK-';
+
 async function main() {
   const apply = process.argv.includes('--apply');
   const includeGermany = process.argv.includes('--include-germany');
   const includeTurkey = process.argv.includes('--include-turkey');
+  const includeMacedonia = process.argv.includes('--include-macedonia');
   const PREFIXES = [
     ...EU14_PREFIXES,
     ...(includeGermany ? [GERMANY_PREFIX] : []),
     ...(includeTurkey ? [TURKEY_PREFIX] : []),
+    ...(includeMacedonia ? [MACEDONIA_PREFIX] : []),
   ];
-  console.log(`[purge] mode: ${apply ? 'APPLY (deleting)' : 'DRY RUN (counts only)'} | Germany: ${includeGermany ? 'INCLUDED' : 'excluded'} | Turkey: ${includeTurkey ? 'INCLUDED' : 'excluded'}`);
+  console.log(`[purge] mode: ${apply ? 'APPLY (deleting)' : 'DRY RUN (counts only)'} | Germany: ${includeGermany ? 'IN' : 'excl'} | Turkey: ${includeTurkey ? 'IN' : 'excl'} | N.Macedonia: ${includeMacedonia ? 'IN' : 'excl'}`);
 
   let grandTotal = 0;
   for (const prefix of PREFIXES) {
