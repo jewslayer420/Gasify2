@@ -46,8 +46,14 @@ const { fetchArgentinaStations }  = require('./scrapers/argentina');
 const { fetchUSAStations }        = require('./scrapers/usa');
 const { fetchSouthAfricaStations } = require('./scrapers/southafrica');
 // EU Weekly Oil Bulletin (CC BY 4.0) national prices over OSM stations — replaces
-// the fuelo.net scrapers for 14 EU countries (BE BG CZ EE GR HR HU IE LT LV NL PL RO SK).
+// the fuelo.net scrapers for 14 EU countries (BE BG CZ EE GR HR HU IE LT LV NL PL RO SK)
+// + Cyprus (new coverage).
 const { fetchEUBulletinStations } = require('./scrapers/eu_oil_bulletin');
+// Regulated national prices kept as manually-maintained constants over OSM (the
+// "South Africa model") — UAE, Saudi Arabia, Kenya, Dominican Republic.
+const {
+  fetchUAEStations, fetchSaudiArabiaStations, fetchKenyaStations, fetchDominicanStations,
+} = require('./scrapers/regulated_manual');
 
 const CHUNK = 500;
 
@@ -203,6 +209,11 @@ async function runNightlySlowSync() {
   // Norway/Sweden skipped — no public price APIs (see scrapers/*.js)
   await runSync('QLD',  fetchQLDStations);   // requires QLD_FUEL_API_KEY
   await runSync('VIC',  fetchVICStations);   // requires VIC_FUEL_API_KEY
+  // Regulated-manual constants (refresh OSM stations + re-apply the official price)
+  await runSync('UAE',       fetchUAEStations);
+  await runSync('SaudiArabia', fetchSaudiArabiaStations);
+  await runSync('Kenya',     fetchKenyaStations);
+  await runSync('Dominican', fetchDominicanStations);
   console.log('[sync] Nightly slow sync complete');
 }
 
@@ -298,6 +309,10 @@ const SCRAPERS = {
   usa:            fetchUSAStations,
   southafrica:    fetchSouthAfricaStations,
   eubulletin:     fetchEUBulletinStations, // EU national prices (Oil Bulletin) + OSM stations
+  uae:            fetchUAEStations,
+  saudiarabia:    fetchSaudiArabiaStations,
+  kenya:          fetchKenyaStations,
+  dominican:      fetchDominicanStations,
 };
 
 // ── fuelo.net cutover status ─────────────────────────────────────────────────

@@ -57,6 +57,17 @@ with attribution + share-alike — the issue is the *free shared servers*.
 | Mexico | CRE XML feeds (`publicacionexterna.azurewebsites.net`) | Mexican gov open data ⚠️ verify | Attribution to CRE. |
 | Taiwan | CPC Corporation Open Data API | Taiwan gov open data ⚠️ verify | Attribution to CPC. |
 | South Africa | DMRE regulated national price (manually maintained) + OSM stations | Price is a **published fact** (not copyrightable); stations ODbL | Update monthly; cite DMRE. |
+| **UAE** 🆕 | Fuel Price Committee monthly prices (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. AED→EUR. Update `asOf` monthly. Added 2026-06-16. |
+| **Saudi Arabia** 🆕 | Aramco official fixed prices (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. SAR→EUR. Changes rarely. Added 2026-06-16. |
+| **Kenya** 🆕 | EPRA monthly max prices, Nairobi ref (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. KES→EUR. Update monthly (EPRA revises ~14th). Added 2026-06-16. |
+| **Dominican Republic** 🆕 | MICM weekly official prices (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. Published per **gallon** → ÷3.78541 → DOP→EUR. Update weekly-ish. Added 2026-06-16. |
+
+> **Deferred regulated candidates (sources found, not yet built):** **Uruguay** — official ANCAP
+> open-data API on `catalogodatos.gub.uy` (JSON/CSV, clean) but its TLS cert chain fails to validate
+> from our environment; revisit (may work from Render, or add the gov CA). **Costa Rica** — RECOPE/
+> ARESEP official table (`recope.go.cr`) but news prices were inconsistent; verify against the
+> official table before adding. **Israel** — gov.il official monthly XLS (regulated 95 octane);
+> gov.il blocks naive fetches (needs browser headers).
 | UK | `fuelcosts.co.uk` re-publishing UK Fuel Finder scheme | Underlying scheme is **OGL v3** (commercial OK + attribution) | ⚠️ You consume the **re-publisher**, not the source — check fuelcosts.co.uk's own ToS, or pull the scheme data directly. |
 | **EU 14** — BE, BG, CZ, EE, GR, HR, HU, IE, LT, LV, NL, PL, RO, SK | **EU Weekly Oil Bulletin** (European Commission, DG Energy) + OSM stations | **CC BY 4.0** | National weekly pump price over OSM `amenity=fuel` stations (the "Canada model"). Attribute "European Commission, Weekly Oil Bulletin". `backend/src/services/scrapers/eu_oil_bulletin.js`. Replaced fuelo.net 2026-06-14. |
 | **Cyprus** 🆕 | **EU Weekly Oil Bulletin** (same scraper, `cc: 'CY'`) + OSM stations | **CC BY 4.0** | **New country added 2026-06-16** (45th). National RoC price over OSM. **Per-station upgrade available:** the MCIT "Retail Fuel Price Observatory" eForm (`eforms.eservices.cyprus.gov.cy/MCIT/MCIT/PetroleumPrices`) returns per-station prices via an ASP.NET MVC postback (`__RequestVerificationToken` + session; fuel codes 1=U95/2=U98/3=diesel) — fragile, deferred. |
