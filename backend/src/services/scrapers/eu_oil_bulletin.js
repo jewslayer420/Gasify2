@@ -41,6 +41,10 @@ const OVERPASS_MIRRORS = [
 const BULLETIN_COUNTRIES = [
   { cc: 'BE', bbox: [49.4,  2.5, 51.6,  6.5] },
   { cc: 'BG', bbox: [41.2, 22.3, 44.3, 28.7] },
+  // Cyprus — new coverage (not a fuelo replacement). National price over OSM; the
+  // bulletin price is the Republic of Cyprus value. Per-station upgrade available via
+  // the MCIT observatory eForm (eforms.eservices.cyprus.gov.cy) — see DATA_SOURCES.md.
+  { cc: 'CY', bbox: [34.55, 32.27, 35.75, 34.60] },
   { cc: 'CZ', bbox: [48.5, 12.0, 51.2, 18.9] },
   { cc: 'EE', bbox: [57.5, 21.7, 59.8, 28.3] },
   { cc: 'GR', bbox: [34.7, 19.3, 41.8, 28.4] },
