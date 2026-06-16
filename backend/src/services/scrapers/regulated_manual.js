@@ -40,6 +40,11 @@ const COUNTRIES = [
     asOf: '2026-06', source: 'MICM weekly official prices (published per gallon)',
     prices: { sp98: 341.10 / GAL, sp95: 310.50 / GAL, diesel: 262.80 / GAL }, // RD$/L
   },
+  {
+    cc: 'UY', label: 'uruguay', currency: 'UYU', bbox: [-35.1, -58.6, -30.0, -53.0],
+    asOf: '2026-06', source: 'ANCAP (state oil co.) national prices. NOTE: official open-data API (catalogodatos.gub.uy, JSON/CSV) exists but lags ~7 months + has a TLS-CA quirk — automate later.',
+    prices: { sp95: 93.36, sp98: 96.00, diesel: 61.76 }, // UYU/L (Súper 95, Premium 97, Gasoil 50S)
+  },
 ];
 
 async function fetchCountry(cfg) {
@@ -61,5 +66,6 @@ module.exports = {
   fetchSaudiArabiaStations: byCc.SA,
   fetchKenyaStations: byCc.KE,
   fetchDominicanStations: byCc.DO,
+  fetchUruguayStations: byCc.UY,
   REGULATED_MANUAL: COUNTRIES,
 };
