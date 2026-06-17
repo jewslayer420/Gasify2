@@ -65,6 +65,16 @@ const COUNTRIES = [
     asOf: '2026-06', source: 'Bahrain official fuel prices (NOGA)',
     prices: { sp95: 0.269, sp98: 0.362, diesel: 0.229 }, // BHD/L (Mumtaz 95, Super 98, Jayyid 91 omitted)
   },
+  {
+    cc: 'BN', label: 'brunei', currency: 'BND', bbox: [4.0, 114.0, 5.1, 115.4],
+    asOf: '2026-06', source: 'Brunei subsidised price scheme (fixed >20yrs)',
+    prices: { sp95: 0.51, sp98: 0.53, diesel: 0.31 }, // BND/L (Super 92, Premium 97; Regular 85 omitted)
+  },
+  {
+    cc: 'EC', label: 'ecuador', currency: 'USD', bbox: [-5.0, -81.1, 1.5, -75.2],
+    asOf: '2026-06', source: 'Ecuador price-band scheme (per US gallon). Súper is deregulated (varies by station — suggested value).',
+    prices: { sp95: 3.312 / GAL, sp98: 5.65 / GAL, diesel: 3.251 / GAL }, // USD/L (Extra/Ecopaís, Súper, Diésel)
+  },
 ];
 
 async function fetchCountry(cfg) {
@@ -91,5 +101,7 @@ module.exports = {
   fetchKuwaitStations: byCc.KW,
   fetchOmanStations: byCc.OM,
   fetchBahrainStations: byCc.BH,
+  fetchBruneiStations: byCc.BN,
+  fetchEcuadorStations: byCc.EC,
   REGULATED_MANUAL: COUNTRIES,
 };

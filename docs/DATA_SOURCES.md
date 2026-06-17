@@ -66,6 +66,8 @@ with attribution + share-alike — the issue is the *free shared servers*.
 | **Kuwait** 🆕 | KPC/MEW fixed prices (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. KWD→EUR (subsidised, ~€0.29). Changes rarely. Added 2026-06-17. |
 | **Oman** 🆕 | Monthly fuel price cap (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. OMR→EUR. Update monthly. Added 2026-06-17. |
 | **Bahrain** 🆕 | NOGA official prices (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. BHD→EUR. Added 2026-06-17. |
+| **Brunei** 🆕 | Subsidised price scheme, fixed >20yrs (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. BND→EUR (Super 92, Premium 97, diesel). Essentially static. Added 2026-06-17. |
+| **Ecuador** 🆕 | Price-band scheme (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. USD, published per **gallon** → ÷3.78541. Bands adjust monthly (Extra/Ecopaís + diésel); Súper deregulated (varies). Update monthly. Added 2026-06-17. |
 
 > **Still-deferred candidates (blocked from our environment):** **Costa Rica** — RECOPE official table
 > (`recope.go.cr`) is **unreachable from our environment** (fetch fails even with TLS off) and the news

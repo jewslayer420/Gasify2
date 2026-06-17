@@ -54,6 +54,7 @@ const { fetchEUBulletinStations } = require('./scrapers/eu_oil_bulletin');
 const {
   fetchUAEStations, fetchSaudiArabiaStations, fetchKenyaStations, fetchDominicanStations,
   fetchUruguayStations, fetchQatarStations, fetchKuwaitStations, fetchOmanStations, fetchBahrainStations,
+  fetchBruneiStations, fetchEcuadorStations,
 } = require('./scrapers/regulated_manual');
 
 const CHUNK = 500;
@@ -220,6 +221,8 @@ async function runNightlySlowSync() {
   await runSync('Kuwait',    fetchKuwaitStations);
   await runSync('Oman',      fetchOmanStations);
   await runSync('Bahrain',   fetchBahrainStations);
+  await runSync('Brunei',    fetchBruneiStations);
+  await runSync('Ecuador',   fetchEcuadorStations);
   console.log('[sync] Nightly slow sync complete');
 }
 
@@ -324,6 +327,8 @@ const SCRAPERS = {
   kuwait:         fetchKuwaitStations,
   oman:           fetchOmanStations,
   bahrain:        fetchBahrainStations,
+  brunei:         fetchBruneiStations,
+  ecuador:        fetchEcuadorStations,
 };
 
 // ── fuelo.net cutover status ─────────────────────────────────────────────────
