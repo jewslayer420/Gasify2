@@ -25,6 +25,10 @@ const PRICES_ZAR = [
   { fuelType: 'diesel', zar: 30.64 }, // diesel 50ppm
 ];
 
+// Manual-price freshness metadata (consumed by price_freshness.js). Bump `asOf`
+// whenever PRICES_ZAR is updated.
+const PRICE_META = { cc: 'ZA', label: 'southafrica', asOf: '2026-06', source: 'DMPR monthly — dmre.gov.za/.../fuel-prices' };
+
 function zarToEur(zar) {
   const eur = +(zar * ZAR_EUR).toFixed(3);
   return eur > 0.2 && eur < 6 ? eur : null;
@@ -92,4 +96,4 @@ async function fetchSouthAfricaStations() {
   return stations;
 }
 
-module.exports = { fetchSouthAfricaStations };
+module.exports = { fetchSouthAfricaStations, PRICE_META };

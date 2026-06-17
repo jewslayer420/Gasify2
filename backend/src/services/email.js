@@ -40,4 +40,26 @@ async function sendPasswordResetEmail(email, token) {
   });
 }
 
-module.exports = { sendVerificationEmail, sendPasswordResetEmail };
+// Admin alert: manual-constant fuel prices that are overdue for a refresh.
+async function sendPriceStaleAlert(to, staleList) {
+  const rows = staleList.map(s =>
+    `<tr><td style="padding:4px 10px"><b>${s.cc}</b> ${s.label}</td>` +
+    `<td style="padding:4px 10px">${s.ageDays}d old (cadence ${s.staleAfterDays}d)</td>` +
+    `<td style="padding:4px 10px">${s.source}</td></tr>`
+  ).join('');
+  await transporter.sendMail({
+    from: `"Gasify" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+    to,
+    subject: `Gasify: ${staleList.length} manual fuel price(s) need a refresh`,
+    html: `
+      <h2>Manual fuel prices overdue for refresh</h2>
+      <p>These hand-maintained regulated prices (in <code>regulated_manual.js</code> / <code>southafrica.js</code>)
+      are past their refresh cadence. Update the price + <code>asOf</code> from each official source:</p>
+      <table style="border-collapse:collapse;font-size:14px">
+        <tr><th align="left" style="padding:4px 10px">Country</th><th align="left" style="padding:4px 10px">Age</th><th align="left" style="padding:4px 10px">Official source</th></tr>
+        ${rows}
+      </table>`,
+  });
+}
+
+module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendPriceStaleAlert };

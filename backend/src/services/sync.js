@@ -56,6 +56,7 @@ const {
   fetchUruguayStations, fetchQatarStations, fetchKuwaitStations, fetchOmanStations, fetchBahrainStations,
   fetchBruneiStations, fetchEcuadorStations,
 } = require('./scrapers/regulated_manual');
+const { runPriceFreshnessCheck } = require('./price_freshness');
 
 const CHUNK = 500;
 
@@ -277,6 +278,9 @@ function startSyncScheduler() {
   // Schedule recurring syncs (these are spread across the day, never concurrent)
   scheduleGovernmentAPIs();
   cron.schedule('0 2 * * *', runNightlySlowSync); // slow scrapers at 2am UTC daily
+  // Manual-price freshness check — Mondays 08:20 UTC. Emails an alert when a
+  // hand-maintained regulated price is overdue for a refresh (see price_freshness.js).
+  cron.schedule('20 8 * * 1', () => runPriceFreshnessCheck().catch(e => console.error('[price-freshness] error:', e.message)));
 }
 
 // Map of country slugs → fetch functions for on-demand triggering

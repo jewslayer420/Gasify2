@@ -9,6 +9,7 @@ const authRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
 const newsRouter = require('./routes/news');
 const { startSyncScheduler, triggerSync } = require('./services/sync');
+const { priceFreshness, runPriceFreshnessCheck } = require('./services/price_freshness');
 const { probePeru } = require('./services/probes/peru'); // TEMP — remove after Peru scraper is built
 
 process.on('unhandledRejection', (reason) => {
@@ -38,6 +39,17 @@ app.post('/api/admin/sync/:country', async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin: manual-price freshness. GET = full table; ?run=1 also emails an alert if stale.
+app.get('/api/admin/price-freshness', async (req, res) => {
+  try {
+    if (req.query.run === '1') return res.json(await runPriceFreshnessCheck());
+    const all = priceFreshness();
+    res.json({ total: all.length, stale: all.filter(c => c.stale).length, prices: all });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
