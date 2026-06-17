@@ -62,6 +62,10 @@ with attribution + share-alike — the issue is the *free shared servers*.
 | **Kenya** 🆕 | EPRA monthly max prices, Nairobi ref (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. KES→EUR. Update monthly (EPRA revises ~14th). Added 2026-06-16. |
 | **Dominican Republic** 🆕 | MICM weekly official prices (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. Published per **gallon** → ÷3.78541 → DOP→EUR. Update weekly-ish. Added 2026-06-16. |
 | **Uruguay** 🆕 | ANCAP (state oil co.) national prices (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. UYU→EUR. Official open-data API exists (`catalogodatos.gub.uy`) but lags ~7 months + TLS-CA quirk → automate later. Added 2026-06-16. |
+| **Qatar** 🆕 | QatarEnergy monthly prices (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. QAR→EUR. Update monthly. Added 2026-06-17. |
+| **Kuwait** 🆕 | KPC/MEW fixed prices (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. KWD→EUR (subsidised, ~€0.29). Changes rarely. Added 2026-06-17. |
+| **Oman** 🆕 | Monthly fuel price cap (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. OMR→EUR. Update monthly. Added 2026-06-17. |
+| **Bahrain** 🆕 | NOGA official prices (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. BHD→EUR. Added 2026-06-17. |
 
 > **Still-deferred candidates (blocked from our environment):** **Costa Rica** — RECOPE official table
 > (`recope.go.cr`) is **unreachable from our environment** (fetch fails even with TLS off) and the news

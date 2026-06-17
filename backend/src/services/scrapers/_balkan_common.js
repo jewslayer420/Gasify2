@@ -41,12 +41,14 @@ async function eurRate(currency) {
   }
 }
 
-// Convert a local price to EUR/L with sanity bounds.
+// Convert a local price to EUR/L with sanity bounds. Floor is 0.1 €/L to allow
+// heavily-subsidised markets (e.g. Kuwait ~€0.29, Gulf states) while still rejecting
+// near-zero parse garbage.
 function toEur(localPrice, ratePerEur) {
   const n = typeof localPrice === 'number' ? localPrice : parseFloat(localPrice);
   if (!isFinite(n) || n <= 0) return null;
   const eur = +(n / ratePerEur).toFixed(3);
-  return eur >= 0.3 && eur <= 5 ? eur : null;
+  return eur >= 0.1 && eur <= 5 ? eur : null;
 }
 
 // Overpass amenity=fuel for a country bbox, with the country's regulated price list.

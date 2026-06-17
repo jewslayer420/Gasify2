@@ -53,7 +53,7 @@ const { fetchEUBulletinStations } = require('./scrapers/eu_oil_bulletin');
 // "South Africa model") — UAE, Saudi Arabia, Kenya, Dominican Republic.
 const {
   fetchUAEStations, fetchSaudiArabiaStations, fetchKenyaStations, fetchDominicanStations,
-  fetchUruguayStations,
+  fetchUruguayStations, fetchQatarStations, fetchKuwaitStations, fetchOmanStations, fetchBahrainStations,
 } = require('./scrapers/regulated_manual');
 
 const CHUNK = 500;
@@ -216,6 +216,10 @@ async function runNightlySlowSync() {
   await runSync('Kenya',     fetchKenyaStations);
   await runSync('Dominican', fetchDominicanStations);
   await runSync('Uruguay',   fetchUruguayStations);
+  await runSync('Qatar',     fetchQatarStations);
+  await runSync('Kuwait',    fetchKuwaitStations);
+  await runSync('Oman',      fetchOmanStations);
+  await runSync('Bahrain',   fetchBahrainStations);
   console.log('[sync] Nightly slow sync complete');
 }
 
@@ -316,6 +320,10 @@ const SCRAPERS = {
   kenya:          fetchKenyaStations,
   dominican:      fetchDominicanStations,
   uruguay:        fetchUruguayStations,
+  qatar:          fetchQatarStations,
+  kuwait:         fetchKuwaitStations,
+  oman:           fetchOmanStations,
+  bahrain:        fetchBahrainStations,
 };
 
 // ── fuelo.net cutover status ─────────────────────────────────────────────────

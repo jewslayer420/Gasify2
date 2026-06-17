@@ -45,6 +45,26 @@ const COUNTRIES = [
     asOf: '2026-06', source: 'ANCAP (state oil co.) national prices. NOTE: official open-data API (catalogodatos.gub.uy, JSON/CSV) exists but lags ~7 months + has a TLS-CA quirk — automate later.',
     prices: { sp95: 93.36, sp98: 96.00, diesel: 61.76 }, // UYU/L (Súper 95, Premium 97, Gasoil 50S)
   },
+  {
+    cc: 'QA', label: 'qatar', currency: 'QAR', bbox: [24.4, 50.7, 26.2, 51.7],
+    asOf: '2026-06', source: 'QatarEnergy monthly official prices',
+    prices: { sp95: 2.10, diesel: 2.05 }, // QAR/L (Super 95; Premium 91 omitted)
+  },
+  {
+    cc: 'KW', label: 'kuwait', currency: 'KWD', bbox: [28.5, 46.5, 30.1, 48.5],
+    asOf: '2026-06', source: 'KPC/MEW fixed prices (subsidised, stable)',
+    prices: { sp95: 0.105, diesel: 0.115 }, // KWD/L (Premium 95; Ultra 98 quarterly, omitted)
+  },
+  {
+    cc: 'OM', label: 'oman', currency: 'OMR', bbox: [16.6, 51.9, 26.5, 59.9],
+    asOf: '2026-06', source: 'Oman monthly fuel price cap (official)',
+    prices: { sp95: 0.240, diesel: 0.260 }, // OMR/L (M95)
+  },
+  {
+    cc: 'BH', label: 'bahrain', currency: 'BHD', bbox: [25.5, 50.3, 26.4, 50.8],
+    asOf: '2026-06', source: 'Bahrain official fuel prices (NOGA)',
+    prices: { sp95: 0.269, sp98: 0.362, diesel: 0.229 }, // BHD/L (Mumtaz 95, Super 98, Jayyid 91 omitted)
+  },
 ];
 
 async function fetchCountry(cfg) {
@@ -67,5 +87,9 @@ module.exports = {
   fetchKenyaStations: byCc.KE,
   fetchDominicanStations: byCc.DO,
   fetchUruguayStations: byCc.UY,
+  fetchQatarStations: byCc.QA,
+  fetchKuwaitStations: byCc.KW,
+  fetchOmanStations: byCc.OM,
+  fetchBahrainStations: byCc.BH,
   REGULATED_MANUAL: COUNTRIES,
 };
