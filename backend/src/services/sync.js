@@ -14,7 +14,8 @@ const { fetchGermanyStations }   = require('./scrapers/tankerkoenig');
 // North Macedonia now uses the official ERC regulator price (erc.org.mk) over OSM
 // stations, replacing mk.fuelo.net.
 const { fetchNorthMacedoniaStations } = require('./scrapers/northmacedonia_erc');
-const { fetchDenmarkStations }   = require('./scrapers/denmark');
+// Denmark: live data now via EU Oil Bulletin (cc 'DK', CC BY 4.0) — replaced the
+// unofficial Shell/Q8/Circle K vendor-endpoint scraper (denmark.js) on 2026-06-18.
 const { fetchUKStations }        = require('./scrapers/uk');
 const { fetchFinlandStations }   = require('./scrapers/finland');
 // Turkey now uses the official EPDK regulator bulletin (apigateway.epdk.gov.tr)
@@ -203,7 +204,6 @@ async function runNightlySlowSync() {
   await runSync('Montenegro',     fetchMontenegroStations);
   await runSync('NorthMacedonia', fetchNorthMacedoniaStations);
   await runSync('Albania',        fetchAlbaniaStations);
-  await runSync('Denmark',        fetchDenmarkStations);
   await runSync('UK',             fetchUKStations);
   await runSync('Finland',        fetchFinlandStations);
   await runSync('Luxembourg', fetchLuxembourgStations);
@@ -298,7 +298,6 @@ const SCRAPERS = {
   montenegro:     fetchMontenegroStations,
   northmacedonia: fetchNorthMacedoniaStations,
   albania:        fetchAlbaniaStations,
-  denmark:        fetchDenmarkStations,
   uk:             fetchUKStations,
   finland:        fetchFinlandStations,
   turkey:         fetchTurkeyStations,

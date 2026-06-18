@@ -165,12 +165,17 @@ fuelcosts.co.uk about their own ToS.
 
 ---
 
-## 8. Denmark — ⚠️ different situation (no permission path)
-Denmark currently reads **unofficial vendor endpoints** (Shell geoapp, Q8/F24, Circle K)
-— these are reverse-engineered, not licensed feeds, so there is **no "request commercial
-permission" route**. Options: **(a)** find an official/open Danish source, or **(b)** drop
-Denmark, or **(c)** switch to a national-average manual constant over OSM (the "South
-Africa model"). No email to send — this one needs a **source change**, not a licence.
+## 8. Denmark — ✅ RESOLVED (no email needed)
+Migrated **2026-06-18** from the unofficial vendor endpoints to the **EU Weekly Oil
+Bulletin** (CC BY 4.0, national-avg over OSM). No licence inquiry required.
+
+## How to send these
+I can't send them for you (no working SMTP credentials, and these are outward business
+emails in your name needing your real name/email/app URL + your review). Steps:
+1. Fill the `[bracketed]` fields with your name, contact email, and app/site URL.
+2. Verify each provider's current contact address/form on their site (the routes above are
+   starting points — gov/vendor contacts change).
+3. Send from your own email, BCC yourself, and save each reply for your records.
 
 ---
 
@@ -184,4 +189,4 @@ Africa model"). No email to send — this one needs a **source change**, not a l
 | Finland (polttoaine.net) | Email | medium |
 | Slovenia (goriva.si) | Email | medium |
 | UK (fuelcosts.co.uk) | Email **or** switch to official CMA/OGL feed | low |
-| Denmark (unofficial endpoints) | **Source change** (no email) | high |
+| ~~Denmark~~ | ✅ resolved → EU Oil Bulletin | — |

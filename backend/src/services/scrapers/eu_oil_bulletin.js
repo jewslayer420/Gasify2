@@ -50,6 +50,9 @@ const BULLETIN_COUNTRIES = [
   { cc: 'CY', bbox: [34.55, 32.27, 35.75, 34.60] },
   // Malta — new coverage (completes EU-27). National price over OSM.
   { cc: 'MT', bbox: [35.78, 14.17, 36.10, 14.58] },
+  // Denmark — replaces the unofficial vendor-endpoint scraper (Shell/Q8/Circle K) with
+  // CC BY 4.0 national-avg over OSM. 2026-06-18.
+  { cc: 'DK', bbox: [54.5, 8.0, 57.8, 15.2] },
   { cc: 'CZ', bbox: [48.5, 12.0, 51.2, 18.9] },
   { cc: 'EE', bbox: [57.5, 21.7, 59.8, 28.3] },
   { cc: 'GR', bbox: [34.7, 19.3, 41.8, 28.4] },

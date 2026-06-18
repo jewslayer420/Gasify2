@@ -98,7 +98,7 @@ with attribution + share-alike — the issue is the *free shared servers*.
 | Finland | `polttoaine.net/api` XML feed | Third-party site; ⚠️ verify ToS for redistribution | Check terms / seek permission. |
 | Iceland | **Gasvaktin** (open-source, GitHub JSON) | Check repo licence (likely permissive) ⚠️ verify | Attribute Gasvaktin per repo licence. |
 | Slovenia | `goriva.si` API | Third-party site republishing regulated prices; ⚠️ verify ToS | Check terms / seek permission. |
-| Denmark | Shell geoapp + Q8/F24 + Circle K endpoints | Unofficial vendor endpoints; ⚠️ verify | High-ish risk; confirm or replace. |
+| ~~Denmark~~ | ~~Shell/Q8/F24/Circle K endpoints~~ → **EU Oil Bulletin** | ✅ **RESOLVED 2026-06-18:** replaced the unofficial vendor endpoints with the EU Weekly Oil Bulletin (cc `DK`, **CC BY 4.0**, national-avg over OSM). Old `DK-SHELL-/DK-Q8-/DK-CK-` rows purged. |
 
 ### 🔴 Blockers — private aggregator scraping & borrowed keys (resolve before monetising)
 
@@ -142,7 +142,7 @@ from this file.
 1. ✅ **DONE (2026-06-18) — fuelo.net fully eliminated.** All ~21 ex-fuelo countries migrated: 14 EU + Cyprus/Malta via Oil Bulletin; Turkey (EPDK); North Macedonia (ERC); Luxembourg (STATEC); Germany (Oil Bulletin, after the Tankerkönig key died); Serbia/Montenegro/Albania (regulated) + Switzerland/Bosnia (market averages) via `regulated_manual.js`. (Kosovo not separately sourced yet.)
 2. ✅ **DONE (2026-06-18) — no borrowed/demo keys.** South Korea's Opinet demo key was removed; the scraper is disabled (and KR rows purged) until you set your own `OPINET_API_KEY`. (Luxembourg carbu.com resolved 2026-06-16 → STATEC CC0.) The app uses zero borrowed keys.
 3. **Move geocoding + Overpass off the free OSM public servers** (self-host or paid) before scaling — the **#1 remaining monetisation blocker** (see `INFRA_MIGRATION_PLAN.md`).
-4. **Confirm 🟡 vendor terms** allow commercial redistribution — **draft outreach emails ready in `COMMERCIAL_TERMS_OUTREACH.md`**: Chile CNE, AU NSW/VIC/QLD, Finland, Slovenia, UK re-publisher (email each); Denmark needs a source change (no licence path). _(Tankerkönig dropped — Germany now uses the Oil Bulletin.)_
+4. **Confirm 🟡 vendor terms** allow commercial redistribution — **draft outreach emails ready in `COMMERCIAL_TERMS_OUTREACH.md`**: Chile CNE, AU NSW/VIC/QLD, Finland, Slovenia, UK re-publisher (email each). _(Denmark resolved 2026-06-18 → Oil Bulletin; Tankerkönig dropped — Germany now uses the Oil Bulletin.)_
 5. **Add the in-app credits screen** (this file → data-driven) and government no-endorsement notices.
 6. **App Store**: privacy policy URL, App Privacy labels (precise location + account data), in-app account deletion, IAP-vs-external payment decision, Sign in with Apple if adding third-party login.
 

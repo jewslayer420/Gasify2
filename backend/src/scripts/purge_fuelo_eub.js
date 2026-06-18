@@ -52,6 +52,10 @@ const LUXEMBOURG_PREFIX = 'LU-CARBU-';
 // Old fuelo rows are `<CC>-<id>`. GATED behind --include-europe.
 const EUROPE_PREFIXES = ['CH-', 'RS-', 'ME-', 'AL-', 'BA-'];
 
+// Denmark's old unofficial vendor-endpoint rows (new rows are `EUB-DK-OSM-...`).
+// GATED behind --include-denmark.
+const DENMARK_PREFIXES = ['DK-SHELL-', 'DK-Q8-', 'DK-CK-'];
+
 async function main() {
   const apply = process.argv.includes('--apply');
   const includeGermany = process.argv.includes('--include-germany');
@@ -59,6 +63,7 @@ async function main() {
   const includeMacedonia = process.argv.includes('--include-macedonia');
   const includeLuxembourg = process.argv.includes('--include-luxembourg');
   const includeEurope = process.argv.includes('--include-europe');
+  const includeDenmark = process.argv.includes('--include-denmark');
   const PREFIXES = [
     ...EU14_PREFIXES,
     ...(includeGermany ? [GERMANY_PREFIX] : []),
@@ -66,8 +71,9 @@ async function main() {
     ...(includeMacedonia ? [MACEDONIA_PREFIX] : []),
     ...(includeLuxembourg ? [LUXEMBOURG_PREFIX] : []),
     ...(includeEurope ? EUROPE_PREFIXES : []),
+    ...(includeDenmark ? DENMARK_PREFIXES : []),
   ];
-  console.log(`[purge] mode: ${apply ? 'APPLY (deleting)' : 'DRY RUN (counts only)'} | DE:${includeGermany ? 'IN' : '-'} TR:${includeTurkey ? 'IN' : '-'} MK:${includeMacedonia ? 'IN' : '-'} LU:${includeLuxembourg ? 'IN' : '-'} EU-fuelo:${includeEurope ? 'IN' : '-'}`);
+  console.log(`[purge] mode: ${apply ? 'APPLY (deleting)' : 'DRY RUN (counts only)'} | DE:${includeGermany ? 'IN' : '-'} TR:${includeTurkey ? 'IN' : '-'} MK:${includeMacedonia ? 'IN' : '-'} LU:${includeLuxembourg ? 'IN' : '-'} EU-fuelo:${includeEurope ? 'IN' : '-'} DK:${includeDenmark ? 'IN' : '-'}`);
 
   let grandTotal = 0;
   for (const prefix of PREFIXES) {
