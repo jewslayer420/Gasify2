@@ -9,12 +9,12 @@
 // Stations: Overpass API — amenity=fuel nodes in South Korea
 //   POST https://overpass-api.de/api/interpreter
 //
-// Opinet API key: set OPINET_API_KEY to your own registered Opinet key. The
-// fallback (F231013281) is Opinet's publicly-indexed DEMO key — a borrowed key is a
-// ToS violation in a paid product and can be revoked, so register your own before
-// launch (opinet.co.kr). See docs/DATA_SOURCES.md.
+// Opinet API key: set OPINET_API_KEY to your own registered key (opinet.co.kr).
+// The borrowed public demo key (F231013281) was REMOVED 2026-06-18 — using someone
+// else's key is a ToS violation. Without a real key this scraper is DISABLED and
+// returns no stations (so the app never uses a borrowed key). See docs/DATA_SOURCES.md.
 
-const OPINET_KEY = process.env.OPINET_API_KEY || 'F231013281';
+const OPINET_KEY = process.env.OPINET_API_KEY || null;
 const KRW_EUR = 1 / 1500; // 1 EUR ≈ 1500 KRW
 const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
 const OVERPASS_MIRRORS = [
@@ -39,7 +39,10 @@ function krwToEur(val) {
 async function fetchSouthKoreaStations() {
   // 1. Fetch national average fuel prices from Opinet
   let priceList = [];
-  if (OPINET_KEY === 'F231013281') console.warn('[southkorea] using Opinet DEMO key — set OPINET_API_KEY before launch');
+  if (!OPINET_KEY) {
+    console.warn('[southkorea] DISABLED — OPINET_API_KEY not set (demo key removed; register your own at opinet.co.kr)');
+    return [];
+  }
   try {
     const r = await fetch(
       `https://www.opinet.co.kr/api/avgAllPrice.do?code=${OPINET_KEY}&out=json`,

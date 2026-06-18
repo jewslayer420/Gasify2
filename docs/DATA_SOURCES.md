@@ -110,7 +110,7 @@ with attribution + share-alike — the issue is the *free shared servers*.
 | ~~Belgium, Bulgaria, Czechia, Estonia, Greece, Croatia, Hungary, Ireland, Latvia, Lithuania, Netherlands, Poland, Romania, Slovakia~~ (14) | ~~`*.fuelo.net`~~ → **EU Oil Bulletin** | ✅ **MIGRATED 2026-06-14** to EU Weekly Oil Bulletin (CC BY 4.0) over OSM stations — see 🟢 table. Stale fuelo rows purged via `backend/src/scripts/purge_fuelo_eub.js`. |
 | ~~Germany~~ | ~~`de.fuelo.net`~~ → **EU Oil Bulletin** | ✅ **MIGRATED.** 2026-06-14 to Tankerkönig, but the API key is **dead/deactivated**, so on 2026-06-18 switched to the **EU Weekly Oil Bulletin** (cc `DE`, CC BY 4.0, national-avg over OSM) — clean + live without a key. Stale `DE-fuelo-` rows purged. Tankerkönig (`tankerkoenig.js`) kept for a per-station upgrade if a working key is obtained. |
 | ~~Luxembourg~~ | ~~`carbu.com`~~ → **STATEC** | ✅ **MIGRATED 2026-06-16** to STATEC official max-price open data (`lustat.statec.lu`, **CC0**) over OSM stations — see 🟢 table. Stale `LU-CARBU-` rows purged via `purge_fuelo_eub.js --include-luxembourg`. |
-| South Korea | Opinet (`opinet.co.kr`) — official KNOC source, but key was a **publicly-indexed demo key** (`F231013281`) | ⚠️ **Partially fixed 2026-06-16**: key is now env-configurable (`OPINET_API_KEY`); the demo fallback remains until you **register your own Opinet key** (still required before launch — borrowed key can be revoked). |
+| ~~South Korea~~ | Opinet (`opinet.co.kr`) — official KNOC source | ✅ **RESOLVED 2026-06-18: borrowed demo key removed.** Scraper is now **disabled** without a real `OPINET_API_KEY` (no borrowed-key call), and the 6,663 demo-key-sourced KR rows were purged. KR re-enables automatically once you register your own Opinet key and set `OPINET_API_KEY`. The app now uses **zero borrowed keys.** |
 | Peru | Osinergmin Facilito | reCAPTCHA-gated; parked. (See memory `reference-peru-facilito`.) |
 
 ### ⚪ No source yet (returns empty — no legal issue)
@@ -140,9 +140,9 @@ from this file.
 ## 4. Pre-monetisation checklist
 
 1. ✅ **DONE (2026-06-18) — fuelo.net fully eliminated.** All ~21 ex-fuelo countries migrated: 14 EU + Cyprus/Malta via Oil Bulletin; Turkey (EPDK); North Macedonia (ERC); Luxembourg (STATEC); Germany (Oil Bulletin, after the Tankerkönig key died); Serbia/Montenegro/Albania (regulated) + Switzerland/Bosnia (market averages) via `regulated_manual.js`. (Kosovo not separately sourced yet.)
-2. **Replace borrowed/demo keys** with your own commercially-permitted keys. South Korea Opinet is now env-configurable (`OPINET_API_KEY`, 2026-06-16) — **still need to register a real key** to drop the demo fallback. (Luxembourg carbu.com scrape resolved 2026-06-16 → STATEC CC0.) Audit any other hardcoded keys.
-3. **Move geocoding + Overpass off the free OSM public servers** (self-host or paid) before scaling.
-4. **Confirm 🟡 vendor terms** allow commercial redistribution (Tankerkönig, Chile CNE, AU NSW/VIC/QLD, Finland, Slovenia, Denmark, UK re-publisher).
+2. ✅ **DONE (2026-06-18) — no borrowed/demo keys.** South Korea's Opinet demo key was removed; the scraper is disabled (and KR rows purged) until you set your own `OPINET_API_KEY`. (Luxembourg carbu.com resolved 2026-06-16 → STATEC CC0.) The app uses zero borrowed keys.
+3. **Move geocoding + Overpass off the free OSM public servers** (self-host or paid) before scaling — the **#1 remaining monetisation blocker** (see `INFRA_MIGRATION_PLAN.md`).
+4. **Confirm 🟡 vendor terms** allow commercial redistribution — **draft outreach emails ready in `COMMERCIAL_TERMS_OUTREACH.md`**: Chile CNE, AU NSW/VIC/QLD, Finland, Slovenia, UK re-publisher (email each); Denmark needs a source change (no licence path). _(Tankerkönig dropped — Germany now uses the Oil Bulletin.)_
 5. **Add the in-app credits screen** (this file → data-driven) and government no-endorsement notices.
 6. **App Store**: privacy policy URL, App Privacy labels (precise location + account data), in-app account deletion, IAP-vs-external payment decision, Sign in with Apple if adding third-party login.
 
