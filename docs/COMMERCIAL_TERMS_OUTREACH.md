@@ -169,6 +169,21 @@ fuelcosts.co.uk about their own ToS.
 Migrated **2026-06-18** from the unofficial vendor endpoints to the **EU Weekly Oil
 Bulletin** (CC BY 4.0, national-avg over OSM). No licence inquiry required.
 
+## 🔴 If a provider objects — kill-switch (remove in seconds)
+You're shipping these sources **pending** confirmation, with a "remove immediately if
+contacted" plan. The kill-switch (`backend/src/services/killswitch.js`) makes that real:
+
+1. **Remove now** (gone from the live map on the next /geojson refresh, ≤10 min):
+   - `POST /api/admin/kill/<slug>`  — or  `node src/scripts/kill_source.js <slug>`
+   - slugs: `chile` `finland` `slovenia` `uk` `vic` `qld` `nsw`
+2. **Stop it re-syncing:** add the slug to the **`DISABLED_SCRAPERS`** env var (comma-list)
+   + redeploy — `runSync()` then skips it forever.
+3. **Status anytime:** `GET /api/admin/kill` (rows + whether each is sync-disabled).
+
+> Note: NSW is bundled in the combined `australia` scraper — its rows purge cleanly, but
+> the `australia` disable token stops ALL of Australia (WA/NSW/TAS). QLD & VIC are currently
+> empty (no API key set), so nothing to remove there unless you activate them.
+
 ## How to send these
 I can't send them for you (no working SMTP credentials, and these are outward business
 emails in your name needing your real name/email/app URL + your review). Steps:

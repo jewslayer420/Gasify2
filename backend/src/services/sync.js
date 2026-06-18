@@ -56,6 +56,7 @@ const {
   fetchSerbiaStations, fetchMontenegroStations, fetchAlbaniaStations, fetchSwitzerlandStations, fetchBosniaStations,
 } = require('./scrapers/regulated_manual');
 const { runPriceFreshnessCheck } = require('./price_freshness');
+const { isDisabled } = require('./killswitch');
 
 const CHUNK = 500;
 
@@ -131,6 +132,7 @@ async function buildCoordsCache(prefix) {
 }
 
 async function runSync(label, fetchFn) {
+  if (isDisabled(label)) { console.log(`[sync] ${label}: DISABLED via kill-switch (DISABLED_SCRAPERS) — skipping`); return; }
   console.log(`[sync] Starting ${label}…`);
   try {
     const stations = await fetchFn();
@@ -356,6 +358,7 @@ const SCRAPERS = {
 async function triggerSync(country) {
   const fetchFn = SCRAPERS[country];
   if (!fetchFn) throw new Error(`Unknown country: ${country}. Available: ${Object.keys(SCRAPERS).join(', ')}`);
+  if (isDisabled(country)) throw new Error(`'${country}' is disabled via kill-switch (DISABLED_SCRAPERS)`);
   console.log(`[sync] Manual trigger: ${country}`);
   const stations = await fetchFn();
   await bulkUpsertStations(stations, country);

@@ -10,6 +10,7 @@ const usersRouter = require('./routes/users');
 const newsRouter = require('./routes/news');
 const { startSyncScheduler, triggerSync } = require('./services/sync');
 const { priceFreshness, runPriceFreshnessCheck } = require('./services/price_freshness');
+const { killSource, killStatus } = require('./services/killswitch');
 const { probePeru } = require('./services/probes/peru'); // TEMP — remove after Peru scraper is built
 
 process.on('unhandledRejection', (reason) => {
@@ -51,6 +52,17 @@ app.get('/api/admin/price-freshness', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Admin kill-switch for commercial-terms-risk sources (see services/killswitch.js).
+// GET = status (rows + sync-disabled). POST /:slug = purge that source's rows NOW.
+app.get('/api/admin/kill', async (req, res) => {
+  try { res.json(await killStatus()); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.post('/api/admin/kill/:slug', async (req, res) => {
+  try { res.json(await killSource(req.params.slug.toLowerCase())); }
+  catch (err) { res.status(400).json({ error: err.message }); }
 });
 
 // TEMP — Peru reachability + schema-discovery probe (delete with probes/peru.js once Peru scraper lands)
