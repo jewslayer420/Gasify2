@@ -13,7 +13,10 @@ const { sendPriceStaleAlert } = require('./email');
 
 // Days before a manual price is considered stale, by country. Default 45.
 // Faster-moving markets get shorter windows; fixed/subsidised ones get long ones.
-const STALE_AFTER = { default: 45, DO: 21, EC: 40, KE: 40, UY: 45, KW: 150, SA: 120, BN: 365 };
+const STALE_AFTER = {
+  default: 45, DO: 21, EC: 40, KE: 40, UY: 45, KW: 150, SA: 120, BN: 365,
+  RS: 21, ME: 21, AL: 21, CH: 30, BA: 30, // ex-fuelo European: RS/ME/AL weekly, CH/BA market
+};
 
 function asOfMs(asOf) {
   const [y, m, d] = String(asOf).split('-').map(Number);

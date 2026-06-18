@@ -39,6 +39,9 @@ const OVERPASS_MIRRORS = [
 // and our station country code (2-letter ISO; Greece is "GR" in both).
 // bbox = [latMin, lngMin, latMax, lngMax].
 const BULLETIN_COUNTRIES = [
+  // Germany — national-avg fallback (the Tankerkönig per-station key is dead). CC BY 4.0,
+  // replaces the stale de.fuelo.net rows. Swap back to per-station when a key works.
+  { cc: 'DE', bbox: [47.2,  5.9, 55.1, 15.1] },
   { cc: 'BE', bbox: [49.4,  2.5, 51.6,  6.5] },
   { cc: 'BG', bbox: [41.2, 22.3, 44.3, 28.7] },
   // Cyprus — new coverage (not a fuelo replacement). National price over OSM; the

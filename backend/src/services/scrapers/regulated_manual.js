@@ -75,6 +75,32 @@ const COUNTRIES = [
     asOf: '2026-06', source: 'Ecuador price-band scheme (per US gallon). Súper is deregulated (varies by station — suggested value).',
     prices: { sp95: 3.312 / GAL, sp98: 5.65 / GAL, diesel: 3.251 / GAL }, // USD/L (Extra/Ecopaís, Súper, Diésel)
   },
+  // ── Ex-fuelo.net European countries, migrated to clean sources 2026-06-18 ──
+  {
+    cc: 'RS', label: 'serbia', currency: 'RSD', bbox: [42.2, 18.8, 46.2, 23.1],
+    asOf: '2026-06', source: 'Serbia Ministry of Internal & Foreign Trade weekly max prices (Fridays)',
+    prices: { sp95: 194, sp98: 216, diesel: 220 }, // RSD/L (BMB95, BMB100, evro dizel)
+  },
+  {
+    cc: 'ME', label: 'montenegro', currency: 'EUR', bbox: [41.8, 18.4, 43.6, 20.4],
+    asOf: '2026-06', source: 'Montenegro Ministry of Energy weekly decree max prices',
+    prices: { sp95: 1.52, sp98: 1.56, diesel: 1.57 }, // EUR/L (Eurosuper 95/98, Eurodizel)
+  },
+  {
+    cc: 'AL', label: 'albania', currency: 'ALL', bbox: [39.6, 19.2, 42.7, 21.1],
+    asOf: '2026-06', source: 'Albania Bordi i Transparencës max retail prices',
+    prices: { sp95: 170, diesel: 183 }, // ALL/L (benzin, nafta)
+  },
+  {
+    cc: 'CH', label: 'switzerland', currency: 'CHF', bbox: [45.8, 5.9, 47.8, 10.5],
+    asOf: '2026-06', source: 'Switzerland national AVERAGE retail price (market — NOT regulated; single published fact)',
+    prices: { sp95: 1.88, sp98: 1.99, diesel: 2.10 }, // CHF/L
+  },
+  {
+    cc: 'BA', label: 'bosnia', currency: 'BAM', bbox: [42.5, 15.7, 45.3, 19.7],
+    asOf: '2026-06', source: 'Bosnia & Herzegovina national AVERAGE retail price (market — NOT a unified regulated price; published fact)',
+    prices: { sp95: 2.80, diesel: 2.90 }, // BAM/L
+  },
 ];
 
 async function fetchCountry(cfg) {
@@ -103,5 +129,10 @@ module.exports = {
   fetchBahrainStations: byCc.BH,
   fetchBruneiStations: byCc.BN,
   fetchEcuadorStations: byCc.EC,
+  fetchSerbiaStations: byCc.RS,
+  fetchMontenegroStations: byCc.ME,
+  fetchAlbaniaStations: byCc.AL,
+  fetchSwitzerlandStations: byCc.CH,
+  fetchBosniaStations: byCc.BA,
   REGULATED_MANUAL: COUNTRIES,
 };

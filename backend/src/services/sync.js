@@ -7,17 +7,13 @@ const { fetchSpainStations }     = require('./scrapers/spain');
 const { fetchItalyStations }     = require('./scrapers/italy');
 const { fetchPortugalStations }  = require('./scrapers/portugal');
 const { fetchAustriaStations }   = require('./scrapers/austria');
-// Germany now uses the official Tankerkönig MTS-K API (CC BY 4.0), replacing the
-// de.fuelo.net scraper. Needs TANKERKOENIG_API_KEY in env for full coverage.
+// Germany: Tankerkönig per-station scraper kept for manual/future use (needs a working
+// TANKERKOENIG_API_KEY). Live Germany data now comes from the EU Oil Bulletin (cc 'DE')
+// since the key is dead — it's national-avg but CC BY 4.0, replacing the stale fuelo rows.
 const { fetchGermanyStations }   = require('./scrapers/tankerkoenig');
-const { fetchSwitzerlandStations } = require('./scrapers/switzerland');
-const { fetchSerbiaStations }    = require('./scrapers/serbia');
-const { fetchBosniaStations }    = require('./scrapers/bosnia');
-const { fetchMontenegroStations } = require('./scrapers/montenegro');
 // North Macedonia now uses the official ERC regulator price (erc.org.mk) over OSM
 // stations, replacing mk.fuelo.net.
 const { fetchNorthMacedoniaStations } = require('./scrapers/northmacedonia_erc');
-const { fetchAlbaniaStations }   = require('./scrapers/albania');
 const { fetchDenmarkStations }   = require('./scrapers/denmark');
 const { fetchUKStations }        = require('./scrapers/uk');
 const { fetchFinlandStations }   = require('./scrapers/finland');
@@ -49,12 +45,14 @@ const { fetchSouthAfricaStations } = require('./scrapers/southafrica');
 // the fuelo.net scrapers for 14 EU countries (BE BG CZ EE GR HR HU IE LT LV NL PL RO SK)
 // + Cyprus (new coverage).
 const { fetchEUBulletinStations } = require('./scrapers/eu_oil_bulletin');
-// Regulated national prices kept as manually-maintained constants over OSM (the
-// "South Africa model") — UAE, Saudi Arabia, Kenya, Dominican Republic.
+// Regulated/market national prices kept as manually-maintained constants over OSM
+// (the "South Africa model"). Includes the ex-fuelo.net European countries
+// (Serbia, Montenegro, Albania, Switzerland, Bosnia) migrated 2026-06-18.
 const {
   fetchUAEStations, fetchSaudiArabiaStations, fetchKenyaStations, fetchDominicanStations,
   fetchUruguayStations, fetchQatarStations, fetchKuwaitStations, fetchOmanStations, fetchBahrainStations,
   fetchBruneiStations, fetchEcuadorStations,
+  fetchSerbiaStations, fetchMontenegroStations, fetchAlbaniaStations, fetchSwitzerlandStations, fetchBosniaStations,
 } = require('./scrapers/regulated_manual');
 const { runPriceFreshnessCheck } = require('./price_freshness');
 
@@ -155,8 +153,8 @@ function scheduleGovernmentAPIs() {
   cron.schedule('30 0,6,12,18 * * *',  () => runSync('Portugal', fetchPortugalStations));
   // Austria: every 6h offset by 40min
   cron.schedule('40 0,6,12,18 * * *',  () => runSync('Austria',  fetchAustriaStations));
-  // Germany (Tankerkönig MTS-K, CC BY 4.0): daily 01:30 — grid-scans the country
-  cron.schedule('30 1 * * *', () => runSync('Germany', fetchGermanyStations));
+  // Germany: live data via EU Oil Bulletin (cc 'DE') — the Tankerkönig key is dead, so
+  // no daily Germany scrape here (re-add when a working key exists; see SCRAPERS map).
   // Turkey (EPDK official dealer-price bulletin + OSM stations): daily 01:45
   cron.schedule('45 1 * * *', () => runSync('Turkey', fetchTurkeyStations));
   // Australia: every 6h offset by 55min (WA FuelWatch + NSW FuelCheck + TAS)
@@ -239,7 +237,6 @@ async function runAllSyncsOnce() {
     ['Italy',       fetchItalyStations],
     ['Portugal',    fetchPortugalStations],
     ['Austria',     fetchAustriaStations],
-    ['Germany',     fetchGermanyStations],
     ['Luxembourg',  fetchLuxembourgStations],
     ['Australia',   fetchAustraliaStations],
     ['Iceland',     fetchIcelandStations],
