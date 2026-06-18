@@ -23,6 +23,7 @@
 // sorguNo=71) — tracked in docs/DATA_SOURCES.md.
 
 const https = require('https');
+const { overpassFuelByCountry, osmToStation } = require('./_overpass');
 
 const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
 
@@ -163,43 +164,16 @@ async function fetchLatestPrices() {
   return { prices: list, date: usedDate };
 }
 
-// Fetch amenity=fuel nodes/ways for Turkey via Overpass (mirror fallback).
+// Fetch amenity=fuel stations strictly inside Turkey (admin-boundary area, not a bbox).
 async function fetchStations(priceList) {
-  const [latMin, lngMin, latMax, lngMax] = TR_BBOX;
-  const query = `[out:json][timeout:180][bbox:${latMin},${lngMin},${latMax},${lngMax}];nwr["amenity"="fuel"];out center;`;
-  let json = null;
-  for (const mirror of OVERPASS_MIRRORS) {
-    try {
-      await sleep(1500);
-      const r = await fetch(`${mirror}?` + new URLSearchParams({ data: query }), {
-        headers: { Accept: '*/*', 'User-Agent': UA }, signal: AbortSignal.timeout(120000),
-      });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      json = await r.json();
-      break;
-    } catch (err) {
-      console.warn(`[turkey-epdk] overpass ${mirror.split('/')[2]} failed: ${err.message}`);
-    }
-  }
-  if (!json) { console.error('[turkey-epdk] all Overpass mirrors failed'); return []; }
-
+  const elements = await overpassFuelByCountry('TR', 'turkey-epdk');
+  if (elements === null) return []; // all mirrors failed — skip, don't wipe
   const out = new Map();
-  for (const e of (json.elements || [])) {
-    const lat = e.lat ?? e.center?.lat;
-    const lng = e.lon ?? e.center?.lon;
+  for (const e of elements) {
     const key = `${e.type}/${e.id}`;
-    if (!lat || !lng || out.has(key)) continue;
-    const tags = e.tags || {};
-    const name = tags.name || tags['name:en'] || tags.brand || tags.operator || 'Akaryakıt İstasyonu';
-    const brand = tags.brand || tags.operator || null;
-    const city = tags['addr:province'] || tags['addr:city'] || tags['addr:district'] || '';
-    const addrParts = [tags['addr:street'], tags['addr:housenumber']].filter(Boolean);
-    out.set(key, {
-      externalId: `EPDK-TR-OSM-${e.type}-${e.id}`,
-      name, brand, lat, lng,
-      address: addrParts.length ? addrParts.join(' ') : null,
-      city, country: 'TR', prices: priceList,
-    });
+    if (out.has(key)) continue;
+    const s = osmToStation(e, 'TR', 'EPDK', priceList);
+    if (s) out.set(key, s);
   }
   console.log(`[turkey-epdk] ${out.size} stations`);
   return [...out.values()];

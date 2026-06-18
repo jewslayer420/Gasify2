@@ -100,7 +100,7 @@ async function fetchCanadaStations() {
 
   const stationMap = new Map();
   for (const [latMin, lngMin, latMax, lngMax] of bboxes) {
-    const query = `[out:json][timeout:180][bbox:${latMin},${lngMin},${latMax},${lngMax}];nwr["amenity"="fuel"];out center;`;
+    const query = `[out:json][timeout:180];area["ISO3166-1"="CA"]->.a;nwr["amenity"="fuel"](area.a)(${latMin},${lngMin},${latMax},${lngMax});out center;`;
     let json = null;
     // Try each mirror until one succeeds
     for (const mirror of OVERPASS_MIRRORS) {

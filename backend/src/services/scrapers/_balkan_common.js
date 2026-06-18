@@ -10,13 +10,9 @@
 // Station externalId prefix is `REG-<CC>-OSM-...`, distinct from the old fuelo
 // `<CC>-<id>` rows so the cutover purge stays clean.
 
-const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
+const { overpassFuelByCountry, osmToStation } = require('./_overpass');
 
-const OVERPASS_MIRRORS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
-];
+const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
 
 // open.er-api.com — free, no key. EUR base. Fallbacks if it's unreachable.
 const FX_URL = 'https://open.er-api.com/v6/latest/EUR';
@@ -52,43 +48,17 @@ function toEur(localPrice, ratePerEur) {
 }
 
 // Overpass amenity=fuel for a country bbox, with the country's regulated price list.
-// bbox = [latMin, lngMin, latMax, lngMax].
+// Stations strictly inside country `cc` (admin-boundary area, not a bbox — so border
+// stations aren't mis-tagged). `bbox` is now unused (kept for the caller signature).
 async function fetchRegulatedStations(cc, bbox, priceList, label) {
-  const [latMin, lngMin, latMax, lngMax] = bbox;
-  const query = `[out:json][timeout:180][bbox:${latMin},${lngMin},${latMax},${lngMax}];nwr["amenity"="fuel"];out center;`;
-  let json = null;
-  for (const mirror of OVERPASS_MIRRORS) {
-    try {
-      await sleep(1500);
-      const r = await fetch(`${mirror}?` + new URLSearchParams({ data: query }), {
-        headers: { Accept: '*/*', 'User-Agent': UA }, signal: AbortSignal.timeout(120000),
-      });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      json = await r.json();
-      break;
-    } catch (err) {
-      console.warn(`[${label}] overpass ${mirror.split('/')[2]} failed: ${err.message}`);
-    }
-  }
-  if (!json) { console.error(`[${label}] all Overpass mirrors failed`); return []; }
-
+  const elements = await overpassFuelByCountry(cc, label);
+  if (elements === null) return []; // all mirrors failed — skip, don't wipe
   const out = new Map();
-  for (const e of (json.elements || [])) {
-    const lat = e.lat ?? e.center?.lat;
-    const lng = e.lon ?? e.center?.lon;
+  for (const e of elements) {
     const key = `${e.type}/${e.id}`;
-    if (!lat || !lng || out.has(key)) continue;
-    const tags = e.tags || {};
-    const name = tags.name || tags['name:en'] || tags.brand || tags.operator || 'Fuel Station';
-    const brand = tags.brand || tags.operator || null;
-    const city = tags['addr:city'] || tags['addr:town'] || tags['addr:place'] || '';
-    const addrParts = [tags['addr:street'], tags['addr:housenumber']].filter(Boolean);
-    out.set(key, {
-      externalId: `REG-${cc}-OSM-${e.type}-${e.id}`,
-      name, brand, lat, lng,
-      address: addrParts.length ? addrParts.join(' ') : null,
-      city, country: cc, prices: priceList,
-    });
+    if (out.has(key)) continue;
+    const s = osmToStation(e, cc, 'REG', priceList);
+    if (s) out.set(key, s);
   }
   console.log(`[${label}] ${out.size} stations`);
   return [...out.values()];

@@ -22,6 +22,7 @@
 // in docs/DATA_SOURCES.md.
 
 const XLSX = require('xlsx');
+const { overpassFuelByCountry, osmToStation } = require('./_overpass');
 
 const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
 
@@ -115,44 +116,18 @@ async function fetchBulletinPrices() {
   return prices;
 }
 
-// Fetch amenity=fuel nodes for one country bbox via Overpass (mirror fallback).
+// Fetch amenity=fuel stations strictly inside country `cc` (admin-boundary area, not
+// a bbox — so border stations aren't mis-tagged). `bbox` is now unused (kept for the
+// caller signature / config reference).
 async function fetchCountryStations(cc, bbox, priceList) {
-  const [latMin, lngMin, latMax, lngMax] = bbox;
-  const query = `[out:json][timeout:180][bbox:${latMin},${lngMin},${latMax},${lngMax}];nwr["amenity"="fuel"];out center;`;
-  let json = null;
-  for (const mirror of OVERPASS_MIRRORS) {
-    try {
-      await sleep(1500);
-      const r = await fetch(`${mirror}?` + new URLSearchParams({ data: query }), {
-        headers: { Accept: '*/*', 'User-Agent': UA },
-        signal: AbortSignal.timeout(120000),
-      });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      json = await r.json();
-      break;
-    } catch (err) {
-      console.warn(`[eu-bulletin] ${cc} overpass ${mirror.split('/')[2]} failed: ${err.message}`);
-    }
-  }
-  if (!json) { console.error(`[eu-bulletin] ${cc}: all Overpass mirrors failed`); return []; }
-
+  const elements = await overpassFuelByCountry(cc, `eu-bulletin ${cc}`);
+  if (elements === null) return []; // all mirrors failed — skip, don't wipe
   const out = new Map();
-  for (const e of (json.elements || [])) {
-    const lat = e.lat ?? e.center?.lat;
-    const lng = e.lon ?? e.center?.lon;
+  for (const e of elements) {
     const key = `${e.type}/${e.id}`;
-    if (!lat || !lng || out.has(key)) continue;
-    const tags = e.tags || {};
-    const name = tags.name || tags['name:en'] || tags.brand || tags.operator || 'Fuel Station';
-    const brand = tags.brand || tags.operator || null;
-    const city = tags['addr:city'] || tags['addr:suburb'] || tags['addr:town'] || '';
-    const addrParts = [tags['addr:housenumber'], tags['addr:street']].filter(Boolean);
-    out.set(key, {
-      externalId: `EUB-${cc}-OSM-${e.type}-${e.id}`,
-      name, brand, lat, lng,
-      address: addrParts.length ? addrParts.join(' ') : null,
-      city, country: cc, prices: priceList,
-    });
+    if (out.has(key)) continue;
+    const s = osmToStation(e, cc, 'EUB', priceList);
+    if (s) out.set(key, s);
   }
   console.log(`[eu-bulletin] ${cc}: ${out.size} stations`);
   return [...out.values()];

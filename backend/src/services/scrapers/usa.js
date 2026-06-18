@@ -122,7 +122,8 @@ async function fetchUSAStations() {
   const stationMap = new Map();
   for (const [latMin, lngMin, latMax, lngMax] of bboxes) {
     // nwr = nodes + ways + relations; "out center" gives ways/relations a centroid.
-    const query = `[out:json][timeout:180][bbox:${latMin},${lngMin},${latMax},${lngMax}];nwr["amenity"="fuel"];out center;`;
+    // area filter keeps the tile bounded AND clips to the US border (no Canada/Mexico bleed)
+    const query = `[out:json][timeout:180];area["ISO3166-1"="US"]->.a;nwr["amenity"="fuel"](area.a)(${latMin},${lngMin},${latMax},${lngMax});out center;`;
     const json = await fetchOverpass(query);
     if (!json) { console.error(`[usa] all mirrors failed for bbox [${latMin},${lngMin}..${latMax},${lngMax}]`); continue; }
     for (const e of (json.elements || [])) {

@@ -133,7 +133,7 @@ async function fetchBrazilStations() {
 
   const stationMap = new Map();
   for (const [latMin, lngMin, latMax, lngMax] of bboxes) {
-    const query = `[out:json][timeout:180][bbox:${latMin},${lngMin},${latMax},${lngMax}];nwr["amenity"="fuel"];out center;`;
+    const query = `[out:json][timeout:180];area["ISO3166-1"="BR"]->.a;nwr["amenity"="fuel"](area.a)(${latMin},${lngMin},${latMax},${lngMax});out center;`;
     const json = await fetchOverpass(query);
     if (!json) { console.error(`[brazil] all mirrors failed for bbox [${latMin},${lngMin}..${latMax},${lngMax}]`); continue; }
     for (const e of (json.elements || [])) {

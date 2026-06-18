@@ -86,7 +86,7 @@ async function fetchNewZealandStations() {
 
   // 2. Fetch stations from OSM Overpass API
   // bbox: [latMin,lngMin,latMax,lngMax] — covers New Zealand (excl. Chatham Islands)
-  const query = `[out:json][timeout:90][bbox:-47.5,165.5,-34.0,178.5];(node["amenity"="fuel"];way["amenity"="fuel"];);out center body;`;
+  const query = `[out:json][timeout:120];area["ISO3166-1"="NZ"]->.a;(node["amenity"="fuel"](area.a);way["amenity"="fuel"](area.a););out center body;`;
   let elements = [];
   for (const mirror of OVERPASS_MIRRORS) {
     try {

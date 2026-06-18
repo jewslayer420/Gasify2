@@ -52,7 +52,7 @@ async function fetchMalaysiaStations() {
 
   // 2. Fetch stations from OSM Overpass API (bbox: covers Peninsular + East Malaysia)
   // [latMin,lngMin,latMax,lngMax]
-  const query = `[out:json][timeout:90][bbox:1.0,99.5,7.5,119.5];(node["amenity"="fuel"];way["amenity"="fuel"];);out center body;`;
+  const query = `[out:json][timeout:120];area["ISO3166-1"="MY"]->.a;(node["amenity"="fuel"](area.a);way["amenity"="fuel"](area.a););out center body;`;
   let elements = [];
   for (const mirror of OVERPASS_MIRRORS) {
     try {

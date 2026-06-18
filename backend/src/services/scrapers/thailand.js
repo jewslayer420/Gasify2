@@ -122,7 +122,7 @@ async function fetchThailandStations() {
 
   // 2. Fetch stations from OSM Overpass API
   // bbox: [latMin,lngMin,latMax,lngMax] — covers Thailand
-  const query = `[out:json][timeout:90][bbox:5.5,97.5,20.5,105.7];(node["amenity"="fuel"];way["amenity"="fuel"];);out center body;`;
+  const query = `[out:json][timeout:120];area["ISO3166-1"="TH"]->.a;(node["amenity"="fuel"](area.a);way["amenity"="fuel"](area.a););out center body;`;
   let elements = [];
   for (const mirror of OVERPASS_MIRRORS) {
     try {
