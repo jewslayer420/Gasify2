@@ -5,3 +5,6 @@ debug.log
 .env.local
 .env.*.local
 .claude/settings.local.json
+
+# transient sync runner log
+backend/sync_all.log

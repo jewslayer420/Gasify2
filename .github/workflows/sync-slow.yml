@@ -1,0 +1,38 @@
+name: Sync slow (national-average prices)
+
+# Refreshes the Overpass-backed national-average countries (EU Oil Bulletin's
+# ~18 countries, Turkey, Brazil, Canada, USA, South Africa, Thailand, Malaysia,
+# New Zealand, the Balkans, Switzerland, the regulated-manual set, etc.) into the
+# Neon DB. These change infrequently (weekly/monthly sources), so once daily is
+# plenty. ~20 min/run.
+#
+# Note: Argentina's upstream is only reachable from some IPs and may fail from
+# GitHub runners — it is logged as FAILED in the run summary, not fatal.
+
+on:
+  schedule:
+    - cron: '30 3 * * *'   # daily 03:30 UTC
+  workflow_dispatch: {}    # allow manual runs from the Actions tab
+
+concurrency:
+  group: sync-slow
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx prisma generate
+      - run: node src/scripts/sync_all_now.js slow

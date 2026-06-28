@@ -1,0 +1,37 @@
+name: Sync fast (per-station prices)
+
+# Refreshes the per-station gov-API countries (France, Spain, Italy, Portugal,
+# Austria, Slovenia, Iceland, Finland, UK, Luxembourg, Chile, Taiwan, Mexico,
+# Australia) straight into the Neon DB. Runs on GitHub's servers, so it is
+# independent of the Render web service sleeping. ~8 min/run.
+
+on:
+  schedule:
+    - cron: '15 0,6,12,18 * * *'   # every 6h, :15 past to dodge top-of-hour congestion
+  workflow_dispatch: {}            # allow manual runs from the Actions tab
+
+concurrency:
+  group: sync-fast
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      CL_CNE_EMAIL: ${{ secrets.CL_CNE_EMAIL }}
+      CL_CNE_PASSWORD: ${{ secrets.CL_CNE_PASSWORD }}
+      NSW_FUELCHECK_API_KEY: ${{ secrets.NSW_FUELCHECK_API_KEY }}
+      NSW_FUELCHECK_API_SECRET: ${{ secrets.NSW_FUELCHECK_API_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx prisma generate
+      - run: node src/scripts/sync_all_now.js fast
