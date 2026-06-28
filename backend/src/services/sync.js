@@ -120,6 +120,7 @@ async function bulkUpsertStations(stations, label) {
     console.log(`[sync] ${label}: ${Math.min(i + CHUNK, stations.length)}/${stations.length} stations`);
   }
   console.log(`[sync] ${label} done — ${totalNew} new prices, ${totalUpdated} updated`);
+  return { totalNew, totalUpdated };
 }
 
 // Build a lat/lng cache from existing DB stations to avoid re-geocoding on every run
@@ -361,8 +362,8 @@ async function triggerSync(country) {
   if (isDisabled(country)) throw new Error(`'${country}' is disabled via kill-switch (DISABLED_SCRAPERS)`);
   console.log(`[sync] Manual trigger: ${country}`);
   const stations = await fetchFn();
-  await bulkUpsertStations(stations, country);
-  return { country, stationsFetched: stations.length };
+  const counts = await bulkUpsertStations(stations, country);
+  return { country, stationsFetched: stations.length, ...(counts || { totalNew: 0, totalUpdated: 0 }) };
 }
 
 module.exports = { startSyncScheduler, triggerSync };
