@@ -17,7 +17,9 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # 40 covers the worst-case first catch-up when every country is stale; steady-state
+    # runs (only changed prices) finish in well under 10 min.
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: backend

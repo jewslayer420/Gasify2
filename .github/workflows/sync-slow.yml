@@ -21,7 +21,8 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Generous cap for the worst-case first catch-up across ~27 Overpass countries.
+    timeout-minutes: 90
     defaults:
       run:
         working-directory: backend
