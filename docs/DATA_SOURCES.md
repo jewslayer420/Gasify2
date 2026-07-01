@@ -8,7 +8,7 @@ IP lawyer before monetising.
 > ⚠️ **Not legal advice.** This is an engineering inventory of what the code calls and
 > the publicly stated terms of each source. Licences and terms change — verify each
 > "⚠️ verify" item directly with the provider before charging money. Last audited:
-> **2026-06-14**.
+> **2026-07-01** (re-audited against runtime code; prior full audit 2026-06-14).
 
 ## Risk legend
 
@@ -90,7 +90,7 @@ with attribution + share-alike — the issue is the *free shared servers*.
 
 | Country | Source | Terms | Action |
 |---------|--------|-------|--------|
-| Germany | **Tankerkönig** `creativecommons.tankerkoenig.de` (MTS-K) — **ACTIVE since 2026-06-14** (replaced de.fuelo.net) | Data **CC BY 4.0** (attribution mandatory); **API terms lean non-commercial** | ⚠️ Confirm commercial permission with Tankerkönig; display "Tankerkönig (MTS-K), CC BY 4.0". Requires `TANKERKOENIG_API_KEY` on Render (the hardcoded demo-key fallback only covers a tiny test area). |
+| Germany | **Tankerkönig** `creativecommons.tankerkoenig.de` (MTS-K) — **manual-only** (`SCRAPERS['germany']`, `DE-<id>` rows); the **scheduled** German feed is the EU Oil Bulletin (`EUB-DE-`, CC BY 4.0) | Data **CC BY 4.0** (attribution mandatory); **API terms lean non-commercial** | ⚠️ Shipped pending; killable via `germany` slug. Confirm commercial permission with Tankerkönig if you re-activate the per-station scrape; display "Tankerkönig (MTS-K), CC BY 4.0". Needs a real `TANKERKOENIG_API_KEY` (the hardcoded demo-key fallback is a borrowed key + only covers a tiny test area). |
 | Chile | CNE "Bencina en Línea" API (`api.cne.cl`, account login) | Free registration; ⚠️ verify commercial redistribution allowed | Confirm ToS for a paid app. |
 | Australia (NSW + TAS) | FuelCheck `api.onegov.nsw.gov.au` (+ registered key for TAS) | NSW API terms; commercial use may need agreement | Verify key terms cover paid distribution. |
 | Australia (VIC) | Service Victoria "Servo Saver" Public API | API terms; consumer-id auth | Verify commercial terms. |
@@ -140,7 +140,7 @@ from this file.
 ## 4. Pre-monetisation checklist
 
 1. ✅ **DONE (2026-06-18) — fuelo.net fully eliminated.** All ~21 ex-fuelo countries migrated: 14 EU + Cyprus/Malta via Oil Bulletin; Turkey (EPDK); North Macedonia (ERC); Luxembourg (STATEC); Germany (Oil Bulletin, after the Tankerkönig key died); Serbia/Montenegro/Albania (regulated) + Switzerland/Bosnia (market averages) via `regulated_manual.js`. (Kosovo not separately sourced yet.)
-2. ✅ **DONE (2026-06-18) — no borrowed/demo keys.** South Korea's Opinet demo key was removed; the scraper is disabled (and KR rows purged) until you set your own `OPINET_API_KEY`. (Luxembourg carbu.com resolved 2026-06-16 → STATEC CC0.) The app uses zero borrowed keys.
+2. ⚠️ **MOSTLY DONE — one dormant demo key remains.** South Korea's Opinet demo key was removed (scraper disabled + KR rows purged until you set `OPINET_API_KEY`); Luxembourg carbu.com resolved 2026-06-16 → STATEC CC0. **Caveat (found 2026-07-01):** `tankerkoenig.js` still carries a hardcoded Tankerkönig **demo-key fallback** (`00000000-…-002`). It is **not on any schedule** — the daily German feed is the EU Oil Bulletin (`EUB-DE-`, CC BY 4.0) — and only fires if `SCRAPERS['germany']` is manually triggered. Per owner decision (2026-07-01) it is **left shipped pending** under the `germany` kill-switch slug; remove the fallback (fail-clean like Korea) for a strict "zero borrowed keys" claim before charging money.
 3. **Move geocoding + Overpass off the free OSM public servers** (self-host or paid) before scaling — the **#1 remaining monetisation blocker** (see `INFRA_MIGRATION_PLAN.md`).
 4. **Confirm 🟡 vendor terms** allow commercial redistribution — **draft outreach emails ready in `COMMERCIAL_TERMS_OUTREACH.md`**: Chile CNE, AU NSW/VIC/QLD, Finland, Slovenia, UK re-publisher (email each). _(Denmark resolved 2026-06-18 → Oil Bulletin; Tankerkönig dropped — Germany now uses the Oil Bulletin.)_
 5. **Add the in-app credits screen** (this file → data-driven) and government no-endorsement notices.

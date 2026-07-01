@@ -16,6 +16,11 @@ const prisma = require('../lib/prisma');
 // slug → how to find its rows (externalId prefix, else country) + the DISABLED_SCRAPERS
 // token(s) that stop it re-syncing.
 const KILLABLE = {
+  // Germany: the SCHEDULED feed is the clean EU Oil Bulletin (EUB-DE-OSM- rows, CC BY 4.0)
+  // and is deliberately NOT touched here. This kills ONLY the Tankerkönig per-station rows
+  // (externalId `DE-<id>`), which run on-demand via SCRAPERS['germany'] and use a licence
+  // that leans non-commercial. Shipped pending; purge on demand if the provider objects.
+  germany:  { prefix: 'DE-',     disable: ['germany'],   label: 'Germany (Tankerkönig/MTS-K) — Oil-Bulletin DE rows unaffected' },
   chile:    { prefix: 'CL-CNE-', disable: ['chile'],     label: 'Chile (CNE)' },
   finland:  { country: 'FI',     disable: ['finland'],   label: 'Finland (polttoaine.net)' },
   slovenia: { prefix: 'SI-',     disable: ['slovenia'],  label: 'Slovenia (goriva.si)' },

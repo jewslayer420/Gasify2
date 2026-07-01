@@ -175,7 +175,7 @@ contacted" plan. The kill-switch (`backend/src/services/killswitch.js`) makes th
 
 1. **Remove now** (gone from the live map on the next /geojson refresh, ≤10 min):
    - `POST /api/admin/kill/<slug>`  — or  `node src/scripts/kill_source.js <slug>`
-   - slugs: `chile` `finland` `slovenia` `uk` `vic` `qld` `nsw`
+   - slugs: `germany` `chile` `finland` `slovenia` `uk` `vic` `qld` `nsw`
 2. **Stop it re-syncing:** add the slug to the **`DISABLED_SCRAPERS`** env var (comma-list)
    + redeploy — `runSync()` then skips it forever.
 3. **Status anytime:** `GET /api/admin/kill` (rows + whether each is sync-disabled).
@@ -183,6 +183,12 @@ contacted" plan. The kill-switch (`backend/src/services/killswitch.js`) makes th
 > Note: NSW is bundled in the combined `australia` scraper — its rows purge cleanly, but
 > the `australia` disable token stops ALL of Australia (WA/NSW/TAS). QLD & VIC are currently
 > empty (no API key set), so nothing to remove there unless you activate them.
+>
+> Note: `germany` kills only the **Tankerkönig** per-station rows (`DE-<id>`), which is a
+> manual-only scraper (`SCRAPERS['germany']`) using a licence that leans non-commercial.
+> Germany's **scheduled** data is the EU Oil Bulletin (`EUB-DE-` rows, CC BY 4.0) and is
+> deliberately left running. Decision (2026-07-01): ship Tankerkönig pending; kill on the
+> first objection.
 
 ## How to send these
 I can't send them for you (no working SMTP credentials, and these are outward business
