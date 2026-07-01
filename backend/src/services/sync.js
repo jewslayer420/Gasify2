@@ -1,4 +1,5 @@
 const cron = require('node-cron');
+const { Prisma } = require('@prisma/client');
 const prisma = require('../lib/prisma');
 
 const { fetchSloveniaStations }  = require('./scrapers/slovenia');
@@ -102,15 +103,23 @@ async function bulkUpsertStations(stations, label) {
 
     if (toInsert.length) await prisma.fuelPrice.createMany({ data: toInsert });
 
-    for (let j = 0; j < toUpdate.length; j += 100) {
-      await prisma.$transaction(
-        toUpdate.slice(j, j + 100).map(p =>
-          prisma.fuelPrice.update({
-            where: { stationId_fuelType: { stationId: p.stationId, fuelType: p.fuelType } },
-            data: { price: p.price },
-          })
+    // Bulk-update changed prices in ONE statement per sub-batch (UPDATE … FROM VALUES)
+    // instead of one round-trip per row. Critical now that the sync runs on GitHub's
+    // US runners writing to Neon in eu-central-1: the old per-row loop paid ~145ms
+    // transatlantic latency PER price, so France's ~15k changes took ~37min. This
+    // collapses that to ~1 round-trip per 1000 rows. NOW() keeps updatedAt fresh
+    // (raw SQL bypasses Prisma's @updatedAt), which the freshness check relies on.
+    for (let j = 0; j < toUpdate.length; j += 1000) {
+      const values = Prisma.join(
+        toUpdate.slice(j, j + 1000).map(
+          p => Prisma.sql`(${p.stationId}::text, ${p.fuelType}::text, ${p.price}::double precision)`
         )
       );
+      await prisma.$executeRaw`
+        UPDATE "FuelPrice" AS f
+        SET price = v.price, "updatedAt" = NOW()
+        FROM (VALUES ${values}) AS v("stationId", "fuelType", "price")
+        WHERE f."stationId" = v."stationId" AND f."fuelType" = v."fuelType"`;
     }
 
     if (historyRows.length) await prisma.priceHistory.createMany({ data: historyRows });
