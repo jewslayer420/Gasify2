@@ -31,7 +31,7 @@ function classifyStale({ autoRows, manual, now = Date.now() }) {
     const thr = thresholdHoursFor(cc);
     if (thr === null) continue;                 // muted
     const ageH = r.last == null ? Infinity : (now - new Date(r.last).getTime()) / 3600000;
-    if (ageH > thr) stale.push({ cc, kind: 'auto', ageH, thr });
+    if (ageH > thr) stale.push({ cc, kind: 'auto', ageH });
   }
 
   for (const m of manual) {
