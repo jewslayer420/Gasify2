@@ -8,3 +8,6 @@ debug.log
 
 # transient sync runner log
 backend/sync_all.log
+
+# SDD scratch (ledger, briefs, review packages)
+.superpowers/
