@@ -101,7 +101,11 @@ async function bulkUpsertStations(stations, label) {
       }
     }
 
-    if (toInsert.length) await prisma.fuelPrice.createMany({ data: toInsert });
+    // skipDuplicates guards against scrapers that emit duplicate externalIds (e.g.
+    // taiwan): the station insert already dedupes, so two batch entries can map to the
+    // same stationId and produce a duplicate (stationId,fuelType) here — without this
+    // the whole country's sync throws a unique-constraint error.
+    if (toInsert.length) await prisma.fuelPrice.createMany({ data: toInsert, skipDuplicates: true });
 
     // Bulk-update changed prices in ONE statement per sub-batch (UPDATE … FROM VALUES)
     // instead of one round-trip per row. Critical now that the sync runs on GitHub's
