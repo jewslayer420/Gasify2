@@ -9,10 +9,12 @@
 const prisma = require('../../lib/prisma');
 
 const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
+// de first: from GitHub runners it answers in seconds (occasional 429/504 retried
+// on the next pass), while kumi usually burns its whole timeout and
+// openstreetmap.ru is dead ("fetch failed" on every attempt) — so ru is gone.
 const OVERPASS_MIRRORS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
 ];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 

@@ -8,7 +8,7 @@
 //   Updated monthly. National average applied to all stations.
 //
 // Stations: Overpass API — amenity=fuel nodes in Canada
-//   POST https://overpass.kumi.systems/api/interpreter
+//   GET https://overpass-api.de/api/interpreter (kumi fallback)
 //   bbox covers populated Canada (42°N–61°N, 141°W–52°W)
 
 const { stationsFromDb } = require('./_overpass');
@@ -16,8 +16,8 @@ const { stationsFromDb } = require('./_overpass');
 const CAD_EUR = 1 / 1.52; // 1 EUR ≈ 1.52 CAD
 const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
 const OVERPASS_MIRRORS = [
+  'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
 ];
 
 // City columns in order (indices 1-12, after Date=0, before Tax Status=13)
@@ -119,7 +119,7 @@ async function fetchCanadaStations() {
         json = await r.json();
         break; // success
       } catch (err) {
-        console.warn(`[canada] ${mirror.includes('kumi') ? 'kumi' : 'ru'} failed [${latMin},${lngMin}..${latMax},${lngMax}]: ${err.message}`);
+        console.warn(`[canada] ${mirror.includes('kumi') ? 'kumi' : 'de'} failed [${latMin},${lngMin}..${latMax},${lngMax}]: ${err.message}`);
       }
     }
     if (!json) { console.error(`[canada] all mirrors failed for bbox [${latMin},${lngMin}..${latMax},${lngMax}]`); continue; }

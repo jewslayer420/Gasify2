@@ -16,9 +16,8 @@ const USD_EUR = 0.92; // 1 USD ≈ 0.92 EUR
 const EIA_BASE = 'https://api.eia.gov/v2/petroleum/pri/gnd/data/';
 const UA = 'Gasify/1.0';
 const OVERPASS_MIRRORS = [
-  'https://overpass.kumi.systems/api/interpreter',
   'https://overpass-api.de/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
 ];
 
 const PRODUCT_MAP = { EPMR: 'sp95', EPMP: 'sp98', EPD2D: 'diesel' };

@@ -15,9 +15,8 @@ const BRL_EUR = 1 / 6.2; // 1 EUR ≈ 6.2 BRL
 const XLSX_URL = 'https://www.gov.br/anp/pt-br/assuntos/precos-e-defesa-da-concorrencia/precos/precos-revenda-e-de-distribuicao-combustiveis/shlp/semanal/semanal-brasil-desde-2013.xlsx';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120 Safari/537.36';
 const OVERPASS_MIRRORS = [
-  'https://overpass.kumi.systems/api/interpreter',
   'https://overpass-api.de/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
 ];
 
 // ANP PRODUTO → internal fuelType
