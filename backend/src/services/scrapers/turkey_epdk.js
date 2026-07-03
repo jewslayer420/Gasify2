@@ -23,7 +23,7 @@
 // sorguNo=71) — tracked in docs/DATA_SOURCES.md.
 
 const https = require('https');
-const { overpassFuelByCountry, osmToStation } = require('./_overpass');
+const { overpassFuelByCountry, osmToStation, stationsFromDb } = require('./_overpass');
 
 const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
 
@@ -166,6 +166,8 @@ async function fetchLatestPrices() {
 
 // Fetch amenity=fuel stations strictly inside Turkey (admin-boundary area, not a bbox).
 async function fetchStations(priceList) {
+  const fromDb = await stationsFromDb('EPDK-TR-OSM-', () => priceList, 'turkey-epdk');
+  if (fromDb) return fromDb;
   const elements = await overpassFuelByCountry('TR', 'turkey-epdk');
   if (elements === null) return []; // all mirrors failed — skip, don't wipe
   const out = new Map();

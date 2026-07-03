@@ -10,6 +10,8 @@
 //   OSM brand tags are matched to thai-oil-api brand keys.
 //   Unrecognised brands default to PTT (largest network, ~1,800 stations).
 
+const { stationsFromDb } = require('./_overpass');
+
 const THB_EUR = 1 / 38; // 1 EUR ≈ 38 THB
 const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
 const OVERPASS_MIRRORS = [
@@ -119,6 +121,13 @@ async function fetchThailandStations() {
   for (const [key, val] of Object.entries(brandData)) {
     brandPriceCache[key] = extractPrices(val);
   }
+
+  // DB rows store the same rawBrand the OSM path derives, so per-brand pricing works
+  const fromDb = await stationsFromDb('TH-OSM-', r => {
+    const brandKey = matchBrand(r.brand);
+    return brandKey && brandPriceCache[brandKey]?.length ? brandPriceCache[brandKey] : defaultPrices;
+  }, 'thailand');
+  if (fromDb) return fromDb;
 
   // 2. Fetch stations from OSM Overpass API
   // bbox: [latMin,lngMin,latMax,lngMax] — covers Thailand

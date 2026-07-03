@@ -11,6 +11,8 @@
 //
 // No auth required for either source.
 
+const { stationsFromDb } = require('./_overpass');
+
 const NZD_EUR = 1 / 1.85; // 1 EUR ≈ 1.85 NZD
 const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
 const OVERPASS_MIRRORS = [
@@ -83,6 +85,9 @@ async function fetchNewZealandStations() {
     return [];
   }
   if (!priceList.length) return [];
+
+  const fromDb = await stationsFromDb('NZ-OSM-', () => priceList, 'newzealand');
+  if (fromDb) return fromDb;
 
   // 2. Fetch stations from OSM Overpass API
   // bbox: [latMin,lngMin,latMax,lngMax] — covers New Zealand (excl. Chatham Islands)

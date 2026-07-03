@@ -10,6 +10,8 @@
 //
 // No auth required for either source.
 
+const { stationsFromDb } = require('./_overpass');
+
 const MYR_EUR = 1 / 4.9; // 1 EUR ≈ 4.9 MYR
 const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
 const OVERPASS_MIRRORS = [
@@ -49,6 +51,9 @@ async function fetchMalaysiaStations() {
     return [];
   }
   if (!prices.length) return [];
+
+  const fromDb = await stationsFromDb('MY-OSM-', () => prices, 'malaysia');
+  if (fromDb) return fromDb;
 
   // 2. Fetch stations from OSM Overpass API (bbox: covers Peninsular + East Malaysia)
   // [latMin,lngMin,latMax,lngMax]

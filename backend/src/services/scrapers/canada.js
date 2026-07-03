@@ -11,6 +11,8 @@
 //   POST https://overpass.kumi.systems/api/interpreter
 //   bbox covers populated Canada (42°N–61°N, 141°W–52°W)
 
+const { stationsFromDb } = require('./_overpass');
+
 const CAD_EUR = 1 / 1.52; // 1 EUR ≈ 1.52 CAD
 const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
 const OVERPASS_MIRRORS = [
@@ -85,6 +87,9 @@ async function fetchCanadaStations() {
   }
 
   const priceList = [{ fuelType: 'sp95', price: gasPrice }];
+
+  const fromDb = await stationsFromDb('CA-OSM-', () => priceList, 'canada');
+  if (fromDb) return fromDb;
 
   // 2. Fetch stations from OSM Overpass API
   // Split Canada into province groups to avoid Overpass timeout

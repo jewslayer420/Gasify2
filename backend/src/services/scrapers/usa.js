@@ -9,6 +9,8 @@
 //
 // Stations: Overpass API — amenity=fuel nodes across a US bbox grid (~100k; ids dedupe overlaps).
 
+const { stationsFromDb } = require('./_overpass');
+
 const GAL_TO_L = 3.78541;
 const USD_EUR = 0.92; // 1 USD ≈ 0.92 EUR
 const EIA_BASE = 'https://api.eia.gov/v2/petroleum/pri/gnd/data/';
@@ -93,6 +95,9 @@ async function fetchUSAStations() {
   }
   if (!priceList.length) { console.error('[usa] no prices parsed'); return []; }
   console.log(`[usa] national avg: ${priceList.map(p => `${p.fuelType}=€${p.price}`).join(', ')}`);
+
+  const fromDb = await stationsFromDb('US-OSM-', () => priceList, 'usa');
+  if (fromDb) return fromDb;
 
   // bbox grid over the US: [latMin, lngMin, latMax, lngMax]
   const bboxes = [

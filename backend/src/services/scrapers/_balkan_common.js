@@ -10,7 +10,7 @@
 // Station externalId prefix is `REG-<CC>-OSM-...`, distinct from the old fuelo
 // `<CC>-<id>` rows so the cutover purge stays clean.
 
-const { overpassFuelByCountry, osmToStation } = require('./_overpass');
+const { overpassFuelByCountry, osmToStation, stationsFromDb } = require('./_overpass');
 
 const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
 
@@ -51,6 +51,8 @@ function toEur(localPrice, ratePerEur) {
 // Stations strictly inside country `cc` (admin-boundary area, not a bbox — so border
 // stations aren't mis-tagged). `bbox` is now unused (kept for the caller signature).
 async function fetchRegulatedStations(cc, bbox, priceList, label) {
+  const fromDb = await stationsFromDb(`REG-${cc}-OSM-`, () => priceList, label);
+  if (fromDb) return fromDb;
   const elements = await overpassFuelByCountry(cc, label);
   if (elements === null) return []; // all mirrors failed — skip, don't wipe
   const out = new Map();

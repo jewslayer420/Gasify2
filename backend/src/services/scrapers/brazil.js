@@ -9,6 +9,7 @@
 // Stations: Overpass API — amenity=fuel nodes across Brazil (bbox grid; ids dedupe overlaps).
 
 const XLSX = require('xlsx');
+const { stationsFromDb } = require('./_overpass');
 
 const BRL_EUR = 1 / 6.2; // 1 EUR ≈ 6.2 BRL
 const XLSX_URL = 'https://www.gov.br/anp/pt-br/assuntos/precos-e-defesa-da-concorrencia/precos/precos-revenda-e-de-distribuicao-combustiveis/shlp/semanal/semanal-brasil-desde-2013.xlsx';
@@ -115,6 +116,9 @@ async function fetchBrazilStations() {
   }
   if (!priceList.length) { console.error('[brazil] no prices parsed'); return []; }
   console.log(`[brazil] national avg: ${priceList.map(p => `${p.fuelType}=€${p.price}`).join(', ')}`);
+
+  const fromDb = await stationsFromDb('BR-OSM-', () => priceList, 'brazil');
+  if (fromDb) return fromDb;
 
   // bbox grid over populated Brazil: [latMin, lngMin, latMax, lngMax]
   const bboxes = [

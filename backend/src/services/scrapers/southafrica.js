@@ -11,6 +11,8 @@
 //
 // Stations: Overpass API — amenity=fuel nodes in South Africa.
 
+const { stationsFromDb } = require('./_overpass');
+
 const ZAR_EUR = 1 / 20.5; // 1 EUR ≈ 20.5 ZAR
 const UA = 'Gasify/1.0';
 const OVERPASS_MIRRORS = [
@@ -60,6 +62,9 @@ async function fetchSouthAfricaStations() {
     .filter(p => p.price);
   if (!priceList.length) { console.error('[southafrica] no valid prices'); return []; }
   console.log(`[southafrica] regulated avg: ${priceList.map(p => `${p.fuelType}=€${p.price}`).join(', ')}`);
+
+  const fromDb = await stationsFromDb('ZA-OSM-', () => priceList, 'southafrica');
+  if (fromDb) return fromDb;
 
   // Two bboxes across SA (north incl. Gauteng, south incl. coast); ids dedupe overlaps.
   const bboxes = [

@@ -22,7 +22,7 @@
 // in docs/DATA_SOURCES.md.
 
 const XLSX = require('xlsx');
-const { overpassFuelByCountry, osmToStation } = require('./_overpass');
+const { overpassFuelByCountry, osmToStation, stationsFromDb } = require('./_overpass');
 
 const UA = 'Gasify/1.0 (fuel price aggregator; contact teo.karov@gmail.com)';
 
@@ -120,6 +120,8 @@ async function fetchBulletinPrices() {
 // a bbox — so border stations aren't mis-tagged). `bbox` is now unused (kept for the
 // caller signature / config reference).
 async function fetchCountryStations(cc, bbox, priceList) {
+  const fromDb = await stationsFromDb(`EUB-${cc}-OSM-`, () => priceList, `eu-bulletin ${cc}`);
+  if (fromDb) return fromDb;
   const elements = await overpassFuelByCountry(cc, `eu-bulletin ${cc}`);
   if (elements === null) return []; // all mirrors failed — skip, don't wipe
   const out = new Map();
