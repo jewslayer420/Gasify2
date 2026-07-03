@@ -22,8 +22,8 @@ const GAL = 3.78541; // US gallon → litre (Dominican Republic publishes per ga
 const COUNTRIES = [
   {
     cc: 'AE', label: 'uae', currency: 'AED', bbox: [22.5, 51.5, 26.5, 56.5],
-    asOf: '2026-06', source: 'UAE Fuel Price Committee (monthly, official)',
-    prices: { sp95: 3.83, sp98: 3.95, diesel: 4.33 }, // AED/L (Special 95, Super 98)
+    asOf: '2026-07', source: 'UAE Fuel Price Committee (monthly, official)',
+    prices: { sp95: 3.29, sp98: 3.40, diesel: 3.60 }, // AED/L (Special 95, Super 98)
   },
   {
     cc: 'SA', label: 'saudi', currency: 'SAR', bbox: [16.0, 34.5, 32.5, 55.7],
@@ -32,22 +32,22 @@ const COUNTRIES = [
   },
   {
     cc: 'KE', label: 'kenya', currency: 'KES', bbox: [-4.7, 33.9, 5.5, 41.9],
-    asOf: '2026-06', source: 'EPRA monthly maximum pump prices (Nairobi reference)',
+    asOf: '2026-06-15', source: 'EPRA monthly maximum pump prices (Nairobi reference; cycle to 14 Jul)',
     prices: { sp95: 214.03, diesel: 222.86 }, // KES/L (Super Petrol, Diesel)
   },
   {
     cc: 'DO', label: 'dominican', currency: 'DOP', bbox: [17.5, -72.0, 20.0, -68.3],
-    asOf: '2026-06', source: 'MICM weekly official prices (published per gallon)',
+    asOf: '2026-07', source: 'MICM weekly official prices (published per gallon; frozen since Mar)',
     prices: { sp98: 341.10 / GAL, sp95: 310.50 / GAL, diesel: 262.80 / GAL }, // RD$/L
   },
   {
     cc: 'UY', label: 'uruguay', currency: 'UYU', bbox: [-35.1, -58.6, -30.0, -53.0],
-    asOf: '2026-06', source: 'ANCAP (state oil co.) national prices. NOTE: official open-data API (catalogodatos.gub.uy, JSON/CSV) exists but lags ~7 months + has a TLS-CA quirk — automate later.',
-    prices: { sp95: 93.36, sp98: 96.00, diesel: 61.76 }, // UYU/L (Súper 95, Premium 97, Gasoil 50S)
+    asOf: '2026-07', source: 'ANCAP (state oil co.) national prices. NOTE: official open-data API (catalogodatos.gub.uy, JSON/CSV) exists but lags ~7 months + has a TLS-CA quirk — automate later.',
+    prices: { sp95: 88.67, sp98: 91.19, diesel: 58.68 }, // UYU/L (Súper 95, Premium 97, Gasoil 50S)
   },
   {
     cc: 'QA', label: 'qatar', currency: 'QAR', bbox: [24.4, 50.7, 26.2, 51.7],
-    asOf: '2026-06', source: 'QatarEnergy monthly official prices',
+    asOf: '2026-07', source: 'QatarEnergy monthly official prices',
     prices: { sp95: 2.10, diesel: 2.05 }, // QAR/L (Super 95; Premium 91 omitted)
   },
   {
@@ -57,8 +57,8 @@ const COUNTRIES = [
   },
   {
     cc: 'OM', label: 'oman', currency: 'OMR', bbox: [16.6, 51.9, 26.5, 59.9],
-    asOf: '2026-06', source: 'Oman monthly fuel price cap (official)',
-    prices: { sp95: 0.240, diesel: 0.260 }, // OMR/L (M95)
+    asOf: '2026-07', source: 'Oman monthly fuel price cap (official)',
+    prices: { sp95: 0.215, diesel: 0.245 }, // OMR/L (M95)
   },
   {
     cc: 'BH', label: 'bahrain', currency: 'BHD', bbox: [25.5, 50.3, 26.4, 50.8],
@@ -72,33 +72,33 @@ const COUNTRIES = [
   },
   {
     cc: 'EC', label: 'ecuador', currency: 'USD', bbox: [-5.0, -81.1, 1.5, -75.2],
-    asOf: '2026-06', source: 'Ecuador price-band scheme (per US gallon). Súper is deregulated (varies by station — suggested value).',
+    asOf: '2026-06-12', source: 'Ecuador price-band scheme (per US gallon; band period to 11 Jul). Súper is deregulated (varies by station — suggested value).',
     prices: { sp95: 3.312 / GAL, sp98: 5.65 / GAL, diesel: 3.251 / GAL }, // USD/L (Extra/Ecopaís, Súper, Diésel)
   },
   // ── Ex-fuelo.net European countries, migrated to clean sources 2026-06-18 ──
   {
     cc: 'RS', label: 'serbia', currency: 'RSD', bbox: [42.2, 18.8, 46.2, 23.1],
-    asOf: '2026-06', source: 'Serbia Ministry of Internal & Foreign Trade weekly max prices (Fridays)',
-    prices: { sp95: 194, sp98: 216, diesel: 220 }, // RSD/L (BMB95, BMB100, evro dizel)
+    asOf: '2026-07-03', source: 'Serbia Ministry of Internal & Foreign Trade weekly max prices (Fridays)',
+    prices: { sp95: 193, sp98: 220, diesel: 217 }, // RSD/L (BMB95, BMB100, evro dizel)
   },
   {
     cc: 'ME', label: 'montenegro', currency: 'EUR', bbox: [41.8, 18.4, 43.6, 20.4],
-    asOf: '2026-06', source: 'Montenegro Ministry of Energy weekly decree max prices',
-    prices: { sp95: 1.52, sp98: 1.56, diesel: 1.57 }, // EUR/L (Eurosuper 95/98, Eurodizel)
+    asOf: '2026-06-30', source: 'Montenegro Ministry of Energy weekly decree max prices',
+    prices: { sp95: 1.59, sp98: 1.63, diesel: 1.55 }, // EUR/L (Eurosuper 95/98, Eurodizel)
   },
   {
     cc: 'AL', label: 'albania', currency: 'ALL', bbox: [39.6, 19.2, 42.7, 21.1],
-    asOf: '2026-06', source: 'Albania Bordi i Transparencës max retail prices',
-    prices: { sp95: 170, diesel: 183 }, // ALL/L (benzin, nafta)
+    asOf: '2026-06-17', source: 'Albania Bordi i Transparencës max retail prices',
+    prices: { sp95: 166, diesel: 176 }, // ALL/L (benzin, nafta)
   },
   {
     cc: 'CH', label: 'switzerland', currency: 'CHF', bbox: [45.8, 5.9, 47.8, 10.5],
-    asOf: '2026-06', source: 'Switzerland national AVERAGE retail price (market — NOT regulated; single published fact)',
-    prices: { sp95: 1.88, sp98: 1.99, diesel: 2.10 }, // CHF/L
+    asOf: '2026-06-24', source: 'Switzerland national AVERAGE retail price (TCS; market — NOT regulated; single published fact)',
+    prices: { sp95: 1.81, sp98: 1.92, diesel: 1.98 }, // CHF/L
   },
   {
     cc: 'BA', label: 'bosnia', currency: 'BAM', bbox: [42.5, 15.7, 45.3, 19.7],
-    asOf: '2026-06', source: 'Bosnia & Herzegovina national AVERAGE retail price (market — NOT a unified regulated price; published fact)',
+    asOf: '2026-06-18', source: 'Bosnia & Herzegovina national AVERAGE retail price (market — NOT a unified regulated price; published fact)',
     prices: { sp95: 2.80, diesel: 2.90 }, // BAM/L
   },
 ];

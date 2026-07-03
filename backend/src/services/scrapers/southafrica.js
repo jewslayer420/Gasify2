@@ -20,15 +20,18 @@ const OVERPASS_MIRRORS = [
   'https://overpass.kumi.systems/api/interpreter',
 ];
 
-// Current regulated prices in ZAR/litre (update monthly)
+// Current regulated prices in ZAR/litre (update monthly).
+// sp95 = average of the official inland/coastal 95 ULP retail prices; diesel is a
+// retail estimate (DMPR regulates only the wholesale diesel price) carried forward
+// by the official month-on-month wholesale change.
 const PRICES_ZAR = [
-  { fuelType: 'sp95',   zar: 27.63 }, // petrol
-  { fuelType: 'diesel', zar: 30.64 }, // diesel 50ppm
+  { fuelType: 'sp95',   zar: 25.73 }, // petrol (Jul: 26.10 inland / 25.35 coast)
+  { fuelType: 'diesel', zar: 27.05 }, // diesel 50ppm (Jul wholesale cut −3.59)
 ];
 
 // Manual-price freshness metadata (consumed by price_freshness.js). Bump `asOf`
 // whenever PRICES_ZAR is updated.
-const PRICE_META = { cc: 'ZA', label: 'southafrica', asOf: '2026-06', source: 'DMPR monthly — dmre.gov.za/.../fuel-prices' };
+const PRICE_META = { cc: 'ZA', label: 'southafrica', asOf: '2026-07', source: 'DMPR monthly — dmre.gov.za/.../fuel-prices' };
 
 function zarToEur(zar) {
   const eur = +(zar * ZAR_EUR).toFixed(3);
