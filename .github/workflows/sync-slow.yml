@@ -1,10 +1,14 @@
 name: Sync slow (national-average prices)
 
-# Refreshes the Overpass-backed national-average countries (EU Oil Bulletin's
-# ~18 countries, Turkey, Brazil, Canada, USA, South Africa, Thailand, Malaysia,
-# New Zealand, the Balkans, Switzerland, the regulated-manual set, etc.) into the
-# Neon DB. These change infrequently (weekly/monthly sources), so once daily is
-# plenty. ~20 min/run.
+# Refreshes the national-average countries (EU Oil Bulletin's ~18 countries,
+# Turkey, Brazil, Canada, USA, South Africa, Thailand, Malaysia, New Zealand,
+# the Balkans, Switzerland, the regulated-manual set, etc.) into the Neon DB.
+#
+# Routine runs reuse station geometry already in the DB and only refresh prices
+# (no Overpass), so a full pass is fast. Dispatch with discovery=true to force a
+# real Overpass geometry re-discovery (new/closed stations) — that path is slow
+# (hours) and should stay occasional; the long-term replacement is Geofabrik
+# extracts (docs/INFRA_MIGRATION_PLAN.md §4).
 #
 # Note: Argentina's upstream is only reachable from some IPs and may fail from
 # GitHub runners — it is logged as FAILED in the run summary, not fatal.
@@ -12,7 +16,12 @@ name: Sync slow (national-average prices)
 on:
   schedule:
     - cron: '30 3 * * *'   # daily 03:30 UTC
-  workflow_dispatch: {}    # allow manual runs from the Actions tab
+  workflow_dispatch:
+    inputs:
+      discovery:
+        description: 'Re-discover station geometry via Overpass (slow — hours)'
+        type: boolean
+        default: false
 
 concurrency:
   group: sync-slow
@@ -21,14 +30,15 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    # Generous cap for the worst-case first catch-up across ~27 Overpass countries.
-    timeout-minutes: 90
+    # Price-only runs finish well under 45 min; geometry discovery needs hours.
+    timeout-minutes: ${{ inputs.discovery && 330 || 45 }}
     defaults:
       run:
         working-directory: backend
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+      STATION_DISCOVERY: ${{ inputs.discovery && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
