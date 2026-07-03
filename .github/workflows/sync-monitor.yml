@@ -1,0 +1,36 @@
+name: Sync monitor (freshness alert)
+
+# Independent of the sync jobs: queries Neon for per-country price age and alerts
+# Telegram if anything is stale or the DB is unreachable. Catches a total sync
+# outage, a partial failure, or a dead DB — none of which the sync runs surface on
+# their own. Add TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID as repo secrets to enable
+# delivery; without them the run still succeeds and just logs.
+
+on:
+  schedule:
+    - cron: '45 */6 * * *'   # every 6h at :45, between the sync runs
+  workflow_dispatch: {}
+
+concurrency:
+  group: sync-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npx prisma generate
+      - run: node src/scripts/check_freshness.js
