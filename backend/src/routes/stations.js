@@ -122,6 +122,9 @@ router.get('/geojson', async (req, res) => {
   if (cached && cached.expiresAt > Date.now() && bust !== '1') {
     return res.end(cached.gz);
   }
+  // bust=1 must actually force a rebuild: getGeojsonGz re-checks the cache
+  // internally (for waiters), so a still-fresh entry has to be evicted first.
+  if (bust === '1') geojsonCache.delete(fuel);
   try {
     const gz = await getGeojsonGz(fuel);
     res.end(gz);
