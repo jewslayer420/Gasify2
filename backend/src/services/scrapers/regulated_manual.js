@@ -106,6 +106,41 @@ const COUNTRIES = [
     prices: { sp95: 17000, sp98: 19300, diesel: 19700 }, // IDR/L (Pertamax Green 95, Pertamax Turbo, Dexlite)
   },
   {
+    cc: 'BD', label: 'bangladesh', currency: 'BDT', bbox: [20.5, 88.0, 26.7, 92.7],
+    asOf: '2026-06-01', source: 'Bangladesh BPC automatic pricing mechanism (monthly)',
+    prices: { sp95: 140, sp98: 145, diesel: 115 }, // BDT/L (petrol, octane, diesel)
+  },
+  {
+    cc: 'LK', label: 'srilanka', currency: 'LKR', bbox: [5.9, 79.6, 9.9, 81.9],
+    asOf: '2026-07-01', source: 'Sri Lanka CPC monthly price revisions (petrol 92, auto diesel)',
+    prices: { sp95: 414, diesel: 382 }, // LKR/L
+  },
+  {
+    cc: 'NP', label: 'nepal', currency: 'NPR', bbox: [26.3, 80.0, 30.5, 88.2],
+    asOf: '2026-07', source: 'Nepal Oil Corporation retail prices, Kathmandu reference (~fortnightly)',
+    prices: { sp95: 217, diesel: 225 }, // NPR/L
+  },
+  {
+    cc: 'CR', label: 'costarica', currency: 'CRC', bbox: [8.0, -85.9, 11.2, -82.5],
+    asOf: '2026-06-03', source: 'Costa Rica ARESEP regulated prices (uniform at all stations)',
+    prices: { sp95: 753, diesel: 670 }, // CRC/L (gasolina súper, diésel)
+  },
+  {
+    cc: 'PA', label: 'panama', currency: 'USD', bbox: [7.2, -83.1, 9.7, -77.1],
+    asOf: '2026-06-26', source: 'Panama Secretaría Nacional de Energía biweekly max prices',
+    prices: { sp95: 1.178, diesel: 1.104 }, // USD/L (95 octanos, diésel)
+  },
+  {
+    cc: 'AZ', label: 'azerbaijan', currency: 'AZN', bbox: [38.4, 44.7, 41.9, 50.4],
+    asOf: '2026-07', source: 'Azerbaijan Tariff Council fixed prices (since 2026-01-01)',
+    prices: { sp95: 1.15, sp98: 1.60, diesel: 1.10 }, // AZN/L (AI-92, AI-95)
+  },
+  {
+    cc: 'DZ', label: 'algeria', currency: 'DZD', bbox: [19.0, -8.7, 37.1, 12.0],
+    asOf: '2026-07', source: 'Algeria ARH state-fixed prices (since 2026-01-01; heavily subsidised)',
+    prices: { sp95: 47, diesel: 31 }, // DZD/L (essence, gasoil; GPL 12 DZD ≈ €0.08 is below the toEur floor — omitted)
+  },
+  {
     cc: 'MD', label: 'moldova', currency: 'MDL', bbox: [45.4, 26.6, 48.5, 30.2],
     asOf: '2026-07-03', source: 'Moldova ANRE daily maximum prices (benzina 95, motorina)',
     prices: { sp95: 27.82, diesel: 24.79 }, // MDL/L
@@ -201,6 +236,13 @@ module.exports = {
   fetchIsraelStations: byCc.IL,
   fetchPakistanStations: byCc.PK,
   fetchJapanStations: byCc.JP,
+  fetchBangladeshStations: byCc.BD,
+  fetchSriLankaStations: byCc.LK,
+  fetchNepalStations: byCc.NP,
+  fetchCostaRicaStations: byCc.CR,
+  fetchPanamaStations: byCc.PA,
+  fetchAzerbaijanStations: byCc.AZ,
+  fetchAlgeriaStations: byCc.DZ,
   fetchSerbiaStations: byCc.RS,
   fetchMontenegroStations: byCc.ME,
   fetchAlbaniaStations: byCc.AL,

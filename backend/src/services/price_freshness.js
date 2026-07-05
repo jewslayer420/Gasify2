@@ -20,6 +20,7 @@ const STALE_AFTER = {
   VN: 21, // Vietnam MOIT adjusts ~weekly
   EG: 120, MA: 30, TN: 90, // Egypt quarterly; Morocco biweekly market avg; Tunisia irregular
   MD: 21, PK: 21, JP: 30, // Moldova ANRE daily; Pakistan OGRA fortnightly; Japan METI weekly avg
+  NP: 30, PA: 30, AZ: 150, DZ: 150, // Nepal/Panama fortnightly-biweekly; AZ/DZ state-fixed
 };
 
 function asOfMs(asOf) {
