@@ -226,8 +226,9 @@ function scheduleGovernmentAPIs() {
   cron.schedule('45 3 * * *', () => runSync('Chile', fetchChileStations));
   // Brazil: weekly (ANP national avg updates Fridays; OSM stations stable) — Sat 04:30
   cron.schedule('30 4 * * 6', () => runSync('Brazil', fetchBrazilStations));
-  // Argentina: daily (Secretaría de Energía surtidor CSV; only reachable from some IPs)
-  cron.schedule('0 4 * * *', () => runSync('Argentina', fetchArgentinaStations));
+  // Argentina REMOVED 2026-07-05 (owner decision): the official dataset lags months
+  // behind peso inflation, understating street prices ~30-40%. Scraper kept for
+  // manual re-add via SCRAPERS['argentina'] if the source ever becomes current.
   // USA: weekly (EIA national avg updates Mondays; OSM stations stable) — Sun 05:00
   cron.schedule('0 5 * * 0', () => runSync('USA', fetchUSAStations));
   // South Africa: weekly (DMPR regulated price set monthly; OSM stable) — Sun 05:30
@@ -314,7 +315,6 @@ async function runAllSyncsOnce() {
     ['Canada',      fetchCanadaStations],
     ['Chile',       fetchChileStations],
     ['Brazil',      fetchBrazilStations],
-    ['Argentina',   fetchArgentinaStations],
     ['USA',         fetchUSAStations],
     ['SouthAfrica', fetchSouthAfricaStations],
     ['EUBulletin',  fetchEUBulletinStations], // 14 EU countries (Oil Bulletin + OSM)

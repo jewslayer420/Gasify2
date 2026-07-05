@@ -29,7 +29,7 @@ const SLOW = [
   'qatar', 'kuwait', 'oman', 'bahrain', 'brunei', 'ecuador', 'kosovo',
   'vietnam', 'egypt', 'jordan', 'tunisia', 'morocco', 'indonesia', 'india',
   'moldova', 'israel', 'pakistan', 'japan', 'bangladesh', 'srilanka', 'nepal',
-  'costarica', 'panama', 'azerbaijan', 'algeria', 'argentina',
+  'costarica', 'panama', 'azerbaijan', 'algeria',
 ];
 
 const mode = (process.argv[2] || 'all').toLowerCase();

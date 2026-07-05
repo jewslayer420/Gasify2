@@ -48,7 +48,7 @@ with attribution + share-alike — the issue is the *free shared servers*.
 | Italy | MIMIT open data (station registry + daily prices) | Italian open-data (**IODL/CC-BY**, ⚠️ verify) | Attribution to MIMIT. |
 | Spain | Ministerio gov API (~11,400 stations) | Spanish gov open data | Attribution. |
 | Portugal | DGEG official API `precoscombustiveis.dgeg.gov.pt` | Portuguese gov open data ⚠️ verify | Attribution to DGEG. |
-| Argentina | `datos.energia.gob.ar` — Secretaría de Energía | Argentine open data ⚠️ verify | Attribution. ⚠️ **Known accuracy caveat (2026-07-05 audit):** the official dataset itself lags months; with peso inflation our shown prices understate street prices ~30-40%. Not code-fixable — either accept, label in-app, or drop AR before launch. |
+| ~~Argentina~~ | ~~`datos.energia.gob.ar`~~ — **REMOVED 2026-07-05** | — | Owner decision after audit: the official dataset lags months behind peso inflation (prices understated ~30-40%). AR rows purged; scraper kept (`SCRAPERS['argentina']`) for re-add if the source becomes current. |
 | United States | EIA Open Data API v2 (`api.eia.gov`, **free key**) | **US Government public domain** | Citation requested; key registration permits commercial use. |
 | Canada | Ontario Open Government CSV + StatsCan | **Open Government Licence – Canada** | Attribution; national avg applied to OSM stations. |
 | Brazil | ANP "Série Histórica" XLSX (`gov.br`) | Brazilian gov open data ⚠️ verify | Attribution to ANP. |

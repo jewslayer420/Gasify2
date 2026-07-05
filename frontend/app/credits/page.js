@@ -29,7 +29,6 @@ const GROUPS = [
       { region: 'Taiwan', name: 'CPC Corporation open data', licence: 'Taiwanese government open data', url: 'https://www.cpc.com.tw' },
       { region: 'Mexico', name: 'CRE — Comisión Reguladora de Energía', licence: 'Mexican government open data', url: 'https://www.gob.mx/cre' },
       { region: 'Australia', name: 'NSW FuelCheck · WA FuelWatch · TAS FuelCheck', licence: 'State government APIs', url: 'https://www.fuelcheck.nsw.gov.au' },
-      { region: 'Argentina', name: 'Secretaría de Energía', licence: 'Argentine open data', url: 'https://datos.energia.gob.ar' },
     ],
   },
   {
