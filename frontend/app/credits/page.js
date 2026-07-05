@@ -70,6 +70,7 @@ const GROUPS = [
       { region: 'Jordan', name: 'Fuel Pricing Committee (monthly)', licence: 'Official published price' },
       { region: 'Tunisia', name: 'Ministère de l’Énergie — state-set prices', licence: 'Official published price' },
       { region: 'Indonesia', name: 'Pertamina official prices (Jakarta reference)', licence: 'Official published price' },
+      { region: 'India', name: 'IOCL/BPCL/HPCL published prices (Delhi reference)', licence: 'Official published price' },
       { region: 'Morocco', name: 'National average pump price (market)', licence: 'Published market average' },
       { region: 'Switzerland', name: 'National average retail price (market)', licence: 'Published market average' },
       { region: 'Bosnia & Herzegovina', name: 'National average retail price (market)', licence: 'Published market average' },

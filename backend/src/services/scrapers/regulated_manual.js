@@ -106,6 +106,11 @@ const COUNTRIES = [
     prices: { sp95: 17000, sp98: 19300, diesel: 19700 }, // IDR/L (Pertamax Green 95, Pertamax Turbo, Dexlite)
   },
   {
+    cc: 'IN', label: 'india', currency: 'INR', bbox: [6.5, 68.1, 35.7, 97.4],
+    asOf: '2026-07-05', source: 'India OMC (IOCL/BPCL/HPCL) published prices, Delhi reference (revised daily; varies by state VAT)',
+    prices: { sp95: 102.12, diesel: 95.20 }, // INR/L (petrol, diesel — Delhi)
+  },
+  {
     cc: 'XK', label: 'kosovo', currency: 'EUR', bbox: [41.8, 20.0, 43.3, 21.8],
     asOf: '2026-07-05', source: 'Kosovo MINT ministerial decisions — maximum derivative prices (published every few days)',
     prices: { sp95: 1.36, diesel: 1.41, lpg: 0.64 }, // EUR/L (benzina, nafta, gas)
@@ -171,6 +176,7 @@ module.exports = {
   fetchTunisiaStations: byCc.TN,
   fetchMoroccoStations: byCc.MA,
   fetchIndonesiaStations: byCc.ID,
+  fetchIndiaStations: byCc.IN,
   fetchSerbiaStations: byCc.RS,
   fetchMontenegroStations: byCc.ME,
   fetchAlbaniaStations: byCc.AL,

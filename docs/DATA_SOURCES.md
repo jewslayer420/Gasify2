@@ -80,6 +80,7 @@ with attribution + share-alike — the issue is the *free shared servers*.
 | **Tunisia** 🆕 | Ministère de l'Énergie state-set prices (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js` (cc `TN`). TND→EUR. Adjusted irregularly (90d cadence). Added 2026-07-05. |
 | **Morocco** 🆕 | National **market average** (**manual constant**) + OSM | Single published price *fact* (liberalized since 2015 — like CH/BA); stations ODbL | `regulated_manual.js` (cc `MA`). MAD→EUR. Biweekly market moves (30d cadence). ⚠️ Same weaker market-avg basis as Switzerland. Added 2026-07-05. |
 | **Indonesia** 🆕 | Pertamina official published prices, DKI Jakarta reference (**manual constant**) + OSM | Official state-oil published prices; stations ODbL | `regulated_manual.js` (cc `ID`). IDR→EUR. Monthly. Pertamax Green 95→sp95, Turbo→sp98, Dexlite→diesel (subsidised Pertalite/Solar omitted — restricted grades). Prices vary slightly by province. Added 2026-07-05. |
+| **India** 🆕 | IOCL/BPCL/HPCL OMC published prices, Delhi reference (**manual constant**) + OSM | Official state-oil published prices; stations ODbL | `regulated_manual.js` (cc `IN`). INR→EUR. Revised daily at 6am but near-frozen for long stretches; varies a few % by state VAT (Delhi reference — same trade-off as ID's Jakarta reference). Added 2026-07-05. |
 
 > **Still-deferred candidates (blocked from our environment):** **Costa Rica** — RECOPE official table
 > (`recope.go.cr`) is **unreachable from our environment** (fetch fails even with TLS off) and the news

@@ -56,6 +56,7 @@ const {
   fetchBruneiStations, fetchEcuadorStations, fetchKosovoStations,
   fetchVietnamStations, fetchEgyptStations, fetchJordanStations,
   fetchTunisiaStations, fetchMoroccoStations, fetchIndonesiaStations,
+  fetchIndiaStations,
   fetchSerbiaStations, fetchMontenegroStations, fetchAlbaniaStations, fetchSwitzerlandStations, fetchBosniaStations,
 } = require('./scrapers/regulated_manual');
 const { runPriceFreshnessCheck } = require('./price_freshness');
@@ -266,6 +267,7 @@ async function runNightlySlowSync() {
   await runSync('Tunisia',   fetchTunisiaStations);
   await runSync('Morocco',   fetchMoroccoStations);
   await runSync('Indonesia', fetchIndonesiaStations);
+  await runSync('India',     fetchIndiaStations);
   console.log('[sync] Nightly slow sync complete');
 }
 
@@ -380,6 +382,7 @@ const SCRAPERS = {
   tunisia:        fetchTunisiaStations,
   morocco:        fetchMoroccoStations,
   indonesia:      fetchIndonesiaStations,
+  india:          fetchIndiaStations,
 };
 
 // ── fuelo.net cutover status ─────────────────────────────────────────────────
