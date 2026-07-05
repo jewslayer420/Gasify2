@@ -7,7 +7,12 @@ import { getStationsGeoJSON, getStation, getStationHistory, geocodeCity, addFavo
 import { useUser } from '../../lib/context/UserContext';
 import styles from './map.module.css';
 
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+// MapTiler (commercial-licensed) when a key is configured; CARTO's free style as a
+// dev-only fallback (non-commercial — do not ship without the key).
+const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
+const MAP_STYLE = MAPTILER_KEY
+  ? `https://api.maptiler.com/maps/dataviz-dark/style.json?key=${MAPTILER_KEY}`
+  : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
 const FUELS = [
   { key: 'diesel',         label: 'Diesel' },
@@ -424,13 +429,16 @@ export default function MapView() {
             minZoom={3.7}
             attributionControl={false}
           >
-            {/* Required attribution for OpenStreetMap (ODbL) basemap data and CARTO tiles.
-                Compact = a small "ⓘ" that expands; the credits are always reachable. */}
+            {/* Required attribution: OpenStreetMap (ODbL) basemap data + the tile
+                vendor (MapTiler, or CARTO on the dev fallback). Compact = a small
+                "ⓘ" that expands; the credits are always reachable. */}
             <AttributionControl
               compact
               customAttribution={[
                 '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
-                '© <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>',
+                MAPTILER_KEY
+                  ? '© <a href="https://www.maptiler.com/copyright/" target="_blank" rel="noopener noreferrer">MapTiler</a>'
+                  : '© <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>',
               ]}
             />
             {userPos && (

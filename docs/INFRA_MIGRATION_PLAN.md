@@ -1,5 +1,12 @@
 # Infrastructure Migration Plan — off the free OSM/CARTO servers for commercial use
 
+> ✅ **STATUS 2026-07-05:** Pillars 1 (basemap) & 2 (geocoding) implemented on **MapTiler**
+> (free tier for dev — `NEXT_PUBLIC_MAPTILER_KEY` in `frontend/.env.local`, `MAPTILER_KEY` in
+> `backend/.env`; both fall back to CARTO/Nominatim when unset). **Upgrade to the Flex plan
+> before commercial launch** (free tier is non-commercial) and set `MAPTILER_KEY` on Render.
+> Pillar 3 (Overpass→Geofabrik) deferred — routine syncs are DB-first since 2026-07-03 and
+> barely touch Overpass. The §1 geo.js countrycodes bug is fixed.
+
 **Goal:** make the app legally monetisable by moving the three external dependencies that
 forbid bulk/commercial use on their free public servers onto commercial-licensed or
 self-hosted infrastructure. This is the **#1 remaining monetisation blocker** (see
