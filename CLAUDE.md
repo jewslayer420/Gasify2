@@ -2,77 +2,44 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Development
+## Architecture
 
-**Both processes must run concurrently during development:**
+Two apps, run locally under PM2 (not hot-reload dev servers):
+
+- **`backend/`** — Express API + Prisma on Neon Postgres (eu-central-1). PM2 app `gasify-backend`, local port **3002** (Render prod: `gasify-api.onrender.com`). Entry: `src/server.js`.
+- **`frontend/`** — Next.js (app router) with `react-map-gl/maplibre` on a MapTiler basemap. PM2 app `gasify-frontend`, port **3000**, serving a **production build** — code changes need `npm run build` then `pm2 restart gasify-frontend`; there is no hot reload.
+
+Key backend paths: `src/services/scrapers/` (per-country price scrapers), `src/services/sync.js` (bulkUpsertStations + scheduling), `src/routes/stations.js` (API incl. gzipped `/geojson` the frontend actually uses), `src/scripts/sync_all_now.js` (fast|slow|all runner), `src/scripts/check_freshness.js` (monitor, `--dry-run`).
+
+## Commands
 
 ```bash
-node server.js   # Express API on port 3001
-npm run dev      # Vite dev server on port 5173
+# backend tests (node:test — run explicit files, `node --test src` misbehaves on Windows)
+cd backend && node --test src/services/scrapers/_overpass.test.js src/services/freshness_monitor.test.js src/services/telegram.test.js
+
+cd frontend && npm run build   # then: npx pm2 restart gasify-frontend
+npx pm2 status|logs|restart gasify-backend|gasify-frontend
 ```
 
-Other commands:
-```bash
-npm run build    # Production build → dist/
-npm run lint     # ESLint check
-npm run preview  # Preview production build
-```
+## Data sync (GitHub Actions, not Render cron)
 
-There is no test suite — testing is manual.
+`.github/workflows/`: `sync-fast.yml` (per-station gov APIs, every 6h), `sync-slow.yml` (national-average countries, daily; **DB-first** — reuses station geometry from the DB, no routine Overpass; dispatch with `discovery=true` for a real Overpass geometry refresh), `sync-monitor.yml` (freshness alerting; Telegram secrets not yet configured).
+
+Rules learned the hard way:
+- **Always batch DB writes** — runners are US, Neon is EU; per-row writes are pathologically slow. Raw-SQL updates must set `"updatedAt" = NOW()` explicitly.
+- Never add live Overpass calls to routine sync paths (`stationsFromDb` in `scrapers/_overpass.js` is the pattern). Mirror order: overpass-api.de first, kumi fallback, never openstreetmap.ru (dead).
+- `FuelPrice.updatedAt` only moves on price *change*; `CountrySyncStatus` records sync completion for the monitor.
+
+## Env & keys
+
+`backend/.env`: `DATABASE_URL` (Neon), `MAPTILER_KEY`, `EIA_API_KEY`, Chile CNE creds. `frontend/.env.local`: `NEXT_PUBLIC_MAPTILER_KEY` (inlined at build time). All gitignored — as is `.claude/settings.json`.
+
+MapTiler is on the **free (non-commercial) tier** — before launch: upgrade to Flex, set `MAPTILER_KEY` on Render. Geocoding falls back to Nominatim when the key is absent.
+
+## Docs
+
+`docs/INFRA_MIGRATION_PLAN.md` (licensing migration; Pillars 1–2 done, Geofabrik deferred), `docs/DATA_SOURCES.md` (per-country source & licence inventory — keep updated when touching scrapers), `regulated_manual.js` prices are hand-maintained: update constants + `asOf` monthly.
 
 ## Git workflow
 
-After finishing any task, automatically commit all changes and push to GitHub:
-
-```bash
-git add -A
-git commit -m "descriptive message"
-git push origin main
-```
-
-Remote: `https://github.com/jewslayer420/Gasify2` (branch: `main`)
-
-## Architecture
-
-Two-process app: an Express API (`server.js`) that proxies/normalizes European fuel price data, and a React frontend (`src/App.jsx`) that renders an interactive map with a price list panel.
-
-### Backend (`server.js`, port 3001)
-
-Single endpoint: `GET /api/stations?fuel=gazole&lat=46&lng=14&bbox=45,13,47,16&citySearch=1`
-
-- Calls France (`data.economie.gouv.fr`) and Slovenia (`goriva.si`) APIs in parallel
-- Applies bbox overlap check per country to skip irrelevant upstream calls
-- Normalizes all stations to a common schema: `{ id, name, brand, price, fuel, lat, lng, city, country, distance, sp95, sp98, gazole, gplc, e10 }`
-- Three response modes driven by query params:
-  - **bbox mode**: filters to viewport bounds
-  - **near-me mode**: returns 50 closest stations (distance calc required)
-  - **default**: returns 100 cheapest
-
-### Frontend (`src/App.jsx`, port 5173)
-
-Single monolithic component (~730 lines) — all state lives in `App`, no state management library.
-
-- Full-screen Leaflet map (`react-leaflet`) with floating panel
-- **Desktop (≥768px):** panel is a sidebar (`--panel-w: 380px`)
-- **Mobile (≤768px):** panel is a bottom sheet with drag handle (peek height `--peek-h: 120px`, expands to full-height)
-- Location: real-time tracking, refreshes every 120 seconds
-- City search: Nominatim geocoding
-- Routing: Leaflet Routing Machine for turn-by-turn directions with navigation overlay
-
-**Data flow:** user location/city search → `/api/stations` → normalized results → Leaflet markers + scrollable list
-
-### API URL switching
-
-The frontend auto-selects the backend based on environment:
-- **Dev:** `http://localhost:3001`
-- **Prod:** `VITE_API_URL` from `.env` (currently `https://gasify-api.onrender.com`)
-
-### Price color thresholds
-
-- Green: ≤ €1.60/L
-- Orange: ≤ €1.90/L
-- Red: > €1.90/L
-
-### CSS design tokens (in `src/App.css`)
-
-`--bg`, `--bg-secondary`, `--green`, `--orange`, `--red`, `--panel-w`, `--peek-h`, `--r` (border-radius: 12px)
+After finishing any task: `git add -A && git commit -m "..." && git push origin main` (a Stop hook also auto-commits). Remote: `https://github.com/jewslayer420/Gasify2`, branch `main`.
