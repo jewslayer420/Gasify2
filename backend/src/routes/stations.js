@@ -3,14 +3,6 @@ const zlib = require('zlib');
 const router = express.Router();
 const { geocodeCity } = require('../utils/geo');
 const prisma = require('../lib/prisma');
-const { fetchTankerkoenigArea } = require('../services/scrapers/germany');
-
-const DE_BOUNDS = { latMin: 47.2, latMax: 55.1, lngMin: 5.9, lngMax: 15.2 };
-
-function overlapsDe(minLat, minLng, maxLat, maxLng) {
-  return maxLat > DE_BOUNDS.latMin && minLat < DE_BOUNDS.latMax &&
-         maxLng > DE_BOUNDS.lngMin && minLng < DE_BOUNDS.lngMax;
-}
 
 // In-memory GeoJSON cache — keyed by fuel type. Stores the *gzipped* buffer
 // (~10-15MB each) rather than the raw ~60MB string, so all fuels cached cost
@@ -192,36 +184,19 @@ router.get('/', async (req, res) => {
       const z = zoom ? parseInt(zoom) : 14;
       const take = z <= 8 ? 500 : z <= 10 ? 800 : z <= 12 ? 1200 : 2000;
 
-      const centerLat = (minLat + maxLat) / 2;
-      const centerLng = (minLng + maxLng) / 2;
-      const radKm = Math.max(
-        Math.abs(maxLat - minLat) * 55.66,
-        Math.abs(maxLng - minLng) * 111.32 * Math.cos((centerLat * Math.PI) / 180) / 2
-      );
-
-      const [dbStations, liveStations] = await Promise.all([
-        prisma.station.findMany({
-          where: {
-            lat: { gte: minLat, lte: maxLat },
-            lng: { gte: minLng, lte: maxLng },
-            prices: { some: { fuelType: fuel, price: { gt: 0 } } },
-          },
-          select: { id: true, externalId: true, name: true, brand: true, lat: true, lng: true, city: true, country: true, updatedAt: true, prices: true },
-          take,
-        }),
-        overlapsDe(minLat, minLng, maxLat, maxLng)
-          ? fetchTankerkoenigArea(centerLat, centerLng, radKm, fuel)
-          : Promise.resolve([]),
-      ]);
-
-      // Merge: DB results take priority; live fills in stations not yet synced
-      const dbExternalIds = new Set(dbStations.map(s => s.externalId));
-      const extraLive = liveStations.filter(s => !dbExternalIds.has(s.externalId));
-      const result = [
-        ...dbStations.map(s => normalizeStation(s, fuel, userLat, userLng)),
-        ...extraLive.map(s => ({ ...s, distance: userLat && userLng ? calcDistance(s.lat, s.lng, userLat, userLng) : null })),
-      ];
-      return res.json(result);
+      // DB only. The old live-Tankerkönig fill-in for German bboxes was
+      // decommissioned (dead API key, per-request external call; Germany is
+      // served from the DB via the EU Oil Bulletin sync).
+      const dbStations = await prisma.station.findMany({
+        where: {
+          lat: { gte: minLat, lte: maxLat },
+          lng: { gte: minLng, lte: maxLng },
+          prices: { some: { fuelType: fuel, price: { gt: 0 } } },
+        },
+        select: { id: true, externalId: true, name: true, brand: true, lat: true, lng: true, city: true, country: true, updatedAt: true, prices: true },
+        take,
+      });
+      return res.json(dbStations.map(s => normalizeStation(s, fuel, userLat, userLng)));
     } else if (near === '1' && userLat && userLng) {
       stations = await prisma.$queryRaw`
         SELECT s.*,
