@@ -46,6 +46,14 @@ model Station {
   favorites    Favorite[]
 }
 
+// Last completed sync per country (written by bulkUpsertStations, read by the
+// freshness monitor to separate "sync dead" from "prices unchanged").
+model CountrySyncStatus {
+  country    String   @id
+  lastSyncAt DateTime
+  fetched    Int
+}
+
 model FuelPrice {
   id        String   @id @default(cuid())
   stationId String

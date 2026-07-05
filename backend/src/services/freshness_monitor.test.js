@@ -58,6 +58,40 @@ test('classifyStale: manual country excluded from auto, taken from manual list',
   assert.equal(out[0].ageDays, 130);
 });
 
+test('classifyStale: old prices but fresh sync run is NOT stale (unchanged-price false positive)', () => {
+  const now = Date.UTC(2026, 0, 10);
+  const autoRows = [{ country: 'MT', last: new Date(now - 400 * 3600000) }]; // price unchanged 400h
+  const syncRows = [{ country: 'MT', lastSyncAt: new Date(now - 5 * 3600000) }]; // synced 5h ago
+  assert.deepEqual(classifyStale({ autoRows, manual: [], syncRows, now }), []);
+});
+
+test('classifyStale: old prices AND old sync run is stale', () => {
+  const now = Date.UTC(2026, 0, 10);
+  const autoRows = [{ country: 'MT', last: new Date(now - 400 * 3600000) }];
+  const syncRows = [{ country: 'MT', lastSyncAt: new Date(now - 300 * 3600000) }]; // 300h > 288h
+  const out = classifyStale({ autoRows, manual: [], syncRows, now });
+  assert.equal(out.length, 1);
+  assert.equal(out[0].cc, 'MT');
+  assert.equal(Math.round(out[0].ageH), 300);
+});
+
+test('classifyStale: fresh sync but prices frozen past sanity window is stale', () => {
+  const now = Date.UTC(2026, 0, 10);
+  const autoRows = [{ country: 'MT', last: new Date(now - 1200 * 3600000) }]; // 50 days frozen
+  const syncRows = [{ country: 'MT', lastSyncAt: new Date(now - 2 * 3600000) }];
+  const out = classifyStale({ autoRows, manual: [], syncRows, now });
+  assert.equal(out.length, 1);
+  assert.equal(out[0].cc, 'MT');
+});
+
+test('classifyStale: no sync row falls back to price-age logic', () => {
+  const now = Date.UTC(2026, 0, 10);
+  const autoRows = [{ country: 'PL', last: new Date(now - 400 * 3600000) }];
+  const out = classifyStale({ autoRows, manual: [], syncRows: [], now });
+  assert.equal(out.length, 1);
+  assert.equal(out[0].cc, 'PL');
+});
+
 test('formatStaleMessage: compact one-line summary', () => {
   const msg = formatStaleMessage([
     { cc: 'FR', kind: 'auto', ageH: 61 },

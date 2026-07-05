@@ -133,6 +133,25 @@ async function bulkUpsertStations(stations, label) {
     console.log(`[sync] ${label}: ${Math.min(i + CHUNK, stations.length)}/${stations.length} stations`);
   }
   console.log(`[sync] ${label} done — ${totalNew} new prices, ${totalUpdated} updated`);
+
+  // Record per-country sync completion so the freshness monitor can tell
+  // "sync stopped running" apart from "prices simply didn't change" (unchanged
+  // prices never touch FuelPrice.updatedAt). Non-fatal: sync must survive the
+  // table not existing yet.
+  try {
+    const counts = new Map();
+    for (const s of stations) if (s.country) counts.set(s.country, (counts.get(s.country) || 0) + 1);
+    if (counts.size) {
+      const values = Prisma.join([...counts].map(([cc, n]) => Prisma.sql`(${cc}, NOW(), ${n})`));
+      await prisma.$executeRaw`
+        INSERT INTO "CountrySyncStatus" (country, "lastSyncAt", fetched)
+        VALUES ${values}
+        ON CONFLICT (country) DO UPDATE SET "lastSyncAt" = NOW(), fetched = EXCLUDED.fetched`;
+    }
+  } catch (e) {
+    console.warn(`[sync] ${label}: CountrySyncStatus update failed (${e.message})`);
+  }
+
   return { totalNew, totalUpdated };
 }
 

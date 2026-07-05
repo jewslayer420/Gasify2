@@ -5,6 +5,11 @@ const { priceFreshness } = require('./price_freshness');
 
 const VOLATILE_HOURS = 48;    // per-station gov APIs — prices move constantly
 const WEEKLY_HOURS = 288;     // 12d — national-avg / weekly sources
+// FuelPrice.updatedAt only moves when a price CHANGES, so slow-moving countries
+// (monthly Canada, an unchanged weekly bulletin) look "stale" despite healthy syncs.
+// When a CountrySyncStatus row shows the sync ran recently, only alert if prices
+// have been frozen past this sanity window (broken price parsing, not staleness).
+const PRICE_SANITY_HOURS = 45 * 24;
 
 // ISO-2 codes of the FAST (per-station) countries. UK stations are stored as 'GB'.
 const VOLATILE_CC = new Set([
@@ -20,9 +25,11 @@ function thresholdHoursFor(cc) {
   return VOLATILE_CC.has(cc) ? VOLATILE_HOURS : WEEKLY_HOURS;
 }
 
-// Pure: given auto DB rows + manual freshness list, return the stale entries.
-function classifyStale({ autoRows, manual, now = Date.now() }) {
+// Pure: given auto DB rows + manual freshness list + per-country last-sync rows,
+// return the stale entries.
+function classifyStale({ autoRows, manual, syncRows = [], now = Date.now() }) {
   const manualCCs = new Set(manual.map(m => m.cc));
+  const lastSyncByCc = new Map(syncRows.map(s => [s.country, s.lastSyncAt]));
   const stale = [];
 
   for (const r of autoRows) {
@@ -31,7 +38,16 @@ function classifyStale({ autoRows, manual, now = Date.now() }) {
     const thr = thresholdHoursFor(cc);
     if (thr === null) continue;                 // muted
     const ageH = r.last == null ? Infinity : (now - new Date(r.last).getTime()) / 3600000;
-    if (ageH > thr) stale.push({ cc, kind: 'auto', ageH });
+    const lastSync = lastSyncByCc.get(cc);
+    if (lastSync != null) {
+      // Sync tracking available: alert on the sync going quiet, or on prices
+      // frozen past the sanity window despite fresh syncs.
+      const syncAgeH = (now - new Date(lastSync).getTime()) / 3600000;
+      if (syncAgeH > thr) stale.push({ cc, kind: 'auto', ageH: syncAgeH });
+      else if (ageH > PRICE_SANITY_HOURS) stale.push({ cc, kind: 'auto', ageH });
+    } else if (ageH > thr) {
+      stale.push({ cc, kind: 'auto', ageH }); // legacy price-age fallback
+    }
   }
 
   for (const m of manual) {
@@ -61,11 +77,17 @@ async function computeStaleness(prisma, now = Date.now()) {
   } catch (e) {
     return { dbOk: false, stale: [], error: e.message };
   }
+  let syncRows = [];
+  try {
+    syncRows = await prisma.$queryRaw`SELECT country, "lastSyncAt" FROM "CountrySyncStatus"`;
+  } catch {
+    // table not created yet — legacy price-age logic still applies
+  }
   const manual = priceFreshness(now);
-  return { dbOk: true, stale: classifyStale({ autoRows, manual, now }) };
+  return { dbOk: true, stale: classifyStale({ autoRows, manual, syncRows, now }) };
 }
 
 module.exports = {
   thresholdHoursFor, classifyStale, formatStaleMessage, computeStaleness,
-  VOLATILE_CC, VOLATILE_HOURS, WEEKLY_HOURS, STALE_OVERRIDE,
+  VOLATILE_CC, VOLATILE_HOURS, WEEKLY_HOURS, PRICE_SANITY_HOURS, STALE_OVERRIDE,
 };
