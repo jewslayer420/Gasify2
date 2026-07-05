@@ -131,9 +131,10 @@ screen (Settings/About) listing at minimum:
 - **Per active country:** the source name from §2 (e.g. "France: Ministère de l'Économie — Licence Ouverte (Etalab)"; "Germany: Tankerkönig (MTS-K), CC BY 4.0").
 - Government "no official endorsement" disclaimers where required (France Etalab, EIA, etc.).
 
-The map's on-map attribution control was re-enabled in `frontend/app/map/MapView.js` (OSM + CARTO).
-A per-source credits screen is still **TODO** — recommended next step, and it can be data-driven
-from this file.
+✅ **DONE 2026-07-05:** in-app credits screen shipped at `/credits`
+(`frontend/app/credits/page.js`), data distilled from this file — **keep the two in sync when
+adding/changing sources**. The on-map attribution control in `MapView.js` credits OSM + MapTiler
+(CARTO only on the no-key dev fallback).
 
 ---
 
