@@ -73,6 +73,7 @@ with attribution + share-alike — the issue is the *free shared servers*.
 | **Albania** | Bordi i Transparencës max prices (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js`. ALL→EUR. Ex-fuelo (2026-06-18). |
 | **Switzerland** | National **market average** (**manual constant**) + OSM | Single published price *fact* (NOT regulated, NOT a DB scrape); stations ODbL | `regulated_manual.js`. CHF→EUR. Ex-fuelo (2026-06-18). ⚠️ Weakest legal basis of the set — a market avg, not an official price. Update monthly. |
 | **Bosnia & Herzegovina** | National **market average** (**manual constant**) + OSM | Single published price *fact* (no unified regulated price); stations ODbL | `regulated_manual.js`. BAM→EUR. Ex-fuelo (2026-06-18). Update monthly. |
+| **Kosovo** 🆕 | MINT ministerial max derivative prices (**manual constant**) + OSM | Regulated published fact; stations ODbL | `regulated_manual.js` (cc `XK`). EUR, no FX. MINT publishes new decisions every few days — update `asOf` ~weekly. Added 2026-07-05 (restores coverage lost in the NM migration); 639 OSM stations seeded. |
 
 > **Still-deferred candidates (blocked from our environment):** **Costa Rica** — RECOPE official table
 > (`recope.go.cr`) is **unreachable from our environment** (fetch fails even with TLS off) and the news

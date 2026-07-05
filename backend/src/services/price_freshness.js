@@ -16,6 +16,7 @@ const { sendPriceStaleAlert } = require('./email');
 const STALE_AFTER = {
   default: 45, DO: 21, EC: 40, KE: 40, UY: 45, KW: 150, SA: 120, BN: 365,
   RS: 21, ME: 21, AL: 21, CH: 30, BA: 30, // ex-fuelo European: RS/ME/AL weekly, CH/BA market
+  XK: 21, // Kosovo MINT publishes every few days; prices drift slowly
 };
 
 function asOfMs(asOf) {

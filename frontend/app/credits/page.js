@@ -64,6 +64,7 @@ const GROUPS = [
       { region: 'Montenegro', name: 'Ministry of Energy — price decrees', licence: 'Official published price' },
       { region: 'Albania', name: 'Bordi i Transparencës — maximum prices', licence: 'Official published price' },
       { region: 'North Macedonia', name: 'ERC — Energy Regulatory Commission', licence: 'Official published price', url: 'https://erc.org.mk' },
+      { region: 'Kosovo', name: 'MINT — ministerial maximum derivative prices', licence: 'Official published price' },
       { region: 'Switzerland', name: 'National average retail price (market)', licence: 'Published market average' },
       { region: 'Bosnia & Herzegovina', name: 'National average retail price (market)', licence: 'Published market average' },
     ],

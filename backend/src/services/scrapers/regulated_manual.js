@@ -75,6 +75,11 @@ const COUNTRIES = [
     asOf: '2026-06-12', source: 'Ecuador price-band scheme (per US gallon; band period to 11 Jul). Súper is deregulated (varies by station — suggested value).',
     prices: { sp95: 3.312 / GAL, sp98: 5.65 / GAL, diesel: 3.251 / GAL }, // USD/L (Extra/Ecopaís, Súper, Diésel)
   },
+  {
+    cc: 'XK', label: 'kosovo', currency: 'EUR', bbox: [41.8, 20.0, 43.3, 21.8],
+    asOf: '2026-07-05', source: 'Kosovo MINT ministerial decisions — maximum derivative prices (published every few days)',
+    prices: { sp95: 1.36, diesel: 1.41, lpg: 0.64 }, // EUR/L (benzina, nafta, gas)
+  },
   // ── Ex-fuelo.net European countries, migrated to clean sources 2026-06-18 ──
   {
     cc: 'RS', label: 'serbia', currency: 'RSD', bbox: [42.2, 18.8, 46.2, 23.1],
@@ -129,6 +134,7 @@ module.exports = {
   fetchBahrainStations: byCc.BH,
   fetchBruneiStations: byCc.BN,
   fetchEcuadorStations: byCc.EC,
+  fetchKosovoStations: byCc.XK,
   fetchSerbiaStations: byCc.RS,
   fetchMontenegroStations: byCc.ME,
   fetchAlbaniaStations: byCc.AL,

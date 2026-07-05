@@ -26,7 +26,7 @@ const SLOW = [
   'eubulletin', 'turkey', 'brazil', 'canada', 'usa', 'southafrica', 'thailand',
   'malaysia', 'newzealand', 'northmacedonia', 'serbia', 'bosnia', 'montenegro',
   'albania', 'switzerland', 'uae', 'saudiarabia', 'kenya', 'dominican', 'uruguay',
-  'qatar', 'kuwait', 'oman', 'bahrain', 'brunei', 'ecuador', 'argentina',
+  'qatar', 'kuwait', 'oman', 'bahrain', 'brunei', 'ecuador', 'kosovo', 'argentina',
 ];
 
 const mode = (process.argv[2] || 'all').toLowerCase();
