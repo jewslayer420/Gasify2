@@ -76,6 +76,11 @@ async function bulkUpsertStations(stations, label) {
     const batch = stations.slice(i, i + CHUNK);
     const stationRows = batch.map(({ prices, ...s }) => s);
 
+    // Sanity bounds (EUR/L): upstream feeds occasionally carry junk rows
+    // (UK £21.28/L, Italy €0.01) that pollute the map's colour scale. Legit
+    // extremes: subsidised Algerian diesel €0.20, Finnish sp98 €2.86.
+    for (const s of batch) s.prices = s.prices.filter(p => p.price >= 0.15 && p.price <= 3.5);
+
     await prisma.station.createMany({ data: stationRows, skipDuplicates: true });
 
     const saved = await prisma.station.findMany({

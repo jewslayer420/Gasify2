@@ -9,7 +9,7 @@ function getTag(xml, tag) {
 
 function mapFuelType(type) {
   const t = (type || '').toLowerCase().trim();
-  if (t === '95e10') return 'e10';
+  if (t === '95e10') return 'sp95'; // 95E10 IS Finland's standard 95 petrol — 'e10' hid it from the app's 95 view
   if (t === '98e5') return 'sp98';
   if (t === 'diesel') return 'diesel';
   if (t.includes('diesel+') || t.includes('dieselplus')) return 'diesel_premium';

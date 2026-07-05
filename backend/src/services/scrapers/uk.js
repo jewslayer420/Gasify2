@@ -12,7 +12,7 @@ const GBP_EUR      = 1.17;
 const UA           = 'Mozilla/5.0 (compatible; Gasify/1.0; +https://gasify.app)';
 
 const FUEL_MAP = {
-  E10:         'e10',
+  E10:         'sp95', // E10 IS the UK's standard 95 unleaded — 'e10' hid it from the app's 95 view
   E5:          'sp98',
   B7_STANDARD: 'diesel',
   B7_PREMIUM:  'diesel_premium',
