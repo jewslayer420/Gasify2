@@ -19,6 +19,7 @@ const STALE_AFTER = {
   XK: 21, // Kosovo MINT publishes every few days; prices drift slowly
   VN: 21, // Vietnam MOIT adjusts ~weekly
   EG: 120, MA: 30, TN: 90, // Egypt quarterly; Morocco biweekly market avg; Tunisia irregular
+  MD: 21, PK: 21, JP: 30, // Moldova ANRE daily; Pakistan OGRA fortnightly; Japan METI weekly avg
 };
 
 function asOfMs(asOf) {

@@ -27,7 +27,8 @@ const SLOW = [
   'malaysia', 'newzealand', 'northmacedonia', 'serbia', 'bosnia', 'montenegro',
   'albania', 'switzerland', 'uae', 'saudiarabia', 'kenya', 'dominican', 'uruguay',
   'qatar', 'kuwait', 'oman', 'bahrain', 'brunei', 'ecuador', 'kosovo',
-  'vietnam', 'egypt', 'jordan', 'tunisia', 'morocco', 'indonesia', 'india', 'argentina',
+  'vietnam', 'egypt', 'jordan', 'tunisia', 'morocco', 'indonesia', 'india',
+  'moldova', 'israel', 'pakistan', 'japan', 'argentina',
 ];
 
 const mode = (process.argv[2] || 'all').toLowerCase();

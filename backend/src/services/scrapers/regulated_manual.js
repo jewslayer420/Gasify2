@@ -106,6 +106,26 @@ const COUNTRIES = [
     prices: { sp95: 17000, sp98: 19300, diesel: 19700 }, // IDR/L (Pertamax Green 95, Pertamax Turbo, Dexlite)
   },
   {
+    cc: 'MD', label: 'moldova', currency: 'MDL', bbox: [45.4, 26.6, 48.5, 30.2],
+    asOf: '2026-07-03', source: 'Moldova ANRE daily maximum prices (benzina 95, motorina)',
+    prices: { sp95: 27.82, diesel: 24.79 }, // MDL/L
+  },
+  {
+    cc: 'IL', label: 'israel', currency: 'ILS', bbox: [29.4, 34.2, 33.4, 35.9],
+    asOf: '2026-07-01', source: 'Israel Ministry of Energy monthly regulated max price, 95 octane self-service incl. VAT (diesel is unregulated — omitted)',
+    prices: { sp95: 7.48 }, // ILS/L
+  },
+  {
+    cc: 'PK', label: 'pakistan', currency: 'PKR', bbox: [23.6, 60.8, 37.1, 77.8],
+    asOf: '2026-07-04', source: 'Pakistan OGRA-notified prices (fortnightly, uniform nationwide)',
+    prices: { sp95: 297.53, diesel: 309.50 }, // PKR/L (petrol, HSD)
+  },
+  {
+    cc: 'JP', label: 'japan', currency: 'JPY', bbox: [24.0, 122.9, 45.6, 146.0],
+    asOf: '2026-06-29', source: 'Japan METI weekly national average retail prices (official statistic; market — not regulated)',
+    prices: { sp95: 169.8, diesel: 152.74 }, // JPY/L (regular, keiyu)
+  },
+  {
     cc: 'IN', label: 'india', currency: 'INR', bbox: [6.5, 68.1, 35.7, 97.4],
     asOf: '2026-07-05', source: 'India OMC (IOCL/BPCL/HPCL) published prices, Delhi reference (revised daily; varies by state VAT)',
     prices: { sp95: 102.12, diesel: 95.20 }, // INR/L (petrol, diesel — Delhi)
@@ -177,6 +197,10 @@ module.exports = {
   fetchMoroccoStations: byCc.MA,
   fetchIndonesiaStations: byCc.ID,
   fetchIndiaStations: byCc.IN,
+  fetchMoldovaStations: byCc.MD,
+  fetchIsraelStations: byCc.IL,
+  fetchPakistanStations: byCc.PK,
+  fetchJapanStations: byCc.JP,
   fetchSerbiaStations: byCc.RS,
   fetchMontenegroStations: byCc.ME,
   fetchAlbaniaStations: byCc.AL,
