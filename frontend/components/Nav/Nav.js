@@ -22,6 +22,7 @@ export default function Nav() {
       <div className={styles.links}>
         <Link href="/map" className={styles.link}>Map</Link>
         <Link href="/news" className={styles.link}>News</Link>
+        <Link href="/credits" className={styles.link}>Credits</Link>
         {user && <Link href="/dashboard" className={styles.link}>Dashboard</Link>}
         {user
           ? <button className={`${styles.link} ${styles.loginBtn}`} onClick={handleLogout}>Logout</button>
