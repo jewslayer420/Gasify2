@@ -12,6 +12,9 @@ const FLAGS = {
   AU: '🇦🇺', IS: '🇮🇸', MX: '🇲🇽', TW: '🇹🇼',
   MY: '🇲🇾', TH: '🇹🇭', NZ: '🇳🇿', KR: '🇰🇷', CA: '🇨🇦',
   CL: '🇨🇱', BR: '🇧🇷', AR: '🇦🇷', US: '🇺🇸', ZA: '🇿🇦',
+  CY: '🇨🇾', MT: '🇲🇹', AE: '🇦🇪', SA: '🇸🇦', KE: '🇰🇪', DO: '🇩🇴', UY: '🇺🇾',
+  QA: '🇶🇦', KW: '🇰🇼', OM: '🇴🇲', BH: '🇧🇭', BN: '🇧🇳', EC: '🇪🇨',
+  VN: '🇻🇳', EG: '🇪🇬', JO: '🇯🇴', TN: '🇹🇳', MA: '🇲🇦', ID: '🇮🇩', IN: '🇮🇳',
 };
 
 const COUNTRY_NAMES = {
@@ -25,6 +28,10 @@ const COUNTRY_NAMES = {
   IS: 'Iceland', MX: 'Mexico', TW: 'Taiwan',
   MY: 'Malaysia', TH: 'Thailand', NZ: 'New Zealand', KR: 'South Korea', CA: 'Canada',
   CL: 'Chile', BR: 'Brazil', AR: 'Argentina', US: 'United States', ZA: 'South Africa',
+  CY: 'Cyprus', MT: 'Malta', AE: 'UAE', SA: 'Saudi Arabia', KE: 'Kenya',
+  DO: 'Dominican Rep.', UY: 'Uruguay', QA: 'Qatar', KW: 'Kuwait', OM: 'Oman',
+  BH: 'Bahrain', BN: 'Brunei', EC: 'Ecuador', VN: 'Vietnam', EG: 'Egypt',
+  JO: 'Jordan', TN: 'Tunisia', MA: 'Morocco', ID: 'Indonesia', IN: 'India',
 };
 
 export default function LandingPage() {
