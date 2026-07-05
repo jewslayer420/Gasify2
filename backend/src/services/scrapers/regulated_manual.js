@@ -76,6 +76,36 @@ const COUNTRIES = [
     prices: { sp95: 3.312 / GAL, sp98: 5.65 / GAL, diesel: 3.251 / GAL }, // USD/L (Extra/Ecopaís, Súper, Diésel)
   },
   {
+    cc: 'VN', label: 'vietnam', currency: 'VND', bbox: [8.4, 102.1, 23.4, 109.5],
+    asOf: '2026-07-02', source: 'Vietnam MOIT/MOF joint retail price decisions (adjusted ~weekly, Thursdays)',
+    prices: { sp95: 20415, diesel: 21176 }, // VND/L (E10 RON95-III, diesel 0.05S)
+  },
+  {
+    cc: 'EG', label: 'egypt', currency: 'EGP', bbox: [22.0, 24.7, 31.7, 36.9],
+    asOf: '2026-07', source: 'Egypt Ministry of Petroleum fuel pricing committee (quarterly; current since 2026-03-10)',
+    prices: { sp95: 22.25, sp98: 24, diesel: 20.5 }, // EGP/L (92-octane standard, 95-octane premium)
+  },
+  {
+    cc: 'JO', label: 'jordan', currency: 'JOD', bbox: [29.1, 34.9, 33.4, 39.3],
+    asOf: '2026-07', source: 'Jordan Fuel Pricing Committee monthly prices (July frozen at June rates)',
+    prices: { sp95: 1.310, diesel: 0.850 }, // JOD/L (Octane 95; Octane 90 omitted)
+  },
+  {
+    cc: 'TN', label: 'tunisia', currency: 'TND', bbox: [30.2, 7.5, 37.6, 11.6],
+    asOf: '2026-05', source: 'Tunisia Ministère de l\'Énergie state-set prices (adjusted irregularly)',
+    prices: { sp95: 2.53, diesel: 2.21 }, // TND/L (sans plomb, gasoil)
+  },
+  {
+    cc: 'MA', label: 'morocco', currency: 'MAD', bbox: [27.6, -13.2, 35.95, -0.9],
+    asOf: '2026-07-01', source: 'Morocco national AVERAGE pump price (market — liberalized since 2015; single published fact, updated biweekly)',
+    prices: { sp95: 13.84, diesel: 12.61 }, // MAD/L (essence super, gasoil)
+  },
+  {
+    cc: 'ID', label: 'indonesia', currency: 'IDR', bbox: [-11.0, 95.0, 6.1, 141.0],
+    asOf: '2026-07-01', source: 'Pertamina official published prices, DKI Jakarta reference (monthly)',
+    prices: { sp95: 17000, sp98: 19300, diesel: 19700 }, // IDR/L (Pertamax Green 95, Pertamax Turbo, Dexlite)
+  },
+  {
     cc: 'XK', label: 'kosovo', currency: 'EUR', bbox: [41.8, 20.0, 43.3, 21.8],
     asOf: '2026-07-05', source: 'Kosovo MINT ministerial decisions — maximum derivative prices (published every few days)',
     prices: { sp95: 1.36, diesel: 1.41, lpg: 0.64 }, // EUR/L (benzina, nafta, gas)
@@ -135,6 +165,12 @@ module.exports = {
   fetchBruneiStations: byCc.BN,
   fetchEcuadorStations: byCc.EC,
   fetchKosovoStations: byCc.XK,
+  fetchVietnamStations: byCc.VN,
+  fetchEgyptStations: byCc.EG,
+  fetchJordanStations: byCc.JO,
+  fetchTunisiaStations: byCc.TN,
+  fetchMoroccoStations: byCc.MA,
+  fetchIndonesiaStations: byCc.ID,
   fetchSerbiaStations: byCc.RS,
   fetchMontenegroStations: byCc.ME,
   fetchAlbaniaStations: byCc.AL,

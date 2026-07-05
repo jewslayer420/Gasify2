@@ -54,6 +54,8 @@ const {
   fetchUAEStations, fetchSaudiArabiaStations, fetchKenyaStations, fetchDominicanStations,
   fetchUruguayStations, fetchQatarStations, fetchKuwaitStations, fetchOmanStations, fetchBahrainStations,
   fetchBruneiStations, fetchEcuadorStations, fetchKosovoStations,
+  fetchVietnamStations, fetchEgyptStations, fetchJordanStations,
+  fetchTunisiaStations, fetchMoroccoStations, fetchIndonesiaStations,
   fetchSerbiaStations, fetchMontenegroStations, fetchAlbaniaStations, fetchSwitzerlandStations, fetchBosniaStations,
 } = require('./scrapers/regulated_manual');
 const { runPriceFreshnessCheck } = require('./price_freshness');
@@ -258,6 +260,12 @@ async function runNightlySlowSync() {
   await runSync('Brunei',    fetchBruneiStations);
   await runSync('Ecuador',   fetchEcuadorStations);
   await runSync('Kosovo',    fetchKosovoStations);
+  await runSync('Vietnam',   fetchVietnamStations);
+  await runSync('Egypt',     fetchEgyptStations);
+  await runSync('Jordan',    fetchJordanStations);
+  await runSync('Tunisia',   fetchTunisiaStations);
+  await runSync('Morocco',   fetchMoroccoStations);
+  await runSync('Indonesia', fetchIndonesiaStations);
   console.log('[sync] Nightly slow sync complete');
 }
 
@@ -366,6 +374,12 @@ const SCRAPERS = {
   brunei:         fetchBruneiStations,
   ecuador:        fetchEcuadorStations,
   kosovo:         fetchKosovoStations,
+  vietnam:        fetchVietnamStations,
+  egypt:          fetchEgyptStations,
+  jordan:         fetchJordanStations,
+  tunisia:        fetchTunisiaStations,
+  morocco:        fetchMoroccoStations,
+  indonesia:      fetchIndonesiaStations,
 };
 
 // ── fuelo.net cutover status ─────────────────────────────────────────────────
