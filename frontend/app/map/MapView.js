@@ -79,8 +79,6 @@ const pointLayer = {
   },
 };
 
-const COUNTRIES = ['SI', 'AT', 'FR', 'HU', 'DE', 'CZ', 'SK', 'NL', 'BE', 'CH', 'PL', 'RO', 'HR', 'RS', 'ES', 'IT', 'PT', 'LU', 'LI', 'AD', 'MC', 'BG', 'GR', 'CY', 'MT', 'BA', 'ME', 'MK', 'AL', 'XK', 'GB', 'DK', 'NO', 'SE', 'FI', 'IE', 'LV', 'LT', 'EE', 'TR', 'AU', 'IS', 'MX', 'TW', 'MY', 'TH', 'NZ', 'KR', 'CA', 'CL', 'BR', 'AR', 'US', 'ZA', 'AE', 'SA', 'KE', 'DO', 'UY', 'QA', 'KW', 'OM', 'BH', 'BN', 'EC'];
-
 const COUNTRY_CENTROIDS = {
   SI: { lng: 14.82, lat: 46.15 },
   AT: { lng: 14.55, lat: 47.60 },
@@ -155,6 +153,11 @@ const COUNTRY_CENTROIDS = {
   ID: { lng:  113.0, lat:  -2.0 },
   IN: { lng:   78.5, lat:  22.0 },
 };
+
+// Badge-eligible countries = everything with a centroid. Derived (not a separate
+// hand-maintained list) so newly added countries can't silently miss a badge —
+// countryTotals still gates rendering to countries that actually have stations.
+const COUNTRIES = Object.keys(COUNTRY_CENTROIDS);
 
 const COUNTRY_SCALE = { ES: 1.2, IT: 1.15, FR: 1.25, DE: 1.2, PL: 1.1, RO: 1.0, AT: 1.0, HU: 1.0, PT: 0.9, CZ: 0.95, NL: 0.85, SK: 0.8, BE: 0.8, CH: 0.75, HR: 0.75, SI: 0.65, RS: 0.7, LU: 0.5, LI: 0.35, AD: 0.35, MC: 0.3, BG: 0.8, GR: 1.0, CY: 0.5, MT: 0.35, BA: 0.75, ME: 0.5, MK: 0.55, AL: 0.55, XK: 0.4, GB: 1.2, DK: 0.8, NO: 1.1, SE: 1.2, FI: 1.1, IE: 0.75, LV: 0.75, LT: 0.75, EE: 0.65, TR: 1.4, AU: 1.8, IS: 0.7, MX: 1.4, TW: 0.6, MY: 1.1, TH: 1.1, NZ: 1.0, KR: 0.9, CA: 1.9, CL: 0.85, BR: 1.9, AR: 1.5, US: 2.2, ZA: 1.2, AE: 0.6, SA: 1.4, KE: 1.0, DO: 0.55, UY: 0.7, QA: 0.45, KW: 0.5, OM: 1.0, BH: 0.35, BN: 0.45, EC: 0.9, VN: 1.1, EG: 1.2, JO: 0.6, TN: 0.7, MA: 1.0, ID: 1.8, IN: 2.0 };
 
