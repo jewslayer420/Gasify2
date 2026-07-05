@@ -11,7 +11,7 @@ import styles from './map.module.css';
 // dev-only fallback (non-commercial — do not ship without the key).
 const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
 const MAP_STYLE = MAPTILER_KEY
-  ? `https://api.maptiler.com/maps/dataviz-dark/style.json?key=${MAPTILER_KEY}`
+  ? `https://api.maptiler.com/maps/basic-v2-dark/style.json?key=${MAPTILER_KEY}`
   : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
 const FUELS = [
