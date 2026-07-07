@@ -11,7 +11,7 @@ import styles from './map.module.css';
 // dev-only fallback (non-commercial — do not ship without the key).
 const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
 const MAP_STYLE = MAPTILER_KEY
-  ? `https://api.maptiler.com/maps/basic-v2-dark/style.json?key=${MAPTILER_KEY}`
+  ? `https://api.maptiler.com/maps/dataviz-light/style.json?key=${MAPTILER_KEY}`
   : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
 const FUELS = [
@@ -29,10 +29,10 @@ const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', 
 const COUNTRY_LABEL = { GB: 'UK' };
 
 function priceColor(p) {
-  if (!p) return '#4b5563';
-  if (p <= 1.60) return '#22c55e';
-  if (p <= 1.90) return '#f97316';
-  return '#ef4444';
+  if (!p) return '#9AA39E';
+  if (p <= 1.60) return '#1a9e6e';
+  if (p <= 1.90) return '#d98a1f';
+  return '#d64545';
 }
 
 // Heatmap — GPU-rendered density view at mid zoom
@@ -67,10 +67,10 @@ const pointLayer = {
   paint: {
     'circle-color': [
       'case',
-      ['<', ['get', 'price'], 0], '#4b5563',
-      ['<', ['get', 'price'], 1.60], '#22c55e',
-      ['<', ['get', 'price'], 1.90], '#f97316',
-      '#ef4444',
+      ['<', ['get', 'price'], 0], '#9AA39E',
+      ['<', ['get', 'price'], 1.60], '#1a9e6e',
+      ['<', ['get', 'price'], 1.90], '#d98a1f',
+      '#d64545',
     ],
     'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 12, 6, 15, 10],
     'circle-stroke-width': 1.5,
@@ -482,13 +482,13 @@ export default function MapView() {
               return (
                 <Marker key={country} longitude={lng} latitude={lat} anchor="center">
                   <div style={{
-                    background: '#1a1d2b',
-                    border: `${sz > 32 ? 2 : 1.5}px solid #22c55e`,
+                    background: '#FFFFFF',
+                    border: `${sz > 32 ? 2 : 1.5}px solid rgba(23,32,28,0.10)`,
                     borderRadius: '50%',
                     width: sz, height: sz,
                     display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center',
-                    color: '#e8eaf0',
+                    color: '#17201C',
                     fontSize: Math.max(6, sz * 0.2), fontWeight: 700,
                     pointerEvents: 'none',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
@@ -588,8 +588,8 @@ export default function MapView() {
                   <LineChart data={history} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
                     <XAxis dataKey="date" tick={{ fill: '#7b8099', fontSize: 10 }} />
                     <YAxis tick={{ fill: '#7b8099', fontSize: 10 }} domain={['auto', 'auto']} />
-                    <Tooltip contentStyle={{ background: '#1e2130', border: '1px solid #2a2d3e', borderRadius: 8, color: '#e8eaf0', fontSize: 12 }} />
-                    <Line type="monotone" dataKey="price" stroke="#22c55e" strokeWidth={2} dot={false} />
+                    <Tooltip contentStyle={{ background: '#FFFFFF', border: 'none', boxShadow: '0 4px 12px rgba(23,32,28,0.15)', borderRadius: 8, color: '#17201C', fontSize: 12 }} />
+                    <Line type="monotone" dataKey="price" stroke="#0F6B4F" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>

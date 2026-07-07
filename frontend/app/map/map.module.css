@@ -1,4 +1,4 @@
-.root {
+﻿.root {
   height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -6,7 +6,7 @@
   position: relative;
 }
 
-/* ── Controls ─────────────────────────────── */
+/* â”€â”€ Controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .controls {
   position: absolute;
   top: 12px;
@@ -25,7 +25,7 @@
   display: flex;
   background: rgba(30, 33, 48, 0.92);
   backdrop-filter: blur(8px);
-  border: 1px solid var(--border);
+  border: none; box-shadow: var(--shadow-1);
   border-radius: 10px;
   overflow-x: auto;
   overflow-y: hidden;
@@ -53,7 +53,7 @@
   display: flex;
   background: rgba(30, 33, 48, 0.92);
   backdrop-filter: blur(8px);
-  border: 1px solid var(--border);
+  border: none; box-shadow: var(--shadow-1);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -85,7 +85,7 @@
   display: flex;
   background: rgba(30, 33, 48, 0.92);
   backdrop-filter: blur(8px);
-  border: 1px solid var(--border);
+  border: none; box-shadow: var(--shadow-1);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -113,7 +113,7 @@
 }
 @keyframes pulse { 0%,100% { opacity:1; transform: scale(1); } 50% { opacity:0.4; transform: scale(0.7); } }
 
-/* ── Map layout ───────────────────────────── */
+/* â”€â”€ Map layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .mapWrap {
   flex: 1;
   display: flex;
@@ -123,7 +123,7 @@
 
 .map { flex: 1; min-width: 0; min-height: 0; position: relative; }
 
-/* ── Sidebar ──────────────────────────────── */
+/* â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sidebar {
   width: var(--panel-w);
   background: var(--bg);
@@ -153,7 +153,7 @@
   font-weight: 600;
   color: var(--text-muted);
   background: var(--bg-card);
-  border: 1px solid var(--border);
+  border: none; box-shadow: var(--shadow-1);
   border-radius: 6px;
   padding: 3px 8px;
 }
@@ -218,9 +218,10 @@
   font-weight: 800;
   flex-shrink: 0;
   letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
 }
 
-/* ── Detail panel ─────────────────────────── */
+/* â”€â”€ Detail panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .detailPanel {
   position: absolute;
   bottom: 0; left: 0; right: 0;
@@ -291,7 +292,7 @@
 
 .favBtn {
   background: none;
-  border: 1px solid var(--border);
+  border: none; box-shadow: var(--shadow-1);
   border-radius: 8px;
   padding: 5px 9px;
   font-size: 17px;
@@ -304,7 +305,7 @@
 
 .closeBtn {
   background: none;
-  border: 1px solid var(--border);
+  border: none; box-shadow: var(--shadow-1);
   border-radius: 8px;
   padding: 5px 9px;
   color: var(--text-muted);
@@ -320,7 +321,7 @@
   align-items: baseline;
   gap: 10px;
   background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  border: none; box-shadow: var(--shadow-1);
   border-radius: 10px;
   padding: 14px 16px;
   margin-bottom: 14px;
@@ -335,6 +336,7 @@
 }
 
 .detailPriceBig {
+  font-variant-numeric: tabular-nums;
   font-size: 1.9rem;
   font-weight: 800;
   line-height: 1;
@@ -357,7 +359,7 @@
 
 .priceChip {
   background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  border: none; box-shadow: var(--shadow-1);
   border-radius: 8px;
   padding: 7px 12px;
   display: flex;
@@ -367,13 +369,13 @@
   min-width: 64px;
 }
 .priceChipLabel { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-.priceChipVal { font-size: 0.88rem; font-weight: 800; }
+.priceChipVal { font-size: 0.88rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 /* Chart */
 .chartWrap {
   margin-top: 4px;
   background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  border: none; box-shadow: var(--shadow-1);
   border-radius: 10px;
   padding: 12px;
 }
@@ -394,3 +396,4 @@
 @media (max-width: 767px) {
   .sidebar { display: none; }
 }
+
