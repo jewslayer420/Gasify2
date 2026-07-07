@@ -1,4 +1,14 @@
-# Gasify UI Redesign — "Gasify Light" (approved 2026-07-07)
+# Gasify UI Redesign — spec (2026-07-07)
+
+> ⚠️ **DIRECTION CHANGE 2026-07-07 (after live review):** the user saw the editorial-light
+> Phase 1 live and chose **DARK**. Phase 1 was reverted (commit a932a14). The redesign
+> continues as **"Refined dark" (Linear-like)**: keep the existing dark canvas and dark
+> MapTiler style, apply the same discipline — one accent, crisp type scale, tabular
+> numerals for prices, soft shadows over hard borders (dark-tuned), restrained motion.
+> §2 (map screen flows), §3 (architecture), §4 (screens) and §5 (phases) are unchanged;
+> §1's *values* are superseded (dark tokens to be defined in the Phase 2 plan), its
+> *principles* stand. Theme changes must ship together with the component styling that
+> assumes them — a token flip alone breaks screens (learned live).
 
 **Goal:** the whole product (map, landing, news, credits, auth, dashboard) restyled to a
 prestige-simple, editorial-light design system (Apple-like). Kill the "AI-made dark map"
