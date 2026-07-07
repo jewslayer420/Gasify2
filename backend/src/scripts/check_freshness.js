@@ -5,8 +5,19 @@
 const prisma = require('../lib/prisma');
 const { computeStaleness, formatStaleMessage } = require('../services/freshness_monitor');
 const { sendTelegram } = require('../services/telegram');
+const { sendDiscord } = require('../services/discord');
 
 const dryRun = process.argv.includes('--dry-run');
+
+// Alert via whichever channels are configured (Discord webhook and/or Telegram).
+async function sendAlert(msg) {
+  let delivered = false;
+  try { delivered = await sendDiscord(msg) || delivered; }
+  catch (e) { console.error('[monitor] Discord send failed:', e.message); }
+  try { delivered = await sendTelegram(msg) || delivered; }
+  catch (e) { console.error('[monitor] Telegram send failed:', e.message); }
+  return delivered;
+}
 
 async function main() {
   const { dbOk, stale, error } = await computeStaleness(prisma);
@@ -14,7 +25,7 @@ async function main() {
   if (!dbOk) {
     const msg = `⚠️ Gasify monitor: DB unreachable — ${error}`;
     console.error(msg);
-    if (!dryRun) { try { await sendTelegram(msg); } catch (e) { console.error('[monitor] send failed:', e.message); } }
+    if (!dryRun) await sendAlert(msg);
     process.exitCode = 1;
     return;
   }
@@ -30,11 +41,9 @@ async function main() {
     console.log(`[dry-run] would send Telegram:\n${msg}`);
     return;
   }
-  try {
-    const sent = await sendTelegram(msg);
-    if (!sent) console.warn('[monitor] Telegram not configured — alert not delivered');
-  } catch (e) {
-    console.error('[monitor] Telegram send failed:', e.message);
+  const sent = await sendAlert(msg);
+  if (!sent) {
+    console.warn('[monitor] no alert channel configured (DISCORD_WEBHOOK_URL / TELEGRAM_*) — alert not delivered');
     process.exitCode = 1;
   }
 }
