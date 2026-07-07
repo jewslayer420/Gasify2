@@ -1,4 +1,4 @@
-.root {
+﻿.root {
   height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -6,7 +6,7 @@
   position: relative;
 }
 
-/* ── Controls ─────────────────────────────── */
+/* â”€â”€ Controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .controls {
   position: absolute;
   top: 12px;
@@ -23,10 +23,10 @@
 
 .fuelTabs {
   display: flex;
-  background: rgba(30, 33, 48, 0.92);
+  background: rgba(20, 23, 32, 0.88);
   backdrop-filter: blur(8px);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r); box-shadow: var(--shadow-1);
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
@@ -47,14 +47,14 @@
   flex-shrink: 0;
 }
 .fuelTab:hover { color: var(--text); background: var(--bg-secondary); }
-.fuelTabActive { background: var(--green) !important; color: #000 !important; }
+.fuelTabActive { background: var(--accent) !important; color: #08110D !important; }
 
 .searchForm {
   display: flex;
-  background: rgba(30, 33, 48, 0.92);
+  background: rgba(20, 23, 32, 0.88);
   backdrop-filter: blur(8px);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r); box-shadow: var(--shadow-1);
   overflow: hidden;
 }
 
@@ -70,8 +70,7 @@
 .searchInput::placeholder { color: var(--text-muted); }
 
 .searchBtn {
-  background: var(--green);
-  color: #000;
+  background: var(--accent); color: #08110D;
   border: none;
   padding: 8px 14px;
   font-weight: 700;
@@ -79,14 +78,14 @@
   cursor: pointer;
   transition: background 0.15s;
 }
-.searchBtn:hover { background: #16a34a; }
+.searchBtn:hover { filter: brightness(1.1); }
 
 .modeBtns {
   display: flex;
-  background: rgba(30, 33, 48, 0.92);
+  background: rgba(20, 23, 32, 0.88);
   backdrop-filter: blur(8px);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r); box-shadow: var(--shadow-1);
   overflow: hidden;
 }
 
@@ -113,7 +112,7 @@
 }
 @keyframes pulse { 0%,100% { opacity:1; transform: scale(1); } 50% { opacity:0.4; transform: scale(0.7); } }
 
-/* ── Map layout ───────────────────────────── */
+/* â”€â”€ Map layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .mapWrap {
   flex: 1;
   display: flex;
@@ -123,7 +122,7 @@
 
 .map { flex: 1; min-width: 0; min-height: 0; position: relative; }
 
-/* ── Sidebar ──────────────────────────────── */
+/* â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sidebar {
   width: var(--panel-w);
   background: var(--bg);
@@ -218,14 +217,15 @@
   font-weight: 800;
   flex-shrink: 0;
   letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
 }
 
-/* ── Detail panel ─────────────────────────── */
+/* â”€â”€ Detail panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .detailPanel {
   position: absolute;
   bottom: 0; left: 0; right: 0;
   background: var(--bg-card);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--border); box-shadow: var(--shadow-2);
   border-radius: var(--r) var(--r) 0 0;
   z-index: 900;
   height: var(--sheet-h, 360px);
@@ -335,6 +335,7 @@
 }
 
 .detailPriceBig {
+  font-variant-numeric: tabular-nums;
   font-size: 1.9rem;
   font-weight: 800;
   line-height: 1;
@@ -367,7 +368,7 @@
   min-width: 64px;
 }
 .priceChipLabel { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-.priceChipVal { font-size: 0.88rem; font-weight: 800; }
+.priceChipVal { font-size: 0.88rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 /* Chart */
 .chartWrap {
@@ -394,3 +395,4 @@
 @media (max-width: 767px) {
   .sidebar { display: none; }
 }
+
