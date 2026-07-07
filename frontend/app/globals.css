@@ -1,27 +1,20 @@
 :root {
-  /* Gasify Light — spec docs/superpowers/specs/2026-07-07-map-ui-redesign-design.md §1.
-     Old dark-theme variable names kept so every *.module.css consumer flips at once. */
-  --bg: #FAFAF8;            /* warm near-white canvas */
-  --bg-secondary: #F1F1EE;
-  --bg-card: #FFFFFF;       /* surfaces */
-  --surface: #FFFFFF;
-  --border: rgba(23, 32, 28, 0.08); /* hairline where a border exists today */
-  --text: #17201C;
-  --ink: #17201C;
-  --text-muted: #6B7671;
-  --accent: #0F6B4F;        /* the ONLY brand accent (actions + logo) */
-  --green: #1a9e6e;  --price-low: #1a9e6e;
-  --green-dim: #DCF2E9;
-  --orange: #d98a1f; --price-mid: #d98a1f;
-  --orange-dim: #F8ECD9;
-  --red: #d64545;    --price-high: #d64545;
-  --red-dim: #F9E3E3;
-  --blue: #2563eb;
-  --shadow-1: 0 1px 3px rgba(23, 32, 28, 0.06), 0 4px 16px rgba(23, 32, 28, 0.08);
-  --shadow-2: 0 4px 12px rgba(23, 32, 28, 0.10), 0 12px 32px rgba(23, 32, 28, 0.12);
+  --bg: #0f1117;
+  --bg-secondary: #1a1d27;
+  --bg-card: #1e2130;
+  --border: #2a2d3e;
+  --text: #e8eaf0;
+  --text-muted: #7b8099;
+  --green: #22c55e;
+  --green-dim: #166534;
+  --orange: #f97316;
+  --orange-dim: #7c2d12;
+  --red: #ef4444;
+  --red-dim: #7f1d1d;
+  --blue: #3b82f6;
   --panel-w: 380px;
   --peek-h: 120px;
-  --r: 16px;
+  --r: 12px;
   --nav-h: 56px;
 }
 
@@ -39,9 +32,6 @@ html, body {
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; font-family: inherit; }
 input { font-family: inherit; }
-
-/* Prices always align like a financial product */
-.tabular { font-variant-numeric: tabular-nums; }
 
 /* MapLibre GL overrides */
 .maplibregl-canvas { outline: none; }
