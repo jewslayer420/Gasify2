@@ -181,6 +181,9 @@ export default function MapView() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [favorites, setFavorites] = useState(new Set());
   const [userPos, setUserPos] = useState(null);
+  const [winner, setWinner] = useState(null);   // cheapest-near-me highlighted station
+  const [ctaBusy, setCtaBusy] = useState(false);
+  const [ctaMsg, setCtaMsg] = useState(null);
   const [citySearch, setCitySearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('bbox');
@@ -331,6 +334,42 @@ export default function MapView() {
     setSidebarStations(near);
   }
 
+  // One-click value prop: locate → rank nearby by price → crown the winner.
+  function cheapestNearMe() {
+    setCtaMsg(null);
+    const run = pos => {
+      setMode('near');
+      modeRef.current = 'near';
+      const { lat, lng } = pos;
+      const near = allStations.current
+        .map(s => {
+          const dx = (s.lat - lat) * 111.32;
+          const dy = (s.lng - lng) * 111.32 * Math.cos(lat * Math.PI / 180);
+          return { ...s, distance: Math.round(Math.sqrt(dx * dx + dy * dy) * 10) / 10 };
+        })
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 50);
+      setSidebarStations(near);
+      mapRef.current?.flyTo({ center: [lng, lat], zoom: 12.5, duration: 900 });
+      const cheapest = near.slice(0, 25).filter(s => s.price)
+        .sort((a, b) => a.price - b.price)[0];
+      if (cheapest) {
+        setWinner(cheapest);
+        handleSelectStation(cheapest);
+      } else {
+        setCtaMsg('No priced stations found nearby');
+      }
+      setCtaBusy(false);
+    };
+    if (userPos) { run(userPos); return; }
+    setCtaBusy(true);
+    navigator.geolocation.getCurrentPosition(
+      p => { const pos = { lat: p.coords.latitude, lng: p.coords.longitude }; setUserPos(pos); run(pos); },
+      () => { setCtaBusy(false); setCtaMsg('Location denied — allow location access to find the cheapest station near you'); },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
   function handleBboxMode() {
     setMode('bbox');
     modeRef.current = 'bbox';
@@ -406,22 +445,28 @@ export default function MapView() {
   return (
     <div className={styles.root}>
       <div className={styles.controls}>
-        <div className={styles.fuelTabs}>
-          {FUELS.map(f => (
-            <button key={f.key} className={`${styles.fuelTab} ${fuel === f.key ? styles.fuelTabActive : ''}`} onClick={() => setFuel(f.key)}>
-              {f.label}
-            </button>
-          ))}
+        <div className={styles.commandBar}>
+          <form onSubmit={handleCitySearch} className={styles.searchForm}>
+            <input className={styles.searchInput} placeholder="Search city…" value={citySearch} onChange={e => setCitySearch(e.target.value)} />
+            <button className={styles.searchBtn} type="submit">Go</button>
+          </form>
+          <div className={styles.fuelTabs}>
+            {FUELS.map(f => (
+              <button key={f.key} className={`${styles.fuelTab} ${fuel === f.key ? styles.fuelTabActive : ''}`} onClick={() => setFuel(f.key)}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <button className={styles.ctaBtn} onClick={cheapestNearMe} disabled={ctaBusy}>
+            {ctaBusy ? 'Locating…' : '⛽ Cheapest near me'}
+          </button>
+          {loading && <div className={styles.loadingDot} />}
         </div>
-        <form onSubmit={handleCitySearch} className={styles.searchForm}>
-          <input className={styles.searchInput} placeholder="Search city…" value={citySearch} onChange={e => setCitySearch(e.target.value)} />
-          <button className={styles.searchBtn} type="submit">Go</button>
-        </form>
         <div className={styles.modeBtns}>
           <button className={`${styles.modeBtn} ${mode === 'bbox' ? styles.modeBtnActive : ''}`} onClick={handleBboxMode}>Map view</button>
           <button className={`${styles.modeBtn} ${mode === 'near' ? styles.modeBtnActive : ''}`} onClick={handleNearMe} disabled={!userPos}>Near me</button>
         </div>
-        {loading && <div className={styles.loadingDot} />}
+        {ctaMsg && <div className={styles.toast}>{ctaMsg}</div>}
       </div>
 
       <div className={styles.mapWrap}>
@@ -462,6 +507,17 @@ export default function MapView() {
                   : '© <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>',
               ]}
             />
+            {winner && (
+              <Marker longitude={winner.lng} latitude={winner.lat} anchor="center">
+                <div style={{
+                  width: 28, height: 28, borderRadius: '50%',
+                  background: '#141720', border: '3px solid #37D3A0',
+                  boxShadow: '0 0 0 5px rgba(55,211,160,0.22), 0 4px 12px rgba(0,0,0,0.5)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 13, zIndex: 5,
+                }}>⭐</div>
+              </Marker>
+            )}
             {userPos && (
               <Marker longitude={userPos.lng} latitude={userPos.lat} anchor="center">
                 <div style={{

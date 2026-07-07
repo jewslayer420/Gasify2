@@ -396,3 +396,59 @@
   .sidebar { display: none; }
 }
 
+
+/* ── Command bar (phase 2a) ─────────────────── */
+.commandBar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(20, 23, 32, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 6px;
+  box-shadow: var(--shadow-2);
+  margin: 0 auto;
+  max-width: 94vw;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.commandBar::-webkit-scrollbar { display: none; }
+.commandBar .fuelTabs,
+.commandBar .searchForm {
+  background: none;
+  border: none;
+  box-shadow: none;
+  border-radius: 999px;
+}
+.commandBar .searchInput { width: 130px; }
+
+.ctaBtn {
+  background: var(--accent);
+  color: #08110D;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-weight: 800;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: filter 0.15s;
+}
+.ctaBtn:hover { filter: brightness(1.1); }
+.ctaBtn:disabled { opacity: 0.6; cursor: wait; }
+
+.toast {
+  position: absolute;
+  top: 54px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  color: var(--text);
+  padding: 8px 16px;
+  border-radius: 999px;
+  box-shadow: var(--shadow-2);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  z-index: 1001;
+}
