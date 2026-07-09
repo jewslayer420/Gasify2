@@ -429,6 +429,70 @@
   letter-spacing: 0.07em;
 }
 
+/* Forecourt price totem (phase 2c): station fuels as a real price sign */
+.priceBoard {
+  background: #07090D;
+  border: 2px solid #232838;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.7), var(--shadow-1);
+}
+.boardHeader {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--text);
+  background: #10131B;
+  padding: 8px 12px;
+  border-bottom: 1px solid #232838;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.boardRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(35, 40, 56, 0.6);
+}
+.boardRow:last-of-type { border-bottom: none; }
+.boardFuel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.boardPrice {
+  font-family: Consolas, 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #FFB84D;
+  text-shadow: 0 0 10px rgba(255, 184, 77, 0.45), 0 0 2px rgba(255, 184, 77, 0.8);
+}
+.boardRowActive { background: rgba(55, 211, 160, 0.07); }
+.boardRowActive .boardFuel { color: var(--accent); }
+.boardRowActive .boardPrice {
+  color: #37D3A0;
+  text-shadow: 0 0 10px rgba(55, 211, 160, 0.5), 0 0 2px rgba(55, 211, 160, 0.9);
+}
+.boardFooter {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  background: #10131B;
+  border-top: 1px solid #232838;
+  padding: 6px 12px;
+}
+
 .detailPriceBig {
   font-variant-numeric: tabular-nums;
   font-size: 1.9rem;

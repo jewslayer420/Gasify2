@@ -713,29 +713,29 @@ export default function MapView() {
               </div>
             </div>
 
-            <div className={styles.detailPriceHero}>
-              <span className={styles.detailFuelLabel}>{FUELS.find(f => f.key === fuel)?.label ?? fuel}</span>
-              <span className={styles.detailPriceBig} style={{ color: priceColor(selectedPrice) }}>
-                {selectedPrice ? `€${selectedPrice.toFixed(3)}` : '—'}
-              </span>
-              {selected.updatedAt && relAgo(selected.updatedAt) && (
-                <span className={styles.detailDistance}>Updated {relAgo(selected.updatedAt)}</span>
-              )}
-              {selected.distance != null && (
-                <span className={styles.detailDistance}>{selected.distance} km away</span>
-              )}
-            </div>
-
-            {selected.allPrices && Object.keys(selected.allPrices).length > 1 && (
-              <div className={styles.allPrices}>
-                {Object.entries(selected.allPrices).filter(([ft]) => ft !== fuel).map(([ft, p]) => (
-                  <div key={ft} className={styles.priceChip}>
-                    <span className={styles.priceChipLabel}>{FUELS.find(f => f.key === ft)?.label ?? ft}</span>
-                    <span className={styles.priceChipVal} style={{ color: priceColor(p) }}>€{p.toFixed(3)}</span>
-                  </div>
-                ))}
+            {/* Forecourt price totem: the station's fuels as a real price sign */}
+            <div className={styles.priceBoard}>
+              <div className={styles.boardHeader}>{(selected.brand || selected.name || '').toUpperCase()}</div>
+              {FUELS
+                .filter(f => (selected.allPrices?.[f.key] != null) || f.key === fuel)
+                .map(f => {
+                  const p = selected.allPrices?.[f.key] ?? (f.key === fuel ? selectedPrice : null);
+                  const active = f.key === fuel;
+                  return (
+                    <div key={f.key} className={`${styles.boardRow} ${active ? styles.boardRowActive : ''}`}>
+                      <span className={styles.boardFuel}>{f.label}</span>
+                      <span className={styles.boardPrice}>{p != null ? p.toFixed(3) : '-.---'}</span>
+                    </div>
+                  );
+                })}
+              <div className={styles.boardFooter}>
+                <span>EUR / LITRE</span>
+                <span>
+                  {selected.updatedAt && relAgo(selected.updatedAt) ? `UPDATED ${relAgo(selected.updatedAt).toUpperCase()}` : ''}
+                  {selected.distance != null ? ` · ${selected.distance} KM` : ''}
+                </span>
               </div>
-            )}
+            </div>
 
             {loadingHistory && <div className={styles.histSpinner} />}
             {!loadingHistory && history.length > 1 && (
