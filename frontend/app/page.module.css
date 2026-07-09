@@ -199,32 +199,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Closing statement */
-.closing {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 48px 24px 104px;
-  text-align: center;
-}
-.closingLine {
-  font-size: clamp(1.6rem, 4vw, 2.2rem);
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  margin-bottom: 14px;
-}
-.closingSub {
-  font-size: 0.95rem;
-  color: var(--text-muted);
-  line-height: 1.7;
-}
-.closingLink {
-  color: var(--text);
-  font-weight: 700;
-  border-bottom: 1px solid var(--text-muted);
-  transition: border-color 0.15s;
-}
-.closingLink:hover { border-color: var(--text); }
-
 /* Footer */
 .footer {
   border-top: 1px solid var(--border);
@@ -253,6 +227,12 @@
   font-size: 0.72rem;
   color: var(--text-muted);
   opacity: 0.75;
-  line-height: 1.6;
+  line-height: 1.7;
   max-width: 560px;
 }
+.footerNoteLink {
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.footerNoteLink:hover { color: var(--text); }

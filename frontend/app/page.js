@@ -111,15 +111,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className={styles.closing}>
-        <p className={styles.closingLine}>Official sources only.</p>
-        <p className={styles.closingSub}>
-          Every price comes from a government ministry, an energy regulator or a state oil
-          company — never scraped from other apps.{' '}
-          <Link href="/credits" className={styles.closingLink}>See every source</Link>
-        </p>
-      </section>
-
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <span className={styles.footerBrand}>Gasify<span className={styles.footerDot}>.</span></span>
@@ -130,7 +121,9 @@ export default function LandingPage() {
             <Link href="/auth/login">Login</Link>
           </div>
           <span className={styles.footerNote}>
-            Prices from official government and regulator sources · Map data © OpenStreetMap contributors · © MapTiler
+            Official sources only — every price comes from a government ministry, energy regulator
+            or state oil company. <Link href="/credits" className={styles.footerNoteLink}>See every source</Link>
+            <br />Map data © OpenStreetMap contributors · © MapTiler
           </span>
         </div>
       </footer>
