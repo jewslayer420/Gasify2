@@ -3,7 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 import Map, { Marker, AttributionControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { getStationsGeoJSON, getStation, getStationHistory, geocodeCity, addFavorite, removeFavorite, getFavorites, getCountryCounts } from '../../lib/api';
+import { getStationsGeoJSON, getStation, getStationHistory, geocodeCity, addFavorite, removeFavorite, getFavorites, getCountryCounts, getCountryMeta } from '../../lib/api';
+import { COUNTRY_NAMES } from '../../lib/countries';
 import { useUser } from '../../lib/context/UserContext';
 import styles from './map.module.css';
 
@@ -27,6 +28,15 @@ const FUELS = [
 
 const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', DE: '🇩🇪', CZ: '🇨🇿', SK: '🇸🇰', NL: '🇳🇱', BE: '🇧🇪', CH: '🇨🇭', PL: '🇵🇱', RO: '🇷🇴', HR: '🇭🇷', RS: '🇷🇸', ES: '🇪🇸', IT: '🇮🇹', PT: '🇵🇹', LU: '🇱🇺', LI: '🇱🇮', AD: '🇦🇩', MC: '🇲🇨', BG: '🇧🇬', GR: '🇬🇷', CY: '🇨🇾', MT: '🇲🇹', BA: '🇧🇦', ME: '🇲🇪', MK: '🇲🇰', AL: '🇦🇱', XK: '🇽🇰', GB: '🇬🇧', DK: '🇩🇰', NO: '🇳🇴', SE: '🇸🇪', FI: '🇫🇮', IE: '🇮🇪', LV: '🇱🇻', LT: '🇱🇹', EE: '🇪🇪', TR: '🇹🇷', AU: '🇦🇺', IS: '🇮🇸', MX: '🇲🇽', TW: '🇹🇼', MY: '🇲🇾', TH: '🇹🇭', NZ: '🇳🇿', KR: '🇰🇷', CA: '🇨🇦', CL: '🇨🇱', BR: '🇧🇷', AR: '🇦🇷', US: '🇺🇸', ZA: '🇿🇦', AE: '🇦🇪', SA: '🇸🇦', KE: '🇰🇪', DO: '🇩🇴', UY: '🇺🇾', QA: '🇶🇦', KW: '🇰🇼', OM: '🇴🇲', BH: '🇧🇭', BN: '🇧🇳', EC: '🇪🇨', VN: '🇻🇳', EG: '🇪🇬', JO: '🇯🇴', TN: '🇹🇳', MA: '🇲🇦', ID: '🇮🇩', IN: '🇮🇳', MD: '🇲🇩', IL: '🇮🇱', PK: '🇵🇰', JP: '🇯🇵', BD: '🇧🇩', LK: '🇱🇰', NP: '🇳🇵', CR: '🇨🇷', PA: '🇵🇦', AZ: '🇦🇿', DZ: '🇩🇿' };
 const COUNTRY_LABEL = { GB: 'UK' };
+
+// Compact relative age for the detail card honesty line
+function relAgo(iso) {
+  const h = (Date.now() - new Date(iso).getTime()) / 3600000;
+  if (!isFinite(h) || h < 0) return null;
+  if (h < 1) return 'less than an hour ago';
+  if (h < 48) return `${Math.round(h)}h ago`;
+  return `${Math.round(h / 24)} days ago`;
+}
 
 function priceColor(p) {
   if (!p) return '#5A6072';
@@ -182,6 +192,8 @@ export default function MapView() {
   const [favorites, setFavorites] = useState(new Set());
   const [userPos, setUserPos] = useState(null);
   const [winner, setWinner] = useState(null);   // cheapest-near-me highlighted station
+  const [countryMeta, setCountryMeta] = useState([]); // league/lens data per fuel
+  const [mapCenter, setMapCenter] = useState({ lng: 15, lat: 50 });
   const [ctaBusy, setCtaBusy] = useState(false);
   const [ctaMsg, setCtaMsg] = useState(null);
   const [citySearch, setCitySearch] = useState('');
@@ -211,6 +223,11 @@ export default function MapView() {
   useEffect(() => {
     getCountryCounts().then(setCountryTotals).catch(() => {});
   }, []);
+
+  // League/lens data refreshes when the fuel changes (backend caches 10 min)
+  useEffect(() => {
+    getCountryMeta(fuel).then(setCountryMeta).catch(() => {});
+  }, [fuel]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -442,6 +459,23 @@ export default function MapView() {
   // Fall back to station.price (loaded with initial GeoJSON) until allPrices arrives from getStation
   const selectedPrice = selected ? (selected.allPrices?.[fuel] ?? selected.price ?? null) : null;
 
+  // Country lens: when zoomed in, the country whose centroid is nearest the map
+  // centre. (Deriving it from visible stations biased toward the cheapest
+  // neighbour, since the sidebar list is price-sorted.)
+  let lens = null;
+  if (!showCountryBadges && countryMeta.length) {
+    let bestD = Infinity;
+    for (const m of countryMeta) {
+      const c = COUNTRY_CENTROIDS[m.country];
+      if (!c) continue;
+      const dx = c.lat - mapCenter.lat;
+      const dy = (c.lng - mapCenter.lng) * Math.cos(mapCenter.lat * Math.PI / 180);
+      const d = dx * dx + dy * dy;
+      if (d < bestD) { bestD = d; lens = m; }
+    }
+  }
+  const lensFuels = lens?.fuels ?? null;
+
   return (
     <div className={styles.root}>
       <div className={styles.controls}>
@@ -452,7 +486,13 @@ export default function MapView() {
           </form>
           <div className={styles.fuelTabs}>
             {FUELS.map(f => (
-              <button key={f.key} className={`${styles.fuelTab} ${fuel === f.key ? styles.fuelTabActive : ''}`} onClick={() => setFuel(f.key)}>
+              <button
+                key={f.key}
+                className={`${styles.fuelTab} ${fuel === f.key ? styles.fuelTabActive : ''}`}
+                onClick={() => setFuel(f.key)}
+                disabled={!!lensFuels && !lensFuels.includes(f.key) && fuel !== f.key}
+                title={lensFuels && !lensFuels.includes(f.key) ? `Not offered in ${COUNTRY_NAMES[lens.country] ?? lens.country}` : undefined}
+              >
                 {f.label}
               </button>
             ))}
@@ -484,7 +524,7 @@ export default function MapView() {
               }
             }}
             onLoad={handleMapLoad}
-            onMoveEnd={handleMoveEnd}
+            onMoveEnd={e => { setMapCenter({ lng: e.viewState.longitude, lat: e.viewState.latitude }); handleMoveEnd(e); }}
             onClick={handleMapClick}
             onMouseEnter={e => { e.target.getCanvas().style.cursor = 'pointer'; }}
             onMouseLeave={e => { e.target.getCanvas().style.cursor = ''; }}
@@ -560,6 +600,56 @@ export default function MapView() {
         </div>
 
         <div className={styles.sidebar}>
+          {showCountryBadges ? (
+            /* Zoomed out: the 63-country league table for the selected fuel */
+            <>
+              <div className={styles.sidebarHeader}>
+                <span className={styles.sidebarCount}>Cheapest countries</span>
+                <span className={styles.sidebarFuel}>{FUELS.find(f => f.key === fuel)?.label}</span>
+              </div>
+              <div className={styles.stationList}>
+                {countryMeta
+                  .filter(m => m.median != null && COUNTRY_CENTROIDS[m.country])
+                  .sort((a, b) => a.median - b.median)
+                  .map((m, i) => (
+                    <button
+                      key={m.country}
+                      className={styles.stationRow}
+                      onClick={() => {
+                        const c = COUNTRY_CENTROIDS[m.country];
+                        mapRef.current?.flyTo({ center: [c.lng, c.lat], zoom: 6.6, duration: 1200 });
+                      }}
+                    >
+                      <div className={styles.stationRowRank}>{i + 1}</div>
+                      <div className={styles.stationRowBody}>
+                        <div className={styles.stationRowName}>{FLAGS[m.country] ?? ''} {COUNTRY_NAMES[m.country] ?? m.country}</div>
+                        <div className={styles.stationRowCity}>{m.stations.toLocaleString()} stations</div>
+                      </div>
+                      <div className={styles.stationRowPrice} style={{ color: priceColor(m.median) }}>
+                        €{m.median.toFixed(3)}
+                      </div>
+                    </button>
+                  ))}
+              </div>
+            </>
+          ) : (
+          <>
+          {lens && (
+            <div className={styles.lens}>
+              <div className={styles.lensTitle}>{FLAGS[lens.country] ?? ''} {COUNTRY_NAMES[lens.country] ?? lens.country}</div>
+              <div className={styles.lensStats}>
+                {lens.median != null && (
+                  <span>National median <b style={{ color: priceColor(lens.median) }}>€{lens.median.toFixed(3)}</b></span>
+                )}
+                <span>{lens.stations.toLocaleString()} stations</span>
+              </div>
+              <div className={styles.lensFuels}>
+                {FUELS.filter(f => lens.fuels?.includes(f.key)).map(f => (
+                  <span key={f.key} className={styles.lensFuel}>{f.label}</span>
+                ))}
+              </div>
+            </div>
+          )}
           <div className={styles.sidebarHeader}>
             <span className={styles.sidebarCount}>{sidebarStations.length} stations</span>
             <span className={styles.sidebarFuel}>{FUELS.find(f => f.key === fuel)?.label}</span>
@@ -584,6 +674,8 @@ export default function MapView() {
               </button>
             ))}
           </div>
+          </>
+          )}
         </div>
       </div>
 
@@ -603,6 +695,12 @@ export default function MapView() {
                 <div className={styles.detailCity}>{FLAGS[selected.country] ?? selected.country} {selected.city} · {COUNTRY_LABEL[selected.country] ?? selected.country}</div>
               </div>
               <div className={styles.detailActions}>
+                <a
+                  className={styles.closeBtn}
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`}
+                  target="_blank" rel="noopener noreferrer"
+                  title="Directions"
+                >➤</a>
                 {user && (
                   <button
                     className={`${styles.favBtn} ${favorites.has(selected.id) ? styles.favBtnActive : ''}`}
@@ -620,6 +718,9 @@ export default function MapView() {
               <span className={styles.detailPriceBig} style={{ color: priceColor(selectedPrice) }}>
                 {selectedPrice ? `€${selectedPrice.toFixed(3)}` : '—'}
               </span>
+              {selected.updatedAt && relAgo(selected.updatedAt) && (
+                <span className={styles.detailDistance}>Updated {relAgo(selected.updatedAt)}</span>
+              )}
               {selected.distance != null && (
                 <span className={styles.detailDistance}>{selected.distance} km away</span>
               )}

@@ -48,6 +48,8 @@
   flex-shrink: 0;
 }
 .fuelTab:hover { color: var(--text); background: var(--bg-secondary); }
+.fuelTab:disabled { opacity: 0.32; cursor: not-allowed; }
+.fuelTab:disabled:hover { background: none; color: var(--text-muted); }
 .fuelTabActive { background: var(--accent) !important; color: #08110D !important; }
 
 .searchForm {
@@ -220,6 +222,33 @@
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 3px 8px;
+}
+
+/* Country lens: national context card when zoomed into one country */
+.lens {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+.lensTitle { font-size: 0.95rem; font-weight: 800; margin-bottom: 4px; }
+.lensStats {
+  display: flex;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.lensFuels { display: flex; gap: 4px; flex-wrap: wrap; }
+.lensFuel {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
 }
 
 .stationList {

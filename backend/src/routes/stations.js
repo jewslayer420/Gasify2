@@ -40,6 +40,38 @@ router.get('/counts', async (req, res) => {
   }
 });
 
+// GET /api/stations/country-meta?fuel=diesel — per-country league/lens data:
+// station count, median price for the fuel (sanity-bounded), offered fuel types.
+const VALID_FUELS = ['diesel', 'diesel_premium', 'sp95', 'sp98', 'sp100', 'e10', 'lpg', 'cng'];
+const countryMetaCache = new Map(); // fuel -> { data, expiresAt }
+router.get('/country-meta', async (req, res) => {
+  const fuel = req.query.fuel || 'diesel';
+  if (!VALID_FUELS.includes(fuel)) return res.status(400).json({ error: 'Unknown fuel' });
+  const cached = countryMetaCache.get(fuel);
+  if (cached && cached.expiresAt > Date.now()) return res.json(cached.data);
+  try {
+    const rows = await prisma.$queryRaw`
+      SELECT s.country,
+        COUNT(DISTINCT s.id)::int AS stations,
+        percentile_cont(0.5) WITHIN GROUP (ORDER BY fp.price)
+          FILTER (WHERE fp."fuelType" = ${fuel} AND fp.price >= 0.15 AND fp.price <= 3.5) AS median,
+        ARRAY_AGG(DISTINCT fp."fuelType") AS fuels
+      FROM "Station" s JOIN "FuelPrice" fp ON fp."stationId" = s.id
+      GROUP BY s.country`;
+    const data = rows.map(r => ({
+      country: r.country,
+      stations: r.stations,
+      median: r.median == null ? null : Math.round(Number(r.median) * 1000) / 1000,
+      fuels: r.fuels,
+    }));
+    countryMetaCache.set(fuel, { data, expiresAt: Date.now() + 10 * 60 * 1000 });
+    res.json(data);
+  } catch (err) {
+    console.error('[country-meta]', err.message);
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
 const GEOJSON_CHUNK = 20000; // rows per DB page — bounds peak memory
 
 // Build the whole-world GeoJSON for a fuel type without ever holding the full

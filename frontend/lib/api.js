@@ -25,6 +25,12 @@ export async function getCountryCounts() {
   return res.json();
 }
 
+export async function getCountryMeta(fuel = 'diesel') {
+  const res = await fetch(`${BASE}/api/stations/country-meta?fuel=${fuel}`);
+  if (!res.ok) return [];
+  return res.json(); // [{ country, stations, median, fuels }]
+}
+
 export async function geocodeCity(city) {
   const res = await fetch(`${BASE}/api/stations/geocode?city=${encodeURIComponent(city)}`);
   if (!res.ok) return null;
