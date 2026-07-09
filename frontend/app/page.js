@@ -65,58 +65,36 @@ export default function LandingPage() {
     <main className={styles.landing}>
       <section className={styles.hero}>
         <div className={styles.heroContent}>
-          <span className={styles.badge}>
-            {covered.length > 0 ? `${covered.length} countries · ${totalStations.toLocaleString()}+ stations` : 'Real-time fuel prices worldwide'}
-          </span>
-          <h1 className={styles.headline}>
-            Find the <span className={styles.accent}>cheapest fuel</span><br />near you
-          </h1>
+          <h1 className={styles.headline}>Every station.<br />One map.</h1>
           <p className={styles.sub}>
-            Real-time prices from gas stations across Europe, Australia, Mexico and more — no account required.
+            Live fuel prices from {totalStations ? `${Math.round(totalStations / 1000).toLocaleString()},000+` : 'hundreds of thousands of'} stations
+            in {covered.length || 'dozens of'} countries — straight from official sources.
           </p>
           <div className={styles.cta}>
             <Link href="/map" className={styles.btnPrimary}>Open the map</Link>
-            <Link href="/auth/register" className={styles.btnSecondary}>Create account</Link>
-          </div>
-
-          <div className={styles.statStrip}>
-            <div className={styles.stat}>
-              <span className={styles.statNum}>{covered.length || '—'}</span>
-              <span className={styles.statLabel}>Countries</span>
-            </div>
-            <div className={styles.stat}>
-              <span className={styles.statNum}>{totalStations ? `${Math.round(totalStations / 1000)}k+` : '—'}</span>
-              <span className={styles.statLabel}>Stations</span>
-            </div>
-            <div className={styles.stat}>
-              <span className={styles.statNum}>6h</span>
-              <span className={styles.statLabel}>Refresh cycle</span>
-            </div>
+            <Link href="/auth/register" className={styles.linkQuiet}>Create an account →</Link>
           </div>
         </div>
-      </section>
 
-      {league.length > 0 && (
-        <section className={styles.countries}>
-          <div className={styles.kicker}>Live ranking</div>
-          <h2 className={styles.countriesTitle}>Cheapest diesel right now</h2>
-          <div className={styles.leagueList}>
-            {league.map((m, i) => (
-              <Link key={m.country} href="/map" className={styles.leagueRow}>
-                <span className={styles.leagueRank}>{i + 1}</span>
-                <span className={styles.leagueFlag}>{FLAGS[m.country]}</span>
-                <span className={styles.leagueName}>{COUNTRY_NAMES[m.country] ?? m.country}</span>
-                <span className={styles.leaguePrice}>€{m.median.toFixed(3)}</span>
+        {league.length > 0 && (
+          <figure className={styles.totem}>
+            <div className={styles.totemHead}>Diesel — cheapest today</div>
+            {league.slice(0, 5).map((m, i) => (
+              <Link key={m.country} href="/map" className={styles.totemRow}>
+                <span className={styles.totemLabel}>{COUNTRY_NAMES[m.country] ?? m.country}</span>
+                <span className={styles.ledPrice} style={{ animationDelay: `${i * 130}ms` }}>{m.median.toFixed(3)}</span>
               </Link>
             ))}
-            <Link href="/map" className={styles.leagueMore}>See the full ranking on the map →</Link>
-          </div>
-        </section>
-      )}
+            <div className={styles.totemFoot}>EUR / LITRE · LIVE</div>
+            <figcaption className={styles.totemCaption}>
+              The five cheapest countries for diesel, right now.
+            </figcaption>
+          </figure>
+        )}
+      </section>
 
       <section className={styles.countries}>
-        <div className={styles.kicker}>Coverage</div>
-        <h2 className={styles.countriesTitle}>Covered countries</h2>
+        <h2 className={styles.countriesTitle}>Where Gasify works</h2>
         <div className={styles.countryGrid}>
           {Object.entries(FLAGS).map(([code, flag]) => {
             const count = counts[code];
@@ -133,31 +111,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <div className={styles.sectionHead}>
-        <div className={styles.kicker}>Why Gasify</div>
-        <h2 className={styles.countriesTitle}>Built to save you money at the pump</h2>
-      </div>
-      <section className={styles.features}>
-        <div className={styles.feature}>
-          <div className={styles.featureIcon}>01</div>
-          <h3>GPS Location</h3>
-          <p>Share your location to instantly find the cheapest station within reach.</p>
-        </div>
-        <div className={styles.feature}>
-          <div className={styles.featureIcon}>02</div>
-          <h3>Interactive Map</h3>
-          <p>Browse stations on the map, color-coded by price. Tap for full details.</p>
-        </div>
-        <div className={styles.feature}>
-          <div className={styles.featureIcon}>03</div>
-          <h3>Save Favorites</h3>
-          <p>Log in to save your favorite stations and home/work locations.</p>
-        </div>
-        <div className={styles.feature}>
-          <div className={styles.featureIcon}>04</div>
-          <h3>Price Trends</h3>
-          <p>Track price history and get notified when prices drop significantly.</p>
-        </div>
+      <section className={styles.closing}>
+        <p className={styles.closingLine}>Official sources only.</p>
+        <p className={styles.closingSub}>
+          Every price comes from a government ministry, an energy regulator or a state oil
+          company — never scraped from other apps.{' '}
+          <Link href="/credits" className={styles.closingLink}>See every source</Link>
+        </p>
       </section>
 
       <footer className={styles.footer}>
