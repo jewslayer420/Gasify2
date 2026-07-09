@@ -54,6 +54,12 @@ async function buildStationMap() {
     if (!line) continue;
     const r = parseRow(line, headers);
     if (!r.node_id || r.is_permanently_closed === 'true') continue;
+    // The feed carries internal test/sandbox forecourts with junk or
+    // half-plausible prices ("TEST FORECOURT", "DIMES FG BRW", "CODE1",
+    // "Forecourt 001", city "EXETERSITE") — never real stations.
+    const nm = (r.trading_name || r.brand_name || '').toUpperCase();
+    const ct = (r.city || '').toUpperCase();
+    if (/TEST|DIMES|^CODE\d*$|^FORECOURT\s*\d/.test(nm) || ct === 'EXETERSITE') continue;
     const lat = parseFloat(r.latitude);
     const lng = parseFloat(r.longitude);
     if (isNaN(lat) || isNaN(lng)) continue;

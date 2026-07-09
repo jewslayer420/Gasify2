@@ -65,7 +65,8 @@ async function buildGeojsonGz(fuel) {
     const rows = await prisma.$queryRaw`
       SELECT s.id, s.lat, s.lng, s.name, s.city, s.country, fp.price
       FROM "Station" s
-      INNER JOIN "FuelPrice" fp ON fp."stationId" = s.id AND fp."fuelType" = ${fuel} AND fp.price > 0
+      INNER JOIN "FuelPrice" fp ON fp."stationId" = s.id AND fp."fuelType" = ${fuel}
+        AND fp.price >= 0.15 AND fp.price <= 3.5  -- sanity bounds; junk survives stale deployers
       WHERE s.id > ${cursor}
       ORDER BY s.id ASC
       LIMIT ${GEOJSON_CHUNK}
@@ -207,7 +208,7 @@ router.get('/', async (req, res) => {
           (SELECT p."updatedAt" FROM "FuelPrice" p WHERE p."stationId" = s.id AND p."fuelType" = ${fuel} LIMIT 1) as "priceUpdatedAt",
           SQRT(POW((s.lat - ${userLat}) * 111.32, 2) + POW((s.lng - ${userLng}) * 111.32 * COS(RADIANS(${userLat})), 2)) as distance
         FROM "Station" s
-        WHERE EXISTS (SELECT 1 FROM "FuelPrice" p WHERE p."stationId" = s.id AND p."fuelType" = ${fuel} AND p.price > 0)
+        WHERE EXISTS (SELECT 1 FROM "FuelPrice" p WHERE p."stationId" = s.id AND p."fuelType" = ${fuel} AND p.price >= 0.15 AND p.price <= 3.5)
         ORDER BY distance ASC
         LIMIT 50
       `;
