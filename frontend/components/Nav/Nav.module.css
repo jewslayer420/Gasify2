@@ -38,3 +38,8 @@
   border: 1px solid var(--border);
   font-weight: 600;
 }
+
+.linkActive {
+  color: var(--accent);
+  background: rgba(55, 211, 160, 0.08);
+}

@@ -1,5 +1,6 @@
 .root {
   height: 100dvh;
+  padding-top: var(--nav-h); /* the nav is now persistent on the map too */
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -9,7 +10,7 @@
 /* ── Controls ─────────────────────────────── */
 .controls {
   position: absolute;
-  top: 12px;
+  top: calc(var(--nav-h) + 12px);
   left: 12px;
   right: calc(var(--panel-w) + 20px); /* stop at the sidebar edge */
   z-index: 1000;
@@ -152,7 +153,7 @@
 
 .toast {
   position: absolute;
-  top: 54px;
+  top: calc(var(--nav-h) + 54px);
   left: 50%;
   transform: translateX(-50%);
   background: var(--bg-card);
