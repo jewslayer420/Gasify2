@@ -75,14 +75,30 @@ export default function LandingPage() {
             Real-time prices from gas stations across Europe, Australia, Mexico and more — no account required.
           </p>
           <div className={styles.cta}>
-            <Link href="/map" className={styles.btnPrimary}>Open Map</Link>
-            <Link href="/auth/register" className={styles.btnSecondary}>Create Account</Link>
+            <Link href="/map" className={styles.btnPrimary}>Open the map</Link>
+            <Link href="/auth/register" className={styles.btnSecondary}>Create account</Link>
+          </div>
+
+          <div className={styles.statStrip}>
+            <div className={styles.stat}>
+              <span className={styles.statNum}>{covered.length || '—'}</span>
+              <span className={styles.statLabel}>Countries</span>
+            </div>
+            <div className={styles.stat}>
+              <span className={styles.statNum}>{totalStations ? `${Math.round(totalStations / 1000)}k+` : '—'}</span>
+              <span className={styles.statLabel}>Stations</span>
+            </div>
+            <div className={styles.stat}>
+              <span className={styles.statNum}>6h</span>
+              <span className={styles.statLabel}>Refresh cycle</span>
+            </div>
           </div>
         </div>
       </section>
 
       {league.length > 0 && (
         <section className={styles.countries}>
+          <div className={styles.kicker}>Live ranking</div>
           <h2 className={styles.countriesTitle}>Cheapest diesel right now</h2>
           <div className={styles.leagueList}>
             {league.map((m, i) => (
@@ -93,12 +109,14 @@ export default function LandingPage() {
                 <span className={styles.leaguePrice}>€{m.median.toFixed(3)}</span>
               </Link>
             ))}
+            <Link href="/map" className={styles.leagueMore}>See the full ranking on the map →</Link>
           </div>
         </section>
       )}
 
       <section className={styles.countries}>
-        <h2 className={styles.countriesTitle}>Covered Countries</h2>
+        <div className={styles.kicker}>Coverage</div>
+        <h2 className={styles.countriesTitle}>Covered countries</h2>
         <div className={styles.countryGrid}>
           {Object.entries(FLAGS).map(([code, flag]) => {
             const count = counts[code];
@@ -115,6 +133,10 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <div className={styles.sectionHead}>
+        <div className={styles.kicker}>Why Gasify</div>
+        <h2 className={styles.countriesTitle}>Built to save you money at the pump</h2>
+      </div>
       <section className={styles.features}>
         <div className={styles.feature}>
           <div className={styles.featureIcon}>01</div>
@@ -137,6 +159,21 @@ export default function LandingPage() {
           <p>Track price history and get notified when prices drop significantly.</p>
         </div>
       </section>
+
+      <footer className={styles.footer}>
+        <div className={styles.footerInner}>
+          <span className={styles.footerBrand}>Gasify<span className={styles.footerDot}>.</span></span>
+          <div className={styles.footerLinks}>
+            <Link href="/map">Map</Link>
+            <Link href="/news">News</Link>
+            <Link href="/credits">Data sources</Link>
+            <Link href="/auth/login">Login</Link>
+          </div>
+          <span className={styles.footerNote}>
+            Prices from official government and regulator sources · Map data © OpenStreetMap contributors · © MapTiler
+          </span>
+        </div>
+      </footer>
     </main>
   );
 }
