@@ -93,6 +93,18 @@ export default function LandingPage() {
         )}
       </section>
 
+      <section className={styles.shot}>
+        <h2 className={styles.countriesTitle}>See every price on one map</h2>
+        <Link href="/map" className={styles.shotFrame}>
+          <img
+            src="/map-shot.png"
+            alt="The Gasify map showing live fuel prices and the country ranking across Europe"
+            className={styles.shotImg}
+          />
+          <span className={styles.shotHint}>Open the map</span>
+        </Link>
+      </section>
+
       <section className={styles.countries}>
         <h2 className={styles.countriesTitle}>Where Gasify works</h2>
         <div className={styles.countryGrid}>
