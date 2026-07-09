@@ -22,6 +22,15 @@
   --nav-h: 56px;
 }
 
+/* Seven-segment LED font for the forecourt price totem (DSEG7, SIL OFL) */
+@font-face {
+  font-family: 'DSEG7';
+  src: url('/fonts/DSEG7Classic-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 * { box-sizing: border-box; padding: 0; margin: 0; }
 
 html, body {

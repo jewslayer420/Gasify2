@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Map, { Marker, AttributionControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { getStationsGeoJSON, getStation, getStationHistory, geocodeCity, addFavorite, removeFavorite, getFavorites, getCountryCounts, getCountryMeta } from '../../lib/api';
 import { COUNTRY_NAMES } from '../../lib/countries';
 import { useUser } from '../../lib/context/UserContext';
@@ -738,19 +738,51 @@ export default function MapView() {
             </div>
 
             {loadingHistory && <div className={styles.histSpinner} />}
-            {!loadingHistory && history.length > 1 && (
-              <div className={styles.chartWrap}>
-                <div className={styles.chartTitle}>Price history · {FUELS.find(f => f.key === fuel)?.label}</div>
-                <ResponsiveContainer width="100%" height={130}>
-                  <LineChart data={history} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
-                    <XAxis dataKey="date" tick={{ fill: '#7b8099', fontSize: 10 }} />
-                    <YAxis tick={{ fill: '#7b8099', fontSize: 10 }} domain={['auto', 'auto']} />
-                    <Tooltip contentStyle={{ background: '#191D28', border: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', borderRadius: 8, color: '#F2F4F8', fontSize: 12 }} />
-                    <Line type="monotone" dataKey="price" stroke="#37D3A0" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+            {!loadingHistory && history.length > 1 && (() => {
+              const lo = Math.min(...history.map(h => h.price));
+              const hi = Math.max(...history.map(h => h.price));
+              return (
+                <div className={styles.chartWrap}>
+                  <div className={styles.chartHead}>
+                    <span className={styles.chartTitle}>Price history · {FUELS.find(f => f.key === fuel)?.label}</span>
+                    <span className={styles.chartRange}>
+                      low <b style={{ color: '#2FBF84' }}>€{lo.toFixed(3)}</b> · high <b style={{ color: '#E25A5A' }}>€{hi.toFixed(3)}</b>
+                    </span>
+                  </div>
+                  <ResponsiveContainer width="100%" height={140}>
+                    <AreaChart data={history} margin={{ top: 6, right: 2, bottom: 0, left: 2 }}>
+                      <defs>
+                        <linearGradient id="histFill" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#37D3A0" stopOpacity={0.28} />
+                          <stop offset="100%" stopColor="#37D3A0" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fill: '#8A91A6', fontSize: 10 }}
+                        tickLine={false} axisLine={false}
+                        interval="preserveStartEnd" minTickGap={40}
+                      />
+                      <YAxis hide domain={[dataMin => dataMin * 0.995, dataMax => dataMax * 1.005]} />
+                      <Tooltip
+                        formatter={v => [`€${Number(v).toFixed(3)}`, null]}
+                        separator=""
+                        contentStyle={{ background: '#191D28', border: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', borderRadius: 8, color: '#F2F4F8', fontSize: 12 }}
+                        labelStyle={{ color: '#8A91A6', fontSize: 11 }}
+                        cursor={{ stroke: 'rgba(242,244,248,0.2)', strokeDasharray: '3 3' }}
+                      />
+                      <Area
+                        type="monotone" dataKey="price"
+                        stroke="#37D3A0" strokeWidth={2}
+                        fill="url(#histFill)"
+                        dot={false}
+                        activeDot={{ r: 4, fill: '#37D3A0', stroke: '#0C0E13', strokeWidth: 2 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

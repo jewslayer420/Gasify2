@@ -467,13 +467,23 @@
   color: var(--text-muted);
 }
 .boardPrice {
-  font-family: Consolas, 'Courier New', monospace;
-  font-variant-numeric: tabular-nums;
-  font-size: 1.35rem;
+  position: relative;
+  font-family: 'DSEG7', Consolas, monospace;
+  font-size: 1.15rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
   color: #FFB84D;
   text-shadow: 0 0 10px rgba(255, 184, 77, 0.45), 0 0 2px rgba(255, 184, 77, 0.8);
+}
+/* Unlit segments behind the digits, like a real LED sign */
+.boardPrice::before {
+  content: '8.888';
+  position: absolute;
+  right: 0;
+  top: 0;
+  color: currentColor;
+  opacity: 0.10;
+  text-shadow: none;
+  pointer-events: none;
 }
 .boardRowActive { background: rgba(55, 211, 160, 0.07); }
 .boardRowActive .boardFuel { color: var(--accent); }
@@ -481,6 +491,20 @@
   color: #37D3A0;
   text-shadow: 0 0 10px rgba(55, 211, 160, 0.5), 0 0 2px rgba(55, 211, 160, 0.9);
 }
+.chartHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.chartRange {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .boardFooter {
   display: flex;
   justify-content: space-between;
