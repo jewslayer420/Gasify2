@@ -41,11 +41,20 @@ const COUNTRY_NAMES = {
 
 export default function LandingPage() {
   const [counts, setCounts] = useState({});
+  const [league, setLeague] = useState([]);
 
   useEffect(() => {
     fetch('/api/stations/counts')
       .then(r => r.ok ? r.json() : {})
       .then(d => setCounts(d))
+      .catch(() => {});
+    fetch('/api/stations/country-meta?fuel=diesel')
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setLeague(
+        d.filter(m => m.median != null && FLAGS[m.country])
+          .sort((a, b) => a.median - b.median)
+          .slice(0, 10)
+      ))
       .catch(() => {});
   }, []);
 
@@ -71,6 +80,22 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {league.length > 0 && (
+        <section className={styles.countries}>
+          <h2 className={styles.countriesTitle}>Cheapest diesel right now</h2>
+          <div className={styles.leagueList}>
+            {league.map((m, i) => (
+              <Link key={m.country} href="/map" className={styles.leagueRow}>
+                <span className={styles.leagueRank}>{i + 1}</span>
+                <span className={styles.leagueFlag}>{FLAGS[m.country]}</span>
+                <span className={styles.leagueName}>{COUNTRY_NAMES[m.country] ?? m.country}</span>
+                <span className={styles.leaguePrice}>€{m.median.toFixed(3)}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className={styles.countries}>
         <h2 className={styles.countriesTitle}>Covered Countries</h2>

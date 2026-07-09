@@ -194,6 +194,8 @@ export default function MapView() {
   const [winner, setWinner] = useState(null);   // cheapest-near-me highlighted station
   const [countryMeta, setCountryMeta] = useState([]); // league/lens data per fuel
   const [mapCenter, setMapCenter] = useState({ lng: 15, lat: 50 });
+  const [favStations, setFavStations] = useState([]);   // full saved-station objects
+  const [panelTab, setPanelTab] = useState('list');      // 'list' | 'saved'
   const [ctaBusy, setCtaBusy] = useState(false);
   const [ctaMsg, setCtaMsg] = useState(null);
   const [citySearch, setCitySearch] = useState('');
@@ -214,7 +216,10 @@ export default function MapView() {
 
 
   useEffect(() => {
-    if (user) getFavorites().then(favs => setFavorites(new Set(favs.map(f => f.id))));
+    if (user) getFavorites().then(favs => {
+      setFavorites(new Set(favs.map(f => f.id)));
+      setFavStations(favs);
+    });
   }, [user]);
 
   // Country badge totals — fuel-agnostic: a badge shows for every country with
@@ -439,9 +444,11 @@ export default function MapView() {
     if (favorites.has(stationId)) {
       await removeFavorite(stationId);
       setFavorites(s => { const n = new Set(s); n.delete(stationId); return n; });
+      setFavStations(list => list.filter(s => s.id !== stationId));
     } else {
       await addFavorite(stationId);
       setFavorites(s => new Set([...s, stationId]));
+      if (selected?.id === stationId) setFavStations(list => [selected, ...list]);
     }
   }
 
@@ -600,7 +607,53 @@ export default function MapView() {
         </div>
 
         <div className={styles.sidebar}>
-          {showCountryBadges ? (
+          {user && (
+            <div className={styles.panelTabs}>
+              <button
+                className={`${styles.panelTab} ${panelTab === 'list' ? styles.panelTabActive : ''}`}
+                onClick={() => setPanelTab('list')}
+              >Explore</button>
+              <button
+                className={`${styles.panelTab} ${panelTab === 'saved' ? styles.panelTabActive : ''}`}
+                onClick={() => setPanelTab('saved')}
+              >★ Saved{favStations.length ? ` · ${favStations.length}` : ''}</button>
+            </div>
+          )}
+          {user && panelTab === 'saved' ? (
+            <>
+              <div className={styles.sidebarHeader}>
+                <span className={styles.sidebarCount}>{favStations.length} saved station{favStations.length === 1 ? '' : 's'}</span>
+                <span className={styles.sidebarFuel}>{FUELS.find(f => f.key === fuel)?.label}</span>
+              </div>
+              <div className={styles.stationList}>
+                {favStations.map((s, i) => {
+                  const p = s.prices?.find(x => x.fuelType === fuel)?.price ?? s.price ?? null;
+                  return (
+                    <button
+                      key={s.id}
+                      className={`${styles.stationRow} ${selected?.id === s.id ? styles.stationRowActive : ''}`}
+                      onClick={() => {
+                        mapRef.current?.flyTo({ center: [s.lng, s.lat], zoom: 14, duration: 900 });
+                        handleSelectStation({ ...s, price: p });
+                      }}
+                    >
+                      <div className={styles.stationRowRank}>{i + 1}</div>
+                      <div className={styles.stationRowBody}>
+                        <div className={styles.stationRowName}>{s.name}</div>
+                        <div className={styles.stationRowCity}>{FLAGS[s.country] ?? s.country} {s.city}</div>
+                      </div>
+                      <div className={styles.stationRowPrice} style={{ color: priceColor(p) }}>
+                        {p ? `€${p.toFixed(3)}` : '—'}
+                      </div>
+                    </button>
+                  );
+                })}
+                {!favStations.length && (
+                  <div className={styles.emptyNote}>Tap ☆ on a station to save it here.</div>
+                )}
+              </div>
+            </>
+          ) : showCountryBadges ? (
             /* Zoomed out: the 63-country league table for the selected fuel */
             <>
               <div className={styles.sidebarHeader}>

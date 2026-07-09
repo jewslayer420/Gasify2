@@ -224,6 +224,33 @@
   padding: 3px 8px;
 }
 
+/* Panel tabs: Explore vs Saved (logged-in users) */
+.panelTabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.panelTab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 10px 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+.panelTab:hover { color: var(--text); }
+.panelTabActive { color: var(--accent); border-bottom-color: var(--accent); }
+
+.emptyNote {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
 /* Country lens: national context card when zoomed into one country */
 .lens {
   padding: 12px 14px;

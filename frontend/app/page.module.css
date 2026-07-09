@@ -140,3 +140,27 @@
   font-weight: 700;
   color: var(--green);
 }
+
+/* Cheapest-countries teaser (phase 2c) */
+.leagueList {
+  max-width: 560px;
+  margin: 0 auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.leagueRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
+}
+.leagueRow:last-child { border-bottom: none; }
+.leagueRow:hover { background: var(--bg-secondary); }
+.leagueRank { width: 18px; text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+.leagueFlag { font-size: 1.1rem; }
+.leagueName { flex: 1; font-size: 0.9rem; font-weight: 600; }
+.leaguePrice { font-size: 0.95rem; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; }
