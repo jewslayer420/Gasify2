@@ -9,6 +9,9 @@ export default function Nav() {
   const router = useRouter();
   const { user, logout } = useUser() ?? {};
 
+  // The map is a clean full-screen experience — the home page is the hub.
+  if (path === '/map') return null;
+
   async function handleLogout() {
     await logout?.();
     router.push('/');
@@ -16,7 +19,7 @@ export default function Nav() {
 
   return (
     <nav className={styles.nav}>
-      <Link href="/" className={styles.logo}>⛽ Gasify</Link>
+      <Link href="/" className={styles.logo}>Gasify<span className={styles.logoDot}>.</span></Link>
       <div className={styles.links}>
         <Link href="/map" className={`${styles.link} ${path === '/map' ? styles.linkActive : ''}`}>Map</Link>
         <Link href="/news" className={`${styles.link} ${path === '/news' ? styles.linkActive : ''}`}>News</Link>

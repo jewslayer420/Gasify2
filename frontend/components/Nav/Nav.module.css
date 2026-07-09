@@ -43,3 +43,5 @@
   color: var(--accent);
   background: rgba(55, 211, 160, 0.08);
 }
+
+.logoDot { color: var(--accent); }

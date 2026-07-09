@@ -117,22 +117,22 @@ export default function LandingPage() {
 
       <section className={styles.features}>
         <div className={styles.feature}>
-          <div className={styles.featureIcon}>📍</div>
+          <div className={styles.featureIcon}>01</div>
           <h3>GPS Location</h3>
           <p>Share your location to instantly find the cheapest station within reach.</p>
         </div>
         <div className={styles.feature}>
-          <div className={styles.featureIcon}>🗺️</div>
+          <div className={styles.featureIcon}>02</div>
           <h3>Interactive Map</h3>
           <p>Browse stations on the map, color-coded by price. Tap for full details.</p>
         </div>
         <div className={styles.feature}>
-          <div className={styles.featureIcon}>⭐</div>
+          <div className={styles.featureIcon}>03</div>
           <h3>Save Favorites</h3>
           <p>Log in to save your favorite stations and home/work locations.</p>
         </div>
         <div className={styles.feature}>
-          <div className={styles.featureIcon}>📈</div>
+          <div className={styles.featureIcon}>04</div>
           <h3>Price Trends</h3>
           <p>Track price history and get notified when prices drop significantly.</p>
         </div>

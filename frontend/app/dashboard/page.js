@@ -110,7 +110,7 @@ export default function DashboardPage() {
           {locations.length === 0 && !addingLocation && <p className={styles.empty}>No saved locations.</p>}
           {locations.map(loc => (
             <div key={loc.id} className={styles.locItem}>
-              <div className={styles.locIcon}>{loc.label === 'home' ? '🏠' : loc.label === 'work' ? '🏢' : '📍'}</div>
+              <div className={styles.locIcon}>{loc.label === 'home' ? 'H' : loc.label === 'work' ? 'W' : 'L'}</div>
               <div>
                 <div className={styles.locName}>{loc.name}</div>
                 <div className={styles.locCoords}>{loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}</div>

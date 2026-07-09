@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import Map, { Marker, AttributionControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -486,6 +487,7 @@ export default function MapView() {
   return (
     <div className={styles.root}>
       <div className={styles.controls}>
+        <Link href="/" className={styles.homeChip}>Gasify<span className={styles.homeChipDot}>.</span></Link>
         <div className={styles.commandBar}>
           <form onSubmit={handleCitySearch} className={styles.searchForm}>
             <input className={styles.searchInput} placeholder="Search city…" value={citySearch} onChange={e => setCitySearch(e.target.value)} />
@@ -505,7 +507,7 @@ export default function MapView() {
             ))}
           </div>
           <button className={styles.ctaBtn} onClick={cheapestNearMe} disabled={ctaBusy}>
-            {ctaBusy ? 'Locating…' : '⛽ Cheapest near me'}
+            {ctaBusy ? 'Locating…' : 'Cheapest near me'}
           </button>
           {loading && <div className={styles.loadingDot} />}
         </div>
@@ -557,12 +559,12 @@ export default function MapView() {
             {winner && (
               <Marker longitude={winner.lng} latitude={winner.lat} anchor="center">
                 <div style={{
-                  width: 28, height: 28, borderRadius: '50%',
+                  width: 26, height: 26, borderRadius: '50%',
                   background: '#141720', border: '3px solid #37D3A0',
                   boxShadow: '0 0 0 5px rgba(55,211,160,0.22), 0 4px 12px rgba(0,0,0,0.5)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 13, zIndex: 5,
-                }}>⭐</div>
+                  fontSize: 11, fontWeight: 800, color: '#37D3A0', zIndex: 5,
+                }}>1</div>
               </Marker>
             )}
             {userPos && (
@@ -616,7 +618,7 @@ export default function MapView() {
               <button
                 className={`${styles.panelTab} ${panelTab === 'saved' ? styles.panelTabActive : ''}`}
                 onClick={() => setPanelTab('saved')}
-              >★ Saved{favStations.length ? ` · ${favStations.length}` : ''}</button>
+              >Saved{favStations.length ? ` · ${favStations.length}` : ''}</button>
             </div>
           )}
           {user && panelTab === 'saved' ? (
@@ -649,7 +651,7 @@ export default function MapView() {
                   );
                 })}
                 {!favStations.length && (
-                  <div className={styles.emptyNote}>Tap ☆ on a station to save it here.</div>
+                  <div className={styles.emptyNote}>Tap Save on a station to keep it here.</div>
                 )}
               </div>
             </>
@@ -753,13 +755,13 @@ export default function MapView() {
                   href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`}
                   target="_blank" rel="noopener noreferrer"
                   title="Directions"
-                >➤</a>
+                >Directions</a>
                 {user && (
                   <button
                     className={`${styles.favBtn} ${favorites.has(selected.id) ? styles.favBtnActive : ''}`}
                     onClick={() => toggleFavorite(selected.id)}
                   >
-                    {favorites.has(selected.id) ? '★' : '☆'}
+                    {favorites.has(selected.id) ? 'Saved' : 'Save'}
                   </button>
                 )}
                 <button className={styles.closeBtn} onClick={() => setSelected(null)}>✕</button>
