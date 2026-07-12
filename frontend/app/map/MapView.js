@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Map, { Marker, AttributionControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -98,6 +98,22 @@ const COUNTRIES = Object.keys(COUNTRY_CENTROIDS);
 
 const COUNTRY_SCALE = { ES: 1.2, IT: 1.15, FR: 1.25, DE: 1.2, PL: 1.1, RO: 1.0, AT: 1.0, HU: 1.0, PT: 0.9, CZ: 0.95, NL: 0.85, SK: 0.8, BE: 0.8, CH: 0.75, HR: 0.75, SI: 0.65, RS: 0.7, LU: 0.5, LI: 0.35, AD: 0.35, MC: 0.3, BG: 0.8, GR: 1.0, CY: 0.5, MT: 0.35, BA: 0.75, ME: 0.5, MK: 0.55, AL: 0.55, XK: 0.4, GB: 1.2, DK: 0.8, FI: 1.1, IE: 0.75, LV: 0.75, LT: 0.75, EE: 0.65, TR: 1.4, AU: 1.8, IS: 0.7, MX: 1.4, TW: 0.6, MY: 1.1, TH: 1.1, NZ: 1.0, CA: 1.9, CL: 0.85, BR: 1.9, US: 2.2, ZA: 1.2, AE: 0.6, SA: 1.4, KE: 1.0, DO: 0.55, UY: 0.7, QA: 0.45, KW: 0.5, OM: 1.0, BH: 0.35, BN: 0.45, EC: 0.9, VN: 1.1, EG: 1.2, JO: 0.6, TN: 0.7, MA: 1.0, ID: 1.8, IN: 2.0, MD: 0.55, IL: 0.6, PK: 1.3, JP: 1.3, BD: 0.8, LK: 0.6, NP: 0.6, CR: 0.55, PA: 0.55, AZ: 0.65, DZ: 1.2 };
 
+// Country pills: approximate on-screen footprint used for collision decluttering
+// (same approach as the home MapPreview — keep the highest-coverage pill in each
+// contested spot; zooming in spreads countries apart and reveals the rest).
+const PILL_W = 92;
+const PILL_H = 36;
+
+// Web-mercator screen position at a given zoom (world px, tile size 512)
+function project(lng, lat, zoom) {
+  const scale = 512 * Math.pow(2, zoom);
+  const latRad = (lat * Math.PI) / 180;
+  return {
+    x: ((lng + 180) / 360) * scale,
+    y: ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * scale,
+  };
+}
+
 export default function MapView() {
   const { user } = useUser() ?? {};
   const [fuel, setFuel] = useState('diesel');
@@ -118,7 +134,7 @@ export default function MapView() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('bbox');
   const [showCountryBadges, setShowCountryBadges] = useState(true);
-  const [mapZoom, setMapZoom] = useState(2);
+  const [mapZoom, setMapZoom] = useState(4.3); // must match initialViewState.zoom — onMove only fires on interaction
   const [countryTotals, setCountryTotals] = useState({});
 
   const mapRef = useRef(null);
@@ -382,6 +398,36 @@ export default function MapView() {
   // Fall back to station.price (loaded with initial GeoJSON) until allPrices arrives from getStation
   const selectedPrice = selected ? (selected.allPrices?.[fuel] ?? selected.price ?? null) : null;
 
+  // Country price pills (zoomed out): the selected fuel's national median as a
+  // mini price sign. Priced pills win contested space over unpriced ones, then
+  // bigger networks over smaller; collision-decluttered per zoom level.
+  const badgePills = useMemo(() => {
+    if (!showCountryBadges) return [];
+    const medians = {};
+    for (const m of countryMeta) medians[m.country] = m.median;
+    const list = COUNTRIES
+      .filter(c => countryTotals[c])
+      .map(c => ({
+        country: c,
+        median: medians[c] ?? null,
+        big: (COUNTRY_SCALE[c] ?? 1) >= 1.1,
+        ...COUNTRY_CENTROIDS[c],
+      }))
+      .sort((a, b) =>
+        (b.median != null) - (a.median != null) ||
+        (countryTotals[b.country] ?? 0) - (countryTotals[a.country] ?? 0)
+      );
+    const placed = [];
+    const out = [];
+    for (const c of list) {
+      const p = project(c.lng, c.lat, mapZoom);
+      if (placed.some(q => Math.abs(q.x - p.x) < PILL_W && Math.abs(q.y - p.y) < PILL_H)) continue;
+      placed.push(p);
+      out.push(c);
+    }
+    return out;
+  }, [showCountryBadges, countryMeta, countryTotals, mapZoom]);
+
   // Country lens: when zoomed in, the country whose centroid is nearest the map
   // centre. (Deriving it from visible stations biased toward the cheapest
   // neighbour, since the sidebar list is price-sorted.)
@@ -492,34 +538,23 @@ export default function MapView() {
               </Marker>
             )}
 
-            {showCountryBadges && COUNTRIES.map(country => {
-              const count = countryTotals[country];
-              if (!count) return null;
-              const { lng, lat } = COUNTRY_CENTROIDS[country];
-              const label = count >= 1000 ? (count / 1000).toFixed(1) + 'k' : String(count);
-              const base = Math.max(22, Math.min(46, mapZoom * 8.5));
-              const sz = Math.round(base * (COUNTRY_SCALE[country] ?? 1));
-              return (
-                <Marker key={country} longitude={lng} latitude={lat} anchor="center">
-                  <div style={{
-                    background: '#141720',
-                    border: `${sz > 32 ? 2 : 1.5}px solid rgba(232,234,240,0.14)`,
-                    borderRadius: '50%',
-                    width: sz, height: sz,
-                    display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center',
-                    color: '#e8eaf0',
-                    fontSize: Math.max(6, sz * 0.2), fontWeight: 700,
-                    pointerEvents: 'none',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
-                    userSelect: 'none',
-                  }}>
-                    <span style={{ fontSize: Math.max(10, sz * 0.35), lineHeight: 1 }}>{FLAGS[country]}</span>
-                    <span style={{ marginTop: 1 }}>{label}</span>
-                  </div>
-                </Marker>
-              );
-            })}
+            {badgePills.map(c => (
+              <Marker key={c.country} longitude={c.lng} latitude={c.lat} anchor="center">
+                <button
+                  className={`${styles.countryPill} ${c.big ? styles.countryPillBig : ''}`}
+                  onClick={() => mapRef.current?.flyTo({ center: [c.lng, c.lat], zoom: 6.6, duration: 1200 })}
+                  aria-label={`Zoom to ${COUNTRY_NAMES[c.country] ?? c.country}`}
+                >
+                  <span className={styles.pillCc}>{c.country}</span>
+                  <span
+                    className={styles.pillPrice}
+                    style={c.median != null ? { color: priceColor(c.median) } : undefined}
+                  >
+                    {c.median != null ? `€${c.median.toFixed(2)}` : '—'}
+                  </span>
+                </button>
+              </Marker>
+            ))}
           </Map>
         </div>
 
@@ -571,35 +606,54 @@ export default function MapView() {
               </div>
             </>
           ) : showCountryBadges ? (
-            /* Zoomed out: the 63-country league table for the selected fuel */
+            /* Zoomed out: the country league for the selected fuel. Each row
+               carries a price runway — its length encodes the national median
+               on the cheapest→priciest span, tinted by the price-level color,
+               so the whole panel reads as one bar chart. */
             <>
               <div className={styles.sidebarHeader}>
-                <span className={styles.sidebarCount}>Cheapest countries</span>
+                <div>
+                  <span className={styles.sidebarCount}>Cheapest countries</span>
+                  <span className={styles.sidebarCaption}>national medians · €/L</span>
+                </div>
                 <span className={styles.sidebarFuel}>{FUELS.find(f => f.key === fuel)?.label}</span>
               </div>
               <div className={styles.stationList}>
-                {countryMeta
-                  .filter(m => m.median != null && COUNTRY_CENTROIDS[m.country])
-                  .sort((a, b) => a.median - b.median)
-                  .map((m, i) => (
-                    <button
-                      key={m.country}
-                      className={styles.stationRow}
-                      onClick={() => {
-                        const c = COUNTRY_CENTROIDS[m.country];
-                        mapRef.current?.flyTo({ center: [c.lng, c.lat], zoom: 6.6, duration: 1200 });
-                      }}
-                    >
-                      <div className={styles.stationRowRank}>{i + 1}</div>
-                      <div className={styles.stationRowBody}>
-                        <div className={styles.stationRowName}>{FLAGS[m.country] ?? ''} {COUNTRY_NAMES[m.country] ?? m.country}</div>
-                        <div className={styles.stationRowCity}>{m.stations.toLocaleString()} stations</div>
-                      </div>
-                      <div className={styles.stationRowPrice} style={{ color: priceColor(m.median) }}>
-                        €{m.median.toFixed(3)}
-                      </div>
-                    </button>
-                  ))}
+                {(() => {
+                  const rows = countryMeta
+                    .filter(m => m.median != null && COUNTRY_CENTROIDS[m.country])
+                    .sort((a, b) => a.median - b.median);
+                  if (!rows.length) return null;
+                  const min = rows[0].median;
+                  const span = rows[rows.length - 1].median - min || 1;
+                  return rows.map((m, i) => {
+                    const color = priceColor(m.median);
+                    const pct = 10 + 90 * ((m.median - min) / span);
+                    return (
+                      <button
+                        key={m.country}
+                        className={`${styles.stationRow} ${styles.leagueRow}`}
+                        onClick={() => {
+                          const c = COUNTRY_CENTROIDS[m.country];
+                          mapRef.current?.flyTo({ center: [c.lng, c.lat], zoom: 6.6, duration: 1200 });
+                        }}
+                      >
+                        <span
+                          className={styles.leagueBar}
+                          style={{ width: `${pct}%`, background: `${color}12`, borderBottomColor: `${color}88` }}
+                        />
+                        <div className={`${styles.stationRowRank} ${i < 3 ? styles.rankTop : ''}`}>{i + 1}</div>
+                        <div className={styles.stationRowBody}>
+                          <div className={styles.stationRowName}>{FLAGS[m.country] ?? ''} {COUNTRY_NAMES[m.country] ?? m.country}</div>
+                          <div className={styles.stationRowCity}>{m.stations.toLocaleString()} stations</div>
+                        </div>
+                        <div className={styles.stationRowPrice} style={{ color }}>
+                          €{m.median.toFixed(3)}
+                        </div>
+                      </button>
+                    );
+                  });
+                })()}
               </div>
             </>
           ) : (
