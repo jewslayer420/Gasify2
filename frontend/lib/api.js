@@ -49,10 +49,20 @@ export async function getStationHistory(id, fuelType) {
   return res.json();
 }
 
-export async function getNews() {
-  const res = await fetch(`${BASE}/api/news`);
+export async function getNews({ country, city } = {}) {
+  const params = new URLSearchParams();
+  if (country) params.set('country', country);
+  if (city) params.set('city', city);
+  const qs = params.toString();
+  const res = await fetch(`${BASE}/api/news${qs ? `?${qs}` : ''}`);
   if (!res.ok) return [];
   return res.json();
+}
+
+export async function getNewsPlaces(q) {
+  const res = await fetch(`${BASE}/api/news/places?q=${encodeURIComponent(q)}`);
+  if (!res.ok) return [];
+  return res.json(); // [{ city, country, stations }]
 }
 
 export async function login(email, password) {

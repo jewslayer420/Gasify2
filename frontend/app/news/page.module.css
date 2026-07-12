@@ -15,6 +15,100 @@
 
 .sub { color: var(--text-muted); font-size: 0.9rem; }
 
+.searchWrap { position: relative; margin-bottom: 24px; }
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 0 14px;
+  transition: border-color 0.15s;
+}
+.searchBox:focus-within { border-color: var(--green); }
+
+.searchIcon { width: 16px; height: 16px; color: var(--text-muted); flex-shrink: 0; }
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 12px 0;
+}
+.searchInput::placeholder { color: var(--text-muted); }
+
+.scopeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(47, 191, 132, 0.14);
+  color: var(--green);
+  border: 1px solid rgba(47, 191, 132, 0.35);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.scopeX { font-size: 1rem; line-height: 1; opacity: 0.7; }
+.scopeChip:hover .scopeX { opacity: 1; }
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  z-index: 20;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.suggestion {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 14px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+.suggestionActive { background: rgba(232, 234, 240, 0.07); }
+.suggestionName { font-weight: 600; }
+.suggestionMeta { color: var(--text-muted); font-size: 0.75rem; white-space: nowrap; }
+
+.emptyClear {
+  margin-top: 14px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.emptyClear:hover { border-color: var(--green); }
+
 .list { display: flex; flex-direction: column; gap: 12px; }
 
 .item {
