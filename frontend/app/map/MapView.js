@@ -6,6 +6,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { getStationsGeoJSON, getStation, getStationHistory, geocodeCity, addFavorite, removeFavorite, getFavorites, getCountryCounts, getCountryMeta } from '../../lib/api';
 import { COUNTRY_NAMES } from '../../lib/countries';
+import { COUNTRY_CENTROIDS } from '../../lib/countryCentroids';
 import { useUser } from '../../lib/context/UserContext';
 import styles from './map.module.css';
 
@@ -27,7 +28,7 @@ const FUELS = [
   { key: 'cng',            label: 'CNG' },
 ];
 
-const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', DE: '🇩🇪', CZ: '🇨🇿', SK: '🇸🇰', NL: '🇳🇱', BE: '🇧🇪', CH: '🇨🇭', PL: '🇵🇱', RO: '🇷🇴', HR: '🇭🇷', RS: '🇷🇸', ES: '🇪🇸', IT: '🇮🇹', PT: '🇵🇹', LU: '🇱🇺', LI: '🇱🇮', AD: '🇦🇩', MC: '🇲🇨', BG: '🇧🇬', GR: '🇬🇷', CY: '🇨🇾', MT: '🇲🇹', BA: '🇧🇦', ME: '🇲🇪', MK: '🇲🇰', AL: '🇦🇱', XK: '🇽🇰', GB: '🇬🇧', DK: '🇩🇰', NO: '🇳🇴', SE: '🇸🇪', FI: '🇫🇮', IE: '🇮🇪', LV: '🇱🇻', LT: '🇱🇹', EE: '🇪🇪', TR: '🇹🇷', AU: '🇦🇺', IS: '🇮🇸', MX: '🇲🇽', TW: '🇹🇼', MY: '🇲🇾', TH: '🇹🇭', NZ: '🇳🇿', KR: '🇰🇷', CA: '🇨🇦', CL: '🇨🇱', BR: '🇧🇷', AR: '🇦🇷', US: '🇺🇸', ZA: '🇿🇦', AE: '🇦🇪', SA: '🇸🇦', KE: '🇰🇪', DO: '🇩🇴', UY: '🇺🇾', QA: '🇶🇦', KW: '🇰🇼', OM: '🇴🇲', BH: '🇧🇭', BN: '🇧🇳', EC: '🇪🇨', VN: '🇻🇳', EG: '🇪🇬', JO: '🇯🇴', TN: '🇹🇳', MA: '🇲🇦', ID: '🇮🇩', IN: '🇮🇳', MD: '🇲🇩', IL: '🇮🇱', PK: '🇵🇰', JP: '🇯🇵', BD: '🇧🇩', LK: '🇱🇰', NP: '🇳🇵', CR: '🇨🇷', PA: '🇵🇦', AZ: '🇦🇿', DZ: '🇩🇿' };
+const FLAGS = { SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', DE: '🇩🇪', CZ: '🇨🇿', SK: '🇸🇰', NL: '🇳🇱', BE: '🇧🇪', CH: '🇨🇭', PL: '🇵🇱', RO: '🇷🇴', HR: '🇭🇷', RS: '🇷🇸', ES: '🇪🇸', IT: '🇮🇹', PT: '🇵🇹', LU: '🇱🇺', LI: '🇱🇮', AD: '🇦🇩', MC: '🇲🇨', BG: '🇧🇬', GR: '🇬🇷', CY: '🇨🇾', MT: '🇲🇹', BA: '🇧🇦', ME: '🇲🇪', MK: '🇲🇰', AL: '🇦🇱', XK: '🇽🇰', GB: '🇬🇧', DK: '🇩🇰', FI: '🇫🇮', IE: '🇮🇪', LV: '🇱🇻', LT: '🇱🇹', EE: '🇪🇪', TR: '🇹🇷', AU: '🇦🇺', IS: '🇮🇸', MX: '🇲🇽', TW: '🇹🇼', MY: '🇲🇾', TH: '🇹🇭', NZ: '🇳🇿', CA: '🇨🇦', CL: '🇨🇱', BR: '🇧🇷', US: '🇺🇸', ZA: '🇿🇦', AE: '🇦🇪', SA: '🇸🇦', KE: '🇰🇪', DO: '🇩🇴', UY: '🇺🇾', QA: '🇶🇦', KW: '🇰🇼', OM: '🇴🇲', BH: '🇧🇭', BN: '🇧🇳', EC: '🇪🇨', VN: '🇻🇳', EG: '🇪🇬', JO: '🇯🇴', TN: '🇹🇳', MA: '🇲🇦', ID: '🇮🇩', IN: '🇮🇳', MD: '🇲🇩', IL: '🇮🇱', PK: '🇵🇰', JP: '🇯🇵', BD: '🇧🇩', LK: '🇱🇰', NP: '🇳🇵', CR: '🇨🇷', PA: '🇵🇦', AZ: '🇦🇿', DZ: '🇩🇿' };
 const COUNTRY_LABEL = { GB: 'UK' };
 
 // Compact relative age for the detail card honesty line
@@ -90,98 +91,12 @@ const pointLayer = {
   },
 };
 
-const COUNTRY_CENTROIDS = {
-  SI: { lng: 14.82, lat: 46.15 },
-  AT: { lng: 14.55, lat: 47.60 },
-  HU: { lng: 19.40, lat: 47.18 },
-  FR: { lng:  2.35, lat: 46.60 },
-  DE: { lng: 10.45, lat: 51.17 },
-  CZ: { lng: 15.50, lat: 49.80 },
-  SK: { lng: 19.50, lat: 48.80 },
-  NL: { lng:  5.29, lat: 52.13 },
-  BE: { lng:  4.47, lat: 50.50 },
-  CH: { lng:  8.23, lat: 46.82 },
-  PL: { lng: 19.50, lat: 52.10 },
-  RO: { lng: 25.00, lat: 45.94 },
-  HR: { lng: 15.20, lat: 45.10 },
-  RS: { lng: 21.00, lat: 44.02 },
-  ES: { lng: -3.70, lat: 40.00 },
-  IT: { lng: 12.57, lat: 42.50 },
-  PT: { lng: -8.00, lat: 39.50 },
-  LU: { lng:  6.13, lat: 49.82 },
-  LI: { lng:  9.56, lat: 47.16 },
-  AD: { lng:  1.57, lat: 42.55 },
-  MC: { lng:  7.42, lat: 43.74 },
-  BG: { lng: 25.50, lat: 42.70 },
-  GR: { lng: 22.00, lat: 39.00 },
-  CY: { lng: 33.20, lat: 35.00 },
-  MT: { lng: 14.40, lat: 35.92 },
-  BA: { lng: 17.50, lat: 44.00 },
-  ME: { lng: 19.40, lat: 42.70 },
-  MK: { lng: 21.70, lat: 41.60 },
-  AL: { lng: 20.10, lat: 41.10 },
-  XK: { lng: 20.90, lat: 42.60 },
-  GB: { lng: -1.50, lat: 53.00 },
-  DK: { lng: 10.00, lat: 56.00 },
-  NO: { lng:  8.50, lat: 62.00 },
-  SE: { lng: 17.50, lat: 62.50 },
-  FI: { lng: 26.00, lat: 64.50 },
-  IE: { lng: -8.00, lat: 53.50 },
-  LV: { lng: 24.60, lat: 56.88 },
-  LT: { lng: 23.88, lat: 55.17 },
-  EE: { lng: 25.01, lat: 58.60 },
-  TR: { lng: 35.24, lat: 38.96 },
-  AU: { lng: 133.5,  lat: -25.0 },
-  IS: { lng: -18.5,  lat: 65.0  },
-  MX: { lng: -102.5, lat: 23.6  },
-  TW: { lng:  121.0, lat: 23.7  },
-  MY: { lng:  109.7, lat:   3.8 },
-  TH: { lng:  100.9, lat:  15.9 },
-  NZ: { lng:  174.9, lat: -40.9 },
-  KR: { lng:  127.7, lat:  36.5 },
-  CA: { lng:  -96.5, lat:  56.0 },
-  CL: { lng:  -71.0, lat: -35.5 },
-  BR: { lng:  -51.0, lat: -10.5 },
-  AR: { lng:  -64.5, lat: -38.0 },
-  US: { lng:  -98.5, lat:  39.5 },
-  ZA: { lng:   25.0, lat: -29.0 },
-  AE: { lng:   54.0, lat:  24.0 },
-  SA: { lng:   45.0, lat:  24.0 },
-  KE: { lng:   37.9, lat:   0.2 },
-  DO: { lng:  -70.5, lat:  18.8 },
-  UY: { lng:  -56.0, lat: -32.8 },
-  QA: { lng:   51.2, lat:  25.3 },
-  KW: { lng:   47.6, lat:  29.3 },
-  OM: { lng:   56.0, lat:  21.0 },
-  BH: { lng:   50.55, lat: 26.07 },
-  BN: { lng:  114.7, lat:   4.5 },
-  EC: { lng:  -78.5, lat:  -1.5 },
-  VN: { lng:  106.0, lat:  16.5 },
-  EG: { lng:   30.0, lat:  26.5 },
-  JO: { lng:   36.8, lat:  31.3 },
-  TN: { lng:    9.5, lat:  34.5 },
-  MA: { lng:   -6.5, lat:  32.0 },
-  ID: { lng:  113.0, lat:  -2.0 },
-  IN: { lng:   78.5, lat:  22.0 },
-  MD: { lng:   28.5, lat:  47.2 },
-  IL: { lng:   34.9, lat:  31.4 },
-  PK: { lng:   69.5, lat:  29.5 },
-  JP: { lng:  138.5, lat:  36.5 },
-  BD: { lng:   90.3, lat:  23.8 },
-  LK: { lng:   80.7, lat:   7.6 },
-  NP: { lng:   84.0, lat:  28.2 },
-  CR: { lng:  -84.2, lat:   9.9 },
-  PA: { lng:  -80.1, lat:   8.5 },
-  AZ: { lng:   47.5, lat:  40.3 },
-  DZ: { lng:    2.6, lat:  28.0 },
-};
-
 // Badge-eligible countries = everything with a centroid. Derived (not a separate
 // hand-maintained list) so newly added countries can't silently miss a badge —
 // countryTotals still gates rendering to countries that actually have stations.
 const COUNTRIES = Object.keys(COUNTRY_CENTROIDS);
 
-const COUNTRY_SCALE = { ES: 1.2, IT: 1.15, FR: 1.25, DE: 1.2, PL: 1.1, RO: 1.0, AT: 1.0, HU: 1.0, PT: 0.9, CZ: 0.95, NL: 0.85, SK: 0.8, BE: 0.8, CH: 0.75, HR: 0.75, SI: 0.65, RS: 0.7, LU: 0.5, LI: 0.35, AD: 0.35, MC: 0.3, BG: 0.8, GR: 1.0, CY: 0.5, MT: 0.35, BA: 0.75, ME: 0.5, MK: 0.55, AL: 0.55, XK: 0.4, GB: 1.2, DK: 0.8, NO: 1.1, SE: 1.2, FI: 1.1, IE: 0.75, LV: 0.75, LT: 0.75, EE: 0.65, TR: 1.4, AU: 1.8, IS: 0.7, MX: 1.4, TW: 0.6, MY: 1.1, TH: 1.1, NZ: 1.0, KR: 0.9, CA: 1.9, CL: 0.85, BR: 1.9, AR: 1.5, US: 2.2, ZA: 1.2, AE: 0.6, SA: 1.4, KE: 1.0, DO: 0.55, UY: 0.7, QA: 0.45, KW: 0.5, OM: 1.0, BH: 0.35, BN: 0.45, EC: 0.9, VN: 1.1, EG: 1.2, JO: 0.6, TN: 0.7, MA: 1.0, ID: 1.8, IN: 2.0, MD: 0.55, IL: 0.6, PK: 1.3, JP: 1.3, BD: 0.8, LK: 0.6, NP: 0.6, CR: 0.55, PA: 0.55, AZ: 0.65, DZ: 1.2 };
+const COUNTRY_SCALE = { ES: 1.2, IT: 1.15, FR: 1.25, DE: 1.2, PL: 1.1, RO: 1.0, AT: 1.0, HU: 1.0, PT: 0.9, CZ: 0.95, NL: 0.85, SK: 0.8, BE: 0.8, CH: 0.75, HR: 0.75, SI: 0.65, RS: 0.7, LU: 0.5, LI: 0.35, AD: 0.35, MC: 0.3, BG: 0.8, GR: 1.0, CY: 0.5, MT: 0.35, BA: 0.75, ME: 0.5, MK: 0.55, AL: 0.55, XK: 0.4, GB: 1.2, DK: 0.8, FI: 1.1, IE: 0.75, LV: 0.75, LT: 0.75, EE: 0.65, TR: 1.4, AU: 1.8, IS: 0.7, MX: 1.4, TW: 0.6, MY: 1.1, TH: 1.1, NZ: 1.0, CA: 1.9, CL: 0.85, BR: 1.9, US: 2.2, ZA: 1.2, AE: 0.6, SA: 1.4, KE: 1.0, DO: 0.55, UY: 0.7, QA: 0.45, KW: 0.5, OM: 1.0, BH: 0.35, BN: 0.45, EC: 0.9, VN: 1.1, EG: 1.2, JO: 0.6, TN: 0.7, MA: 1.0, ID: 1.8, IN: 2.0, MD: 0.55, IL: 0.6, PK: 1.3, JP: 1.3, BD: 0.8, LK: 0.6, NP: 0.6, CR: 0.55, PA: 0.55, AZ: 0.65, DZ: 1.2 };
 
 export default function MapView() {
   const { user } = useUser() ?? {};

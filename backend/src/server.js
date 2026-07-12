@@ -32,7 +32,7 @@ app.use(express.json());
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 // Admin: trigger a named scraper on demand and return results
-// Usage: POST /api/admin/sync/norway  (no auth — internal/debugging use only)
+// Usage: POST /api/admin/sync/france  (no auth — internal/debugging use only)
 app.post('/api/admin/sync/:country', async (req, res) => {
   const country = req.params.country.toLowerCase();
   try {

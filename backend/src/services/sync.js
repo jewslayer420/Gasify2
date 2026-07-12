@@ -22,8 +22,6 @@ const { fetchFinlandStations }   = require('./scrapers/finland');
 // Turkey now uses the official EPDK regulator bulletin (apigateway.epdk.gov.tr)
 // over OSM stations, replacing tr.fuelo.net.
 const { fetchTurkeyStations }    = require('./scrapers/turkey_epdk');
-const { fetchNorwayStations }    = require('./scrapers/norway');
-const { fetchSwedenStations }    = require('./scrapers/sweden');
 // Luxembourg now uses the official STATEC max-price open data (CC0, lustat.statec.lu)
 // over OSM stations, replacing the carbu.com scrape.
 const { fetchLuxembourgStations } = require('./scrapers/luxembourg_statec');
@@ -36,11 +34,9 @@ const { fetchTaiwanStations }     = require('./scrapers/taiwan');
 const { fetchMalaysiaStations }   = require('./scrapers/malaysia');
 const { fetchThailandStations }   = require('./scrapers/thailand');
 const { fetchNewZealandStations } = require('./scrapers/newzealand');
-const { fetchSouthKoreaStations } = require('./scrapers/southkorea');
 const { fetchCanadaStations }     = require('./scrapers/canada');
 const { fetchChileStations }      = require('./scrapers/chile');
 const { fetchBrazilStations }     = require('./scrapers/brazil');
-const { fetchArgentinaStations }  = require('./scrapers/argentina');
 const { fetchUSAStations }        = require('./scrapers/usa');
 const { fetchSouthAfricaStations } = require('./scrapers/southafrica');
 // EU Weekly Oil Bulletin (CC BY 4.0) national prices over OSM stations — replaces
@@ -218,17 +214,14 @@ function scheduleGovernmentAPIs() {
   cron.schedule('0 3 * * *', () => runSync('Thailand', fetchThailandStations));
   // New Zealand: weekly (MBIE CSV updates Wednesdays)
   cron.schedule('30 3 * * 3', () => runSync('NewZealand', fetchNewZealandStations));
-  // South Korea: daily (Opinet prices update daily)
-  cron.schedule('15 3 * * *', () => runSync('SouthKorea', fetchSouthKoreaStations));
   // Canada: monthly (Ontario CSV updates monthly; OSM stations stable)
   cron.schedule('0 4 1 * *', () => runSync('Canada', fetchCanadaStations));
   // Chile: daily (CNE Bencina en Línea updates daily; needs CL_CNE_EMAIL/PASSWORD)
   cron.schedule('45 3 * * *', () => runSync('Chile', fetchChileStations));
   // Brazil: weekly (ANP national avg updates Fridays; OSM stations stable) — Sat 04:30
   cron.schedule('30 4 * * 6', () => runSync('Brazil', fetchBrazilStations));
-  // Argentina REMOVED 2026-07-05 (owner decision): the official dataset lags months
-  // behind peso inflation, understating street prices ~30-40%. Scraper kept for
-  // manual re-add via SCRAPERS['argentina'] if the source ever becomes current.
+  // Argentina, South Korea, Norway, Sweden dropped from the pool 2026-07-12 (owner
+  // decision) — scrapers deleted; see docs/DATA_SOURCES.md for the history.
   // USA: weekly (EIA national avg updates Mondays; OSM stations stable) — Sun 05:00
   cron.schedule('0 5 * * 0', () => runSync('USA', fetchUSAStations));
   // South Africa: weekly (DMPR regulated price set monthly; OSM stable) — Sun 05:30
@@ -254,7 +247,6 @@ async function runNightlySlowSync() {
   await runSync('UK',             fetchUKStations);
   await runSync('Finland',        fetchFinlandStations);
   await runSync('Luxembourg', fetchLuxembourgStations);
-  // Norway/Sweden skipped — no public price APIs (see scrapers/*.js)
   await runSync('QLD',  fetchQLDStations);   // requires QLD_FUEL_API_KEY
   await runSync('VIC',  fetchVICStations);   // requires VIC_FUEL_API_KEY
   // Regulated-manual constants (refresh OSM stations + re-apply the official price)
@@ -311,7 +303,6 @@ async function runAllSyncsOnce() {
     ['Malaysia',    fetchMalaysiaStations],
     ['Thailand',    fetchThailandStations],
     ['NewZealand',  fetchNewZealandStations],
-    ['SouthKorea',  fetchSouthKoreaStations],
     ['Canada',      fetchCanadaStations],
     ['Chile',       fetchChileStations],
     ['Brazil',      fetchBrazilStations],
@@ -353,8 +344,6 @@ const SCRAPERS = {
   portugal:       fetchPortugalStations,
   austria:        fetchAustriaStations,
   germany:        fetchGermanyStations,   // Tankerkönig (MTS-K), CC BY 4.0
-  norway:         fetchNorwayStations,
-  sweden:         fetchSwedenStations,
   luxembourg:     fetchLuxembourgStations,
   slovenia:       fetchSloveniaStations,
   switzerland:    fetchSwitzerlandStations,
@@ -375,11 +364,9 @@ const SCRAPERS = {
   malaysia:       fetchMalaysiaStations,
   thailand:       fetchThailandStations,
   newzealand:     fetchNewZealandStations,
-  southkorea:     fetchSouthKoreaStations,
   canada:         fetchCanadaStations,
   chile:          fetchChileStations,
   brazil:         fetchBrazilStations,
-  argentina:      fetchArgentinaStations,
   usa:            fetchUSAStations,
   southafrica:    fetchSouthAfricaStations,
   eubulletin:     fetchEUBulletinStations, // EU national prices (Oil Bulletin) + OSM stations
@@ -432,8 +419,6 @@ const SCRAPERS = {
 // Luxembourg also migrated (2026-06-16): carbu.com → STATEC official max-price open
 // data (CC0, luxembourg_statec). After deploy, run `purge_fuelo_eub.js
 // --include-luxembourg` to delete stale `LU-CARBU-` rows (new rows use `REG-LU-OSM-`).
-// South Korea: Opinet key is now env-configurable (OPINET_API_KEY) — register a real
-// key to drop the demo key before launch.
 // STILL on fuelo.net (parked — no clean automatable source; publish only via
 // news/article streams): Switzerland, Serbia, Bosnia, Montenegro, Albania.
 

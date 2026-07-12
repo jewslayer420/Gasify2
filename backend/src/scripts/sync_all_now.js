@@ -8,10 +8,9 @@
 // single IP partway, the high-visibility per-station countries are already done.
 //
 // Excluded on purpose:
-//   southkorea — deliberately purged (not in DB); running re-adds removed data
 //   germany    — Tankerkönig key is dead; DE is served via the EU Bulletin instead
-//   norway/sweden — no public price API (scrapers return empty)
 //   qld/vic    — need QLD_FUEL_API_KEY / VIC_FUEL_API_KEY (not set here)
+// (South Korea, Argentina, Norway, Sweden left the pool 2026-07-12 — scrapers deleted.)
 //
 // Usage: node src/scripts/sync_all_now.js [fast|slow|all]   (default: all)
 

@@ -26,7 +26,7 @@ IP lawyer before monetising.
 |-----------|--------------------|-----------------|-------------|----------------------|------|
 | Basemap tiles & style | CARTO `basemaps.cartocdn.com` (Dark Matter GL) | CARTO ToS; built on OpenStreetMap data (**ODbL**) | Free CDN **not** licensed for unbounded commercial traffic — needs a CARTO plan or another vendor at scale | "© OpenStreetMap contributors" + "© CARTO" (now re-enabled in `MapView.js`) | 🟡 Comply |
 | Geocoding (city search, reverse) | `nominatim.openstreetmap.org` (`geo.js`, `slovenia.js`, `denmark.js`) | **OSM Nominatim Usage Policy** — ≤1 req/s, **no bulk/heavy/commercial use** on the public server | ❌ on public instance | "© OpenStreetMap contributors" | 🔴 Blocker (bulk/commercial) |
-| Station POIs (location pins) | Overpass API (`overpass-api.de`, `overpass.kumi.systems`, `overpass.openstreetmap.ru`) — Brazil, Canada, Malaysia, NZ, S.Africa, S.Korea, Thailand, USA | Data is OSM **ODbL** (share-alike + attribution); public Overpass servers are **not for heavy/commercial load** | ❌ on public instances | "© OpenStreetMap contributors" | 🔴 Blocker (bulk/commercial) |
+| Station POIs (location pins) | Overpass API (`overpass-api.de`, `overpass.kumi.systems`, `overpass.openstreetmap.ru`) — Brazil, Canada, Malaysia, NZ, S.Africa, Thailand, USA | Data is OSM **ODbL** (share-alike + attribution); public Overpass servers are **not for heavy/commercial load** | ❌ on public instances | "© OpenStreetMap contributors" | 🔴 Blocker (bulk/commercial) |
 | Routing / directions | _none currently wired in `MapView.js`_ | — | — | If you add OSRM demo / Mapbox / etc., re-check terms (OSRM demo server is non-production) | — |
 | Fonts | Geist / Geist Mono (`frontend/app/fonts`) | Geist is **OFL/Vercel licence** — verify it permits app bundling | ✅ (typically) | per font licence | 🟡 Comply |
 
@@ -48,7 +48,7 @@ with attribution + share-alike — the issue is the *free shared servers*.
 | Italy | MIMIT open data (station registry + daily prices) | Italian open-data (**IODL/CC-BY**, ⚠️ verify) | Attribution to MIMIT. |
 | Spain | Ministerio gov API (~11,400 stations) | Spanish gov open data | Attribution. |
 | Portugal | DGEG official API `precoscombustiveis.dgeg.gov.pt` | Portuguese gov open data ⚠️ verify | Attribution to DGEG. |
-| ~~Argentina~~ | ~~`datos.energia.gob.ar`~~ — **REMOVED 2026-07-05** | — | Owner decision after audit: the official dataset lags months behind peso inflation (prices understated ~30-40%). AR rows purged; scraper kept (`SCRAPERS['argentina']`) for re-add if the source becomes current. |
+| ~~Argentina~~ | ~~`datos.energia.gob.ar`~~ — **REMOVED 2026-07-05, out of the pool 2026-07-12** | — | Owner decision after audit: the official dataset lags months behind peso inflation (prices understated ~30-40%). AR rows purged; the scraper was deleted 2026-07-12 (recover from git history if the source ever becomes current). |
 | United States | EIA Open Data API v2 (`api.eia.gov`, **free key**) | **US Government public domain** | Citation requested; key registration permits commercial use. |
 | Canada | Ontario Open Government CSV + StatsCan | **Open Government Licence – Canada** | Attribution; national avg applied to OSM stations. |
 | Brazil | ANP "Série Histórica" XLSX (`gov.br`) | Brazilian gov open data ⚠️ verify | Attribution to ANP. |
@@ -123,15 +123,15 @@ with attribution + share-alike — the issue is the *free shared servers*.
 | ~~Belgium, Bulgaria, Czechia, Estonia, Greece, Croatia, Hungary, Ireland, Latvia, Lithuania, Netherlands, Poland, Romania, Slovakia~~ (14) | ~~`*.fuelo.net`~~ → **EU Oil Bulletin** | ✅ **MIGRATED 2026-06-14** to EU Weekly Oil Bulletin (CC BY 4.0) over OSM stations — see 🟢 table. Stale fuelo rows purged via `backend/src/scripts/purge_fuelo_eub.js`. |
 | ~~Germany~~ | ~~`de.fuelo.net`~~ → **EU Oil Bulletin** | ✅ **MIGRATED.** 2026-06-14 to Tankerkönig, but the API key is **dead/deactivated**, so on 2026-06-18 switched to the **EU Weekly Oil Bulletin** (cc `DE`, CC BY 4.0, national-avg over OSM) — clean + live without a key. Stale `DE-fuelo-` rows purged. Tankerkönig (`tankerkoenig.js`) kept for a per-station upgrade if a working key is obtained. |
 | ~~Luxembourg~~ | ~~`carbu.com`~~ → **STATEC** | ✅ **MIGRATED 2026-06-16** to STATEC official max-price open data (`lustat.statec.lu`, **CC0**) over OSM stations — see 🟢 table. Stale `LU-CARBU-` rows purged via `purge_fuelo_eub.js --include-luxembourg`. |
-| ~~South Korea~~ | Opinet (`opinet.co.kr`) — official KNOC source | ✅ **RESOLVED 2026-06-18: borrowed demo key removed.** Scraper is now **disabled** without a real `OPINET_API_KEY` (no borrowed-key call), and the 6,663 demo-key-sourced KR rows were purged. KR re-enables automatically once you register your own Opinet key and set `OPINET_API_KEY`. The app now uses **zero borrowed keys.** |
+| ~~South Korea~~ | ~~Opinet (`opinet.co.kr`)~~ — **REMOVED from the pool 2026-07-12** | Borrowed demo key removed 2026-06-18 (6,663 KR rows purged); owner dropped KR entirely 2026-07-12 — scraper (`southkorea.js`) deleted. Re-adding means a new scraper + a registered `OPINET_API_KEY`. |
 | Peru | Osinergmin Facilito | reCAPTCHA-gated; parked. (See memory `reference-peru-facilito`.) |
 
-### ⚪ No source yet (returns empty — no legal issue)
+### ⚪ Out of the pool (no coverage planned)
 
 | Country | Reason |
 |---------|--------|
-| Norway | Konkurransetilsynet 2020 order forbids the major chains from publishing prices online. |
-| Sweden | No public Swedish price API/aggregator found. |
+| Norway | Konkurransetilsynet 2020 order forbids the major chains from publishing prices online. **Removed from the pool 2026-07-12** — placeholder scraper deleted. |
+| Sweden | No public Swedish price API/aggregator found. **Removed from the pool 2026-07-12** — placeholder scraper deleted. |
 
 ---
 
@@ -154,7 +154,7 @@ adding/changing sources**. The on-map attribution control in `MapView.js` credit
 ## 4. Pre-monetisation checklist
 
 1. ✅ **DONE (2026-06-18) — fuelo.net fully eliminated.** All ~21 ex-fuelo countries migrated: 14 EU + Cyprus/Malta via Oil Bulletin; Turkey (EPDK); North Macedonia (ERC); Luxembourg (STATEC); Germany (Oil Bulletin, after the Tankerkönig key died); Serbia/Montenegro/Albania (regulated) + Switzerland/Bosnia (market averages) via `regulated_manual.js`. (Kosovo not separately sourced yet.)
-2. ⚠️ **MOSTLY DONE — one dormant demo key remains.** South Korea's Opinet demo key was removed (scraper disabled + KR rows purged until you set `OPINET_API_KEY`); Luxembourg carbu.com resolved 2026-06-16 → STATEC CC0. **Caveat (found 2026-07-01):** `tankerkoenig.js` still carries a hardcoded Tankerkönig **demo-key fallback** (`00000000-…-002`). It is **not on any schedule** — the daily German feed is the EU Oil Bulletin (`EUB-DE-`, CC BY 4.0) — and only fires if `SCRAPERS['germany']` is manually triggered. Per owner decision (2026-07-01) it is **left shipped pending** under the `germany` kill-switch slug; remove the fallback (fail-clean like Korea) for a strict "zero borrowed keys" claim before charging money.
+2. ⚠️ **MOSTLY DONE — one dormant demo key remains.** South Korea's Opinet demo key was removed (scraper disabled 2026-06-18, deleted 2026-07-12 — KR is out of the pool); Luxembourg carbu.com resolved 2026-06-16 → STATEC CC0. **Caveat (found 2026-07-01):** `tankerkoenig.js` still carries a hardcoded Tankerkönig **demo-key fallback** (`00000000-…-002`). It is **not on any schedule** — the daily German feed is the EU Oil Bulletin (`EUB-DE-`, CC BY 4.0) — and only fires if `SCRAPERS['germany']` is manually triggered. Per owner decision (2026-07-01) it is **left shipped pending** under the `germany` kill-switch slug; remove the fallback (fail-clean like Korea) for a strict "zero borrowed keys" claim before charging money.
 3. **Move geocoding + Overpass off the free OSM public servers** (self-host or paid) before scaling — the **#1 remaining monetisation blocker** (see `INFRA_MIGRATION_PLAN.md`).
 4. **Confirm 🟡 vendor terms** allow commercial redistribution — **draft outreach emails ready in `COMMERCIAL_TERMS_OUTREACH.md`**: Chile CNE, AU NSW/VIC/QLD, Finland, Slovenia, UK re-publisher (email each). _(Denmark resolved 2026-06-18 → Oil Bulletin; Tankerkönig dropped — Germany now uses the Oil Bulletin.)_
 5. **Add the in-app credits screen** (this file → data-driven) and government no-endorsement notices.

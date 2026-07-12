@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const {
   thresholdHoursFor, classifyStale, formatStaleMessage,
-  VOLATILE_HOURS, WEEKLY_HOURS,
+  VOLATILE_HOURS, WEEKLY_HOURS, STALE_OVERRIDE,
 } = require('./freshness_monitor');
 
 test('thresholdHoursFor: volatile country uses 48h', () => {
@@ -14,7 +14,12 @@ test('thresholdHoursFor: weekly (non-volatile, non-muted) uses 288h', () => {
 });
 
 test('thresholdHoursFor: muted override returns null', () => {
-  assert.equal(thresholdHoursFor('AR'), null);
+  STALE_OVERRIDE.ZZ = null;
+  try {
+    assert.equal(thresholdHoursFor('ZZ'), null);
+  } finally {
+    delete STALE_OVERRIDE.ZZ;
+  }
 });
 
 test('classifyStale: fresh volatile country is not stale', () => {
@@ -33,10 +38,15 @@ test('classifyStale: stale volatile country flagged with hours', () => {
   assert.equal(Math.round(out[0].ageH), 60);
 });
 
-test('classifyStale: muted country (AR) never flagged even when very old', () => {
+test('classifyStale: muted country never flagged even when very old', () => {
   const now = Date.UTC(2026, 0, 10);
-  const autoRows = [{ country: 'AR', last: new Date(now - 1000 * 3600000) }];
-  assert.deepEqual(classifyStale({ autoRows, manual: [], now }), []);
+  STALE_OVERRIDE.ZZ = null;
+  try {
+    const autoRows = [{ country: 'ZZ', last: new Date(now - 1000 * 3600000) }];
+    assert.deepEqual(classifyStale({ autoRows, manual: [], now }), []);
+  } finally {
+    delete STALE_OVERRIDE.ZZ;
+  }
 });
 
 test('classifyStale: null last (never synced) counts as stale', () => {

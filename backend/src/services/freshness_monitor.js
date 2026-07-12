@@ -16,9 +16,9 @@ const VOLATILE_CC = new Set([
   'FR', 'ES', 'IT', 'PT', 'AT', 'SI', 'IS', 'FI', 'GB', 'LU', 'CL', 'TW', 'MX', 'AU',
 ]);
 
-// Per-country overrides. null = muted (never alert). Argentina is unreachable from
-// GitHub runner IPs, so it would otherwise cry wolf forever.
-const STALE_OVERRIDE = { AR: null };
+// Per-country overrides. null = muted (never alert). Empty since Argentina left
+// the pool (2026-07-12); kept as the operational lever for chronically noisy sources.
+const STALE_OVERRIDE = {};
 
 function thresholdHoursFor(cc) {
   if (Object.prototype.hasOwnProperty.call(STALE_OVERRIDE, cc)) return STALE_OVERRIDE[cc];
