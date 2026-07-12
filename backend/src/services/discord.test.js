@@ -42,3 +42,29 @@ test('sendDiscord: throws on a non-OK response', async () => {
     delete process.env.DISCORD_WEBHOOK_URL;
   }
 });
+
+test('sendDiscord: normalizes a quoted and scheme-less secret value', async () => {
+  process.env.DISCORD_WEBHOOK_URL = '"discord.com/api/webhooks/1/tok"\n';
+  const realFetch = global.fetch;
+  let calledWith = null;
+  global.fetch = async (url) => { calledWith = url; return { ok: true }; };
+  try {
+    assert.equal(await sendDiscord('hi'), true);
+    assert.equal(calledWith, 'https://discord.com/api/webhooks/1/tok');
+  } finally {
+    global.fetch = realFetch;
+    delete process.env.DISCORD_WEBHOOK_URL;
+  }
+});
+
+test('sendDiscord: throws a clear error when the secret is not a URL at all', async () => {
+  process.env.DISCORD_WEBHOOK_URL = 'https://not a url';
+  const realFetch = global.fetch;
+  global.fetch = async () => { throw new Error('should not be called'); };
+  try {
+    await assert.rejects(() => sendDiscord('hi'), /not a valid URL/);
+  } finally {
+    global.fetch = realFetch;
+    delete process.env.DISCORD_WEBHOOK_URL;
+  }
+});

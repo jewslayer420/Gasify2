@@ -183,7 +183,7 @@ const COUNTRIES = [
   },
   {
     cc: 'AL', label: 'albania', currency: 'ALL', bbox: [39.6, 19.2, 42.7, 21.1],
-    asOf: '2026-06-17', source: 'Albania Bordi i Transparencës max retail prices',
+    asOf: '2026-07-12', source: 'Albania Bordi i Transparencës max retail prices (17 Jun decision still in force, re-verified 12 Jul)',
     prices: { sp95: 166, diesel: 176 }, // ALL/L (benzin, nafta)
   },
   {
