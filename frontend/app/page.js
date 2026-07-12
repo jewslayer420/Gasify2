@@ -1,7 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import styles from './page.module.css';
+
+const MapPreview = dynamic(() => import('../components/MapPreview/MapPreview'), {
+  ssr: false,
+  loading: () => <div className={styles.shotLoading} />,
+});
 
 const FLAGS = {
   SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', DE: '🇩🇪', CZ: '🇨🇿', SK: '🇸🇰',
@@ -95,14 +101,12 @@ export default function LandingPage() {
 
       <section className={styles.shot}>
         <h2 className={styles.countriesTitle}>See every price on one map</h2>
-        <Link href="/map" className={styles.shotFrame}>
-          <img
-            src="/map-shot.png"
-            alt="The Gasify map showing live fuel prices and the country ranking across Europe"
-            className={styles.shotImg}
-          />
-          <span className={styles.shotHint}>Open the map</span>
-        </Link>
+        <div className={styles.shotFrame}>
+          <MapPreview />
+          <Link href="/map" className={styles.shotOverlay} aria-label="Open the map">
+            <span className={styles.shotHint}>Open the map</span>
+          </Link>
+        </div>
       </section>
 
       <section className={styles.countries}>

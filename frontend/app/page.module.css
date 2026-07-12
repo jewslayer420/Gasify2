@@ -168,7 +168,18 @@
   transform: translateY(-4px);
   box-shadow: 0 44px 96px rgba(0, 0, 0, 0.65);
 }
-.shotImg { display: block; width: 100%; height: auto; }
+.shotOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.shotLoading {
+  height: 483px;
+  background: #10131B;
+}
+@media (max-width: 640px) {
+  .shotLoading { height: 363px; }
+}
 .shotHint {
   position: absolute;
   left: 50%;
