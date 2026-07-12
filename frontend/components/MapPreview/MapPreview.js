@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Map, { Marker, AttributionControl } from 'react-map-gl/maplibre';
+import Link from 'next/link';
+import Map, { Marker, AttributionControl, NavigationControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import styles from './MapPreview.module.css';
 
@@ -44,10 +45,15 @@ export default function MapPreview() {
         <Map
           initialViewState={{ longitude: 9, latitude: 48.5, zoom: 3.4 }}
           mapStyle={MAP_STYLE}
-          interactive={false}
+          minZoom={2}
+          maxZoom={9}
+          dragRotate={false}
+          touchPitch={false}
+          cooperativeGestures
           attributionControl={false}
           style={{ position: 'absolute', inset: 0 }}
         >
+          <NavigationControl position="top-left" showCompass={false} />
           <AttributionControl compact customAttribution={[
             '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             '© <a href="https://www.maptiler.com/copyright/">MapTiler</a>',
@@ -61,6 +67,7 @@ export default function MapPreview() {
             </Marker>
           ))}
         </Map>
+        <Link href="/map" className={styles.openBtn}>Open the map</Link>
       </div>
     </div>
   );

@@ -162,16 +162,6 @@
   overflow: hidden;
   border: 1px solid rgba(232, 234, 240, 0.1);
   box-shadow: 0 32px 80px rgba(0, 0, 0, 0.55);
-  transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
-}
-.shotFrame:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 44px 96px rgba(0, 0, 0, 0.65);
-}
-.shotOverlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
 }
 .shotLoading {
   height: 483px;
@@ -180,22 +170,6 @@
 @media (max-width: 640px) {
   .shotLoading { height: 363px; }
 }
-.shotHint {
-  position: absolute;
-  left: 50%;
-  bottom: 24px;
-  transform: translateX(-50%);
-  background: var(--text);
-  color: var(--bg);
-  font-size: 0.88rem;
-  font-weight: 700;
-  padding: 11px 26px;
-  border-radius: 99px;
-  opacity: 0;
-  transition: opacity 0.2s;
-  pointer-events: none;
-}
-.shotFrame:hover .shotHint { opacity: 1; }
 
 /* Coverage */
 .countries {

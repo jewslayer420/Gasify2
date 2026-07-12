@@ -103,9 +103,6 @@ export default function LandingPage() {
         <h2 className={styles.countriesTitle}>See every price on one map</h2>
         <div className={styles.shotFrame}>
           <MapPreview />
-          <Link href="/map" className={styles.shotOverlay} aria-label="Open the map">
-            <span className={styles.shotHint}>Open the map</span>
-          </Link>
         </div>
       </section>
 
