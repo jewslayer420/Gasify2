@@ -76,6 +76,7 @@ model PriceHistory {
   station    Station  @relation(fields: [stationId], references: [id], onDelete: Cascade)
 
   @@index([stationId, fuelType, recordedAt])
+  @@index([recordedAt])
 }
 
 model Favorite {

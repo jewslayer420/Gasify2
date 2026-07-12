@@ -14,7 +14,9 @@ export default function NewsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getNews().then(data => { setChanges(data); setLoading(false); });
+    getNews()
+      .then(data => { setChanges(Array.isArray(data) ? data : []); setLoading(false); })
+      .catch(() => { setChanges([]); setLoading(false); });
   }, []);
 
   return (
@@ -37,7 +39,9 @@ export default function NewsPage() {
           <div key={i} className={styles.item}>
             <div className={styles.itemLeft}>
               <div className={styles.stationName}>{c.station.name}</div>
-              <div className={styles.stationCity}>{c.station.city} · {FUEL_LABELS[c.fuelType] ?? c.fuelType}</div>
+              <div className={styles.stationCity}>
+                {[c.station.city, c.station.country, FUEL_LABELS[c.fuelType] ?? c.fuelType].filter(Boolean).join(' · ')}
+              </div>
             </div>
             <div className={styles.itemRight}>
               <div className={`${styles.change} ${c.changePct > 0 ? styles.up : styles.down}`}>
