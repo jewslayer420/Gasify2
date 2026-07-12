@@ -72,8 +72,8 @@ const COUNTRIES = [
   },
   {
     cc: 'EC', label: 'ecuador', currency: 'USD', bbox: [-5.0, -81.1, 1.5, -75.2],
-    asOf: '2026-06-12', source: 'Ecuador price-band scheme (per US gallon; band period to 11 Jul). Súper is deregulated (varies by station — suggested value).',
-    prices: { sp95: 3.312 / GAL, sp98: 5.65 / GAL, diesel: 3.251 / GAL }, // USD/L (Extra/Ecopaís, Súper, Diésel)
+    asOf: '2026-07-12', source: 'Ecuador price-band scheme (per US gallon; band period to 11 Aug). Súper is deregulated (varies by station — suggested value).',
+    prices: { sp95: 3.265 / GAL, sp98: 5.61 / GAL, diesel: 3.204 / GAL }, // USD/L (Extra/Ecopaís, Súper, Diésel)
   },
   {
     cc: 'VN', label: 'vietnam', currency: 'VND', bbox: [8.4, 102.1, 23.4, 109.5],
