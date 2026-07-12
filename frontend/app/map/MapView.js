@@ -136,12 +136,14 @@ export default function MapView() {
   const [showCountryBadges, setShowCountryBadges] = useState(true);
   const [mapZoom, setMapZoom] = useState(4.3); // must match initialViewState.zoom — onMove only fires on interaction
   const [countryTotals, setCountryTotals] = useState({});
+  const [countryFocus, setCountryFocus] = useState(null); // cc: league/pill click scopes the sidebar to one country
 
   const mapRef = useRef(null);
   const allStations = useRef([]);   // full in-memory station list for current fuel
   const mapLoaded = useRef(false);
   const modeRef = useRef('bbox');
   const fuelRef = useRef(fuel);
+  const focusRef = useRef(null);    // mirrors countryFocus for map callbacks
   const prevZoomBelow7 = useRef(true);
   fuelRef.current = fuel;
   modeRef.current = mode;
@@ -178,10 +180,24 @@ export default function MapView() {
 
   // Filter allStations by current map viewport and update the sidebar.
   // O(n) array scan — runs only on moveEnd, not every frame.
+  // With a country focus set, the list is that country's cheapest stations
+  // nationwide instead of the viewport's (a viewport at country zoom leaks
+  // cheaper neighbours to the top — clicking Italy showed Bosnian stations).
   function updateSidebar() {
     if (modeRef.current !== 'bbox') return;
+    if (!allStations.current.length) return;
+    if (focusRef.current) {
+      const cc = focusRef.current;
+      setSidebarStations(
+        allStations.current
+          .filter(s => s.country === cc)
+          .sort((a, b) => (a.price ?? 9) - (b.price ?? 9))
+          .slice(0, 100)
+      );
+      return;
+    }
     const map = mapRef.current?.getMap();
-    if (!map || !allStations.current.length) return;
+    if (!map) return;
     const b = map.getBounds();
     const [sv, w, n, e] = [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()];
     const visible = allStations.current
@@ -189,6 +205,21 @@ export default function MapView() {
       .sort((a, b) => (a.price ?? 9) - (b.price ?? 9))
       .slice(0, 100);
     setSidebarStations(visible);
+  }
+
+  // Enter/leave country focus (league row or map pill click). Zooming back out
+  // to the badge view clears it, restoring the all-countries league.
+  function applyFocus(cc) {
+    focusRef.current = cc;
+    setCountryFocus(cc);
+    updateSidebar();
+  }
+
+  function focusCountry(cc) {
+    const c = COUNTRY_CENTROIDS[cc];
+    if (!c) return;
+    applyFocus(cc);
+    mapRef.current?.flyTo({ center: [c.lng, c.lat], zoom: 6.6, duration: 1200 });
   }
 
   // Load all stations for a fuel type: one request, cached 30 min by the browser.
@@ -273,6 +304,8 @@ export default function MapView() {
   // Near-me: sort all in-memory stations by distance — no network request.
   function handleNearMe() {
     if (!userPos) return;
+    focusRef.current = null;
+    setCountryFocus(null);
     setMode('near');
     modeRef.current = 'near';
     mapRef.current?.flyTo({ center: [userPos.lng, userPos.lat], zoom: 13, duration: 800 });
@@ -292,6 +325,8 @@ export default function MapView() {
   function cheapestNearMe() {
     setCtaMsg(null);
     const run = pos => {
+      focusRef.current = null;
+      setCountryFocus(null);
       setMode('near');
       modeRef.current = 'near';
       const { lat, lng } = pos;
@@ -325,6 +360,8 @@ export default function MapView() {
   }
 
   function handleBboxMode() {
+    focusRef.current = null;
+    setCountryFocus(null);
     setMode('bbox');
     modeRef.current = 'bbox';
     updateSidebar();
@@ -334,6 +371,8 @@ export default function MapView() {
     e.preventDefault();
     if (!citySearch.trim()) return;
     setLoading(true);
+    focusRef.current = null;
+    setCountryFocus(null);
     setMode('bbox');
     modeRef.current = 'bbox';
     try {
@@ -428,11 +467,13 @@ export default function MapView() {
     return out;
   }, [showCountryBadges, countryMeta, countryTotals, mapZoom]);
 
-  // Country lens: when zoomed in, the country whose centroid is nearest the map
-  // centre. (Deriving it from visible stations biased toward the cheapest
-  // neighbour, since the sidebar list is price-sorted.)
+  // Country lens: the focused country when set, otherwise the country whose
+  // centroid is nearest the map centre. (Deriving it from visible stations
+  // biased toward the cheapest neighbour, since the list is price-sorted.)
   let lens = null;
-  if (!showCountryBadges && countryMeta.length) {
+  if (!showCountryBadges && countryFocus) {
+    lens = countryMeta.find(m => m.country === countryFocus) ?? null;
+  } else if (!showCountryBadges && countryMeta.length) {
     let bestD = Infinity;
     for (const m of countryMeta) {
       const c = COUNTRY_CENTROIDS[m.country];
@@ -491,6 +532,7 @@ export default function MapView() {
               if (below7 !== prevZoomBelow7.current) {
                 prevZoomBelow7.current = below7;
                 setShowCountryBadges(below7);
+                if (below7 && focusRef.current) applyFocus(null); // zoomed back out: all countries again
               }
             }}
             onLoad={handleMapLoad}
@@ -542,7 +584,7 @@ export default function MapView() {
               <Marker key={c.country} longitude={c.lng} latitude={c.lat} anchor="center">
                 <button
                   className={`${styles.countryPill} ${c.big ? styles.countryPillBig : ''}`}
-                  onClick={() => mapRef.current?.flyTo({ center: [c.lng, c.lat], zoom: 6.6, duration: 1200 })}
+                  onClick={() => focusCountry(c.country)}
                   aria-label={`Zoom to ${COUNTRY_NAMES[c.country] ?? c.country}`}
                 >
                   <span className={styles.pillCc}>{c.country}</span>
@@ -633,10 +675,7 @@ export default function MapView() {
                       <button
                         key={m.country}
                         className={`${styles.stationRow} ${styles.leagueRow}`}
-                        onClick={() => {
-                          const c = COUNTRY_CENTROIDS[m.country];
-                          mapRef.current?.flyTo({ center: [c.lng, c.lat], zoom: 6.6, duration: 1200 });
-                        }}
+                        onClick={() => focusCountry(m.country)}
                       >
                         <span
                           className={styles.leagueBar}
@@ -675,15 +714,35 @@ export default function MapView() {
             </div>
           )}
           <div className={styles.sidebarHeader}>
-            <span className={styles.sidebarCount}>{sidebarStations.length} stations</span>
-            <span className={styles.sidebarFuel}>{FUELS.find(f => f.key === fuel)?.label}</span>
+            {countryFocus ? (
+              <div>
+                <span className={styles.sidebarCount}>Cheapest in {COUNTRY_NAMES[countryFocus] ?? countryFocus}</span>
+                <span className={styles.sidebarCaption}>
+                  {lens?.stations
+                    ? `top ${sidebarStations.length} of ${lens.stations.toLocaleString()} stations`
+                    : `${sidebarStations.length} stations nationwide`}
+                </span>
+              </div>
+            ) : (
+              <span className={styles.sidebarCount}>{sidebarStations.length} stations</span>
+            )}
+            <div className={styles.headerChips}>
+              <span className={styles.sidebarFuel}>{FUELS.find(f => f.key === fuel)?.label}</span>
+              {countryFocus && (
+                <button className={styles.focusExit} onClick={() => applyFocus(null)} title="Show stations in the current view instead">×</button>
+              )}
+            </div>
           </div>
           <div className={styles.stationList}>
             {sidebarStations.map((s, i) => (
               <button
                 key={s.id}
                 className={`${styles.stationRow} ${selected?.id === s.id ? styles.stationRowActive : ''}`}
-                onClick={() => handleSelectStation(s)}
+                onClick={() => {
+                  // Nationwide focus list: the station can be far outside the view
+                  if (countryFocus) mapRef.current?.flyTo({ center: [s.lng, s.lat], zoom: 13, duration: 900 });
+                  handleSelectStation(s);
+                }}
               >
                 <div className={styles.stationRowRank}>{i + 1}</div>
                 <div className={styles.stationRowBody}>
