@@ -608,9 +608,10 @@
   color: #FFB84D;
   text-shadow: 0 0 10px rgba(255, 184, 77, 0.45), 0 0 2px rgba(255, 184, 77, 0.8);
 }
-/* Unlit segments behind the digits, like a real LED sign */
+/* Unlit segments behind the digits, like a real LED sign (ghost mirrors the
+   digit pattern so any currency magnitude lines up) */
 .boardPrice::before {
-  content: '8.888';
+  content: attr(data-ghost);
   position: absolute;
   right: 0;
   top: 0;

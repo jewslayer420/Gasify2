@@ -78,6 +78,7 @@ app.use('/api/stations', stationsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/user', usersRouter);
 app.use('/api/news', newsRouter);
+app.use('/api/fx', require('./routes/fx'));
 
 app.listen(PORT, () => {
   console.log(`Gasify API running on port ${PORT}`);

@@ -8,6 +8,8 @@ import { getStationsGeoJSON, getStation, getStationHistory, geocodeCity, addFavo
 import { COUNTRY_NAMES } from '../../lib/countries';
 import { COUNTRY_CENTROIDS } from '../../lib/countryCentroids';
 import { useUser } from '../../lib/context/UserContext';
+import { useCurrency } from '../../lib/context/CurrencyContext';
+import CurrencySelect from '../../components/CurrencySelect/CurrencySelect';
 import styles from './map.module.css';
 
 // MapTiler (commercial-licensed) when a key is configured; CARTO's free style as a
@@ -45,6 +47,16 @@ function priceColor(p) {
   if (p <= 1.60) return '#2FBF84';
   if (p <= 1.90) return '#E8A23D';
   return '#E25A5A';
+}
+
+// Bare digits for the LED totem (no symbol, no grouping — like a real sign).
+// Decimals scale with magnitude so IDR reads 17300, EUR reads 1.853.
+function ledDigits(v) {
+  if (v == null) return '-.---';
+  if (v >= 1000) return String(Math.round(v));
+  if (v >= 100) return v.toFixed(1);
+  if (v >= 10) return v.toFixed(2);
+  return v.toFixed(3);
 }
 
 // Heatmap — GPU-rendered density view at mid zoom
@@ -116,6 +128,7 @@ function project(lng, lat, zoom) {
 
 export default function MapView() {
   const { user } = useUser() ?? {};
+  const { fmt, fmtCompact, convert, effCode } = useCurrency();
   const [fuel, setFuel] = useState('diesel');
   const [sidebarStations, setSidebarStations] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -508,6 +521,7 @@ export default function MapView() {
               </button>
             ))}
           </div>
+          <CurrencySelect />
           <button className={styles.ctaBtn} onClick={cheapestNearMe} disabled={ctaBusy}>
             {ctaBusy ? 'Locating…' : 'Cheapest near me'}
           </button>
@@ -592,7 +606,7 @@ export default function MapView() {
                     className={styles.pillPrice}
                     style={c.median != null ? { color: priceColor(c.median) } : undefined}
                   >
-                    {c.median != null ? `€${c.median.toFixed(2)}` : '—'}
+                    {c.median != null ? fmtCompact(c.median) : '—'}
                   </span>
                 </button>
               </Marker>
@@ -637,7 +651,7 @@ export default function MapView() {
                         <div className={styles.stationRowCity}>{FLAGS[s.country] ?? s.country} {s.city}</div>
                       </div>
                       <div className={styles.stationRowPrice} style={{ color: priceColor(p) }}>
-                        {p ? `€${p.toFixed(3)}` : '—'}
+                        {p ? fmt(p) : '—'}
                       </div>
                     </button>
                   );
@@ -656,7 +670,7 @@ export default function MapView() {
               <div className={styles.sidebarHeader}>
                 <div>
                   <span className={styles.sidebarCount}>Cheapest countries</span>
-                  <span className={styles.sidebarCaption}>national medians · €/L</span>
+                  <span className={styles.sidebarCaption}>national medians · {effCode}/L</span>
                 </div>
                 <span className={styles.sidebarFuel}>{FUELS.find(f => f.key === fuel)?.label}</span>
               </div>
@@ -687,7 +701,7 @@ export default function MapView() {
                           <div className={styles.stationRowCity}>{m.stations.toLocaleString()} stations</div>
                         </div>
                         <div className={styles.stationRowPrice} style={{ color }}>
-                          €{m.median.toFixed(3)}
+                          {fmt(m.median)}
                         </div>
                       </button>
                     );
@@ -702,7 +716,7 @@ export default function MapView() {
               <div className={styles.lensTitle}>{FLAGS[lens.country] ?? ''} {COUNTRY_NAMES[lens.country] ?? lens.country}</div>
               <div className={styles.lensStats}>
                 {lens.median != null && (
-                  <span>National median <b style={{ color: priceColor(lens.median) }}>€{lens.median.toFixed(3)}</b></span>
+                  <span>National median <b style={{ color: priceColor(lens.median) }}>{fmt(lens.median)}</b></span>
                 )}
                 <span>{lens.stations.toLocaleString()} stations</span>
               </div>
@@ -752,7 +766,7 @@ export default function MapView() {
                   </div>
                 </div>
                 <div className={styles.stationRowPrice} style={{ color: priceColor(s.price) }}>
-                  {s.price ? `€${s.price.toFixed(3)}` : '—'}
+                  {s.price ? fmt(s.price) : '—'}
                 </div>
               </button>
             ))}
@@ -804,15 +818,16 @@ export default function MapView() {
                 .map(f => {
                   const p = selected.allPrices?.[f.key] ?? (f.key === fuel ? selectedPrice : null);
                   const active = f.key === fuel;
+                  const digits = ledDigits(convert(p));
                   return (
                     <div key={f.key} className={`${styles.boardRow} ${active ? styles.boardRowActive : ''}`}>
                       <span className={styles.boardFuel}>{f.label}</span>
-                      <span className={styles.boardPrice}>{p != null ? p.toFixed(3) : '-.---'}</span>
+                      <span className={styles.boardPrice} data-ghost={digits.replace(/\d/g, '8')}>{digits}</span>
                     </div>
                   );
                 })}
               <div className={styles.boardFooter}>
-                <span>EUR / LITRE</span>
+                <span>{effCode} / LITRE</span>
                 <span>
                   {selected.updatedAt && relAgo(selected.updatedAt) ? `UPDATED ${relAgo(selected.updatedAt).toUpperCase()}` : ''}
                   {selected.distance != null ? ` · ${selected.distance} KM` : ''}
@@ -829,7 +844,7 @@ export default function MapView() {
                   <div className={styles.chartHead}>
                     <span className={styles.chartTitle}>Price history · {FUELS.find(f => f.key === fuel)?.label}</span>
                     <span className={styles.chartRange}>
-                      low <b style={{ color: '#2FBF84' }}>€{lo.toFixed(3)}</b> · high <b style={{ color: '#E25A5A' }}>€{hi.toFixed(3)}</b>
+                      low <b style={{ color: '#2FBF84' }}>{fmt(lo)}</b> · high <b style={{ color: '#E25A5A' }}>{fmt(hi)}</b>
                     </span>
                   </div>
                   <ResponsiveContainer width="100%" height={140}>
@@ -848,7 +863,7 @@ export default function MapView() {
                       />
                       <YAxis hide domain={[dataMin => dataMin * 0.995, dataMax => dataMax * 1.005]} />
                       <Tooltip
-                        formatter={v => [`€${Number(v).toFixed(3)}`, null]}
+                        formatter={v => [fmt(Number(v)), null]}
                         separator=""
                         contentStyle={{ background: '#191D28', border: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', borderRadius: 8, color: '#F2F4F8', fontSize: 12 }}
                         labelStyle={{ color: '#8A91A6', fontSize: 11 }}

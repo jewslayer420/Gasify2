@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUser } from '../../lib/context/UserContext';
+import { useCurrency } from '../../lib/context/CurrencyContext';
 import { getFavorites, removeFavorite, getSavedLocations, saveLocation, deleteLocation } from '../../lib/api';
 import styles from './page.module.css';
 
@@ -17,6 +18,7 @@ function priceColor(p) {
 
 export default function DashboardPage() {
   const { user, loading } = useUser() ?? {};
+  const { fmt } = useCurrency();
   const router = useRouter();
   const [favorites, setFavorites] = useState([]);
   const [locations, setLocations] = useState([]);
@@ -74,7 +76,7 @@ export default function DashboardPage() {
                   <div className={styles.favCity}>{s.city} · {s.country}</div>
                 </div>
                 <div className={styles.favRight}>
-                  {dieselPrice && <span className={`${styles.price} ${priceColor(dieselPrice)}`}>€{dieselPrice.toFixed(3)}</span>}
+                  {dieselPrice && <span className={`${styles.price} ${priceColor(dieselPrice)}`}>{fmt(dieselPrice)}</span>}
                   <button className={styles.removeBtn} onClick={() => handleRemoveFav(s.id)} title="Remove favorite">✕</button>
                 </div>
               </div>

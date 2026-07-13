@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getNews, getNewsPlaces } from '../../lib/api';
 import { COUNTRY_NAMES } from '../../lib/countries';
+import { useCurrency } from '../../lib/context/CurrencyContext';
 import styles from './page.module.css';
 
 const FUEL_LABELS = { diesel: 'Diesel', sp95: '95', sp98: '98', sp100: '100', diesel_premium: 'Diesel+', lpg: 'LPG' };
@@ -22,6 +23,7 @@ function matchCountries(q) {
 }
 
 export default function NewsPage() {
+  const { fmt } = useCurrency();
   const [changes, setChanges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [scope, setScope] = useState(null); // { country?, city?, label }
@@ -181,9 +183,9 @@ export default function NewsPage() {
                 {arrow(c.changePct)} {Math.abs(c.changePct)}%
               </div>
               <div className={styles.prices}>
-                <span className={styles.oldPrice}>€{c.oldPrice.toFixed(3)}</span>
+                <span className={styles.oldPrice}>{fmt(c.oldPrice)}</span>
                 <span className={styles.arrow}>→</span>
-                <span className={styles.newPrice}>€{c.newPrice.toFixed(3)}</span>
+                <span className={styles.newPrice}>{fmt(c.newPrice)}</span>
               </div>
             </div>
           </div>

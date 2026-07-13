@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Map, { Marker, AttributionControl, NavigationControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { COUNTRY_CENTROIDS } from '../../lib/countryCentroids';
+import { useCurrency } from '../../lib/context/CurrencyContext';
 import styles from './MapPreview.module.css';
 
 const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
@@ -26,6 +27,7 @@ function project(lng, lat, zoom) {
 }
 
 export default function MapPreview() {
+  const { fmtCompact } = useCurrency();
   const [chips, setChips] = useState([]);
   const [zoom, setZoom] = useState(3.4);
 
@@ -82,7 +84,7 @@ export default function MapPreview() {
             <Marker key={c.country} longitude={c.lng} latitude={c.lat} anchor="center">
               <div className={styles.chip}>
                 <span className={styles.chipCc}>{c.country}</span>
-                <span className={styles.chipPrice}>€{c.median.toFixed(2)}</span>
+                <span className={styles.chipPrice}>{fmtCompact(c.median)}</span>
               </div>
             </Marker>
           ))}
