@@ -10,8 +10,12 @@ datasource db {
 model User {
   id             String              @id @default(cuid())
   email          String              @unique
-  passwordHash   String
+  passwordHash   String? // null for social-login-only accounts
   emailVerified  Boolean             @default(false)
+  totpSecret     String? // set at 2FA enrollment; active once totpEnabled
+  totpEnabled    Boolean             @default(false)
+  backupCodes    String[]            @default([]) // sha256 hex of one-time recovery codes
+  googleId       String?             @unique
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   favorites      Favorite[]

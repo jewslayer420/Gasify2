@@ -91,6 +91,53 @@ export async function logout() {
   await fetch(`${BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' });
 }
 
+// ── Two-factor authentication ──
+export async function twoFactorLogin(mfaToken, code) {
+  const res = await fetch(`${BASE}/api/auth/2fa/login`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mfaToken, code }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Sign-in failed');
+  return data;
+}
+
+export async function get2faStatus() {
+  const res = await fetch(`${BASE}/api/auth/2fa/status`, { credentials: 'include' });
+  if (!res.ok) return null;
+  return res.json(); // { totpEnabled, backupCodesLeft, hasPassword, googleLinked }
+}
+
+export async function setup2fa() {
+  const res = await fetch(`${BASE}/api/auth/2fa/setup`, { method: 'POST', credentials: 'include' });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Setup failed');
+  return data; // { secret, otpauthUrl, qr }
+}
+
+export async function enable2fa(code) {
+  const res = await fetch(`${BASE}/api/auth/2fa/enable`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Could not enable two-factor');
+  return data; // { enabled, backupCodes }
+}
+
+export async function disable2fa(code) {
+  const res = await fetch(`${BASE}/api/auth/2fa/disable`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Could not disable two-factor');
+  return data;
+}
+
 export async function getFavorites() {
   const res = await fetch(`${BASE}/api/user/favorites`, { credentials: 'include' });
   if (!res.ok) return [];

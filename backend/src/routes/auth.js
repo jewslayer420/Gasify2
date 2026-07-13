@@ -57,10 +57,18 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    // passwordHash is null for social-login-only accounts — password auth can't match
+    if (!user || !user.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     if (!user.emailVerified) return res.status(403).json({ error: 'Please verify your email first' });
+
+    // 2FA-enabled accounts get a short-lived MFA token instead of a session;
+    // /api/auth/2fa/login swaps it (plus a valid code) for the real cookie.
+    if (user.totpEnabled) {
+      const mfaToken = jwt.sign({ userId: user.id, mfa: true }, JWT_SECRET, { expiresIn: '5m' });
+      return res.json({ requires2fa: true, mfaToken });
+    }
 
     const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
     res.cookie('gasify_token', token, COOKIE_OPTS);

@@ -85,6 +85,48 @@
   margin-top: 4px;
 }
 
+/* "Continue with Google" — neutral, spec-ish button */
+.googleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 11px 24px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.googleBtn:hover { border-color: rgba(232, 234, 240, 0.25); }
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* 2FA code entry: big, centered, spaced digits */
+.codeInput {
+  text-align: center;
+  font-size: 1.3rem;
+  letter-spacing: 0.35em;
+  font-variant-numeric: tabular-nums;
+}
+
 .footer {
   margin-top: 24px;
   font-size: 0.85rem;

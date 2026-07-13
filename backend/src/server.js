@@ -75,6 +75,8 @@ app.get('/api/admin/probe/peru', async (req, res) => {
 });
 
 app.use('/api/stations', stationsRouter);
+app.use('/api/auth/2fa', require('./routes/auth_2fa'));
+app.use('/api/auth/google', require('./routes/auth_google'));
 app.use('/api/auth', authRouter);
 app.use('/api/user', usersRouter);
 app.use('/api/news', newsRouter);

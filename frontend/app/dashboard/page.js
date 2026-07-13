@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUser } from '../../lib/context/UserContext';
 import { useCurrency } from '../../lib/context/CurrencyContext';
-import { getFavorites, removeFavorite, getSavedLocations, saveLocation, deleteLocation } from '../../lib/api';
+import { getFavorites, removeFavorite, getSavedLocations, saveLocation, deleteLocation, get2faStatus, setup2fa, enable2fa, disable2fa } from '../../lib/api';
 import styles from './page.module.css';
 
 const FUEL_LABELS = { diesel: 'Diesel', sp95: '95', sp98: '98', sp100: '100', diesel_premium: 'Diesel+', lpg: 'LPG' };
@@ -26,13 +26,60 @@ export default function DashboardPage() {
   const [addingLocation, setAddingLocation] = useState(false);
   const [locForm, setLocForm] = useState({ label: 'home', name: '', lat: '', lng: '' });
 
+  // Security card state
+  const [security, setSecurity] = useState(null);       // { totpEnabled, backupCodesLeft, hasPassword, googleLinked }
+  const [enrollment, setEnrollment] = useState(null);   // { qr, secret } during setup
+  const [twoFaCode, setTwoFaCode] = useState('');
+  const [backupCodes, setBackupCodes] = useState(null); // shown once after enabling
+  const [disabling, setDisabling] = useState(false);
+  const [twoFaError, setTwoFaError] = useState('');
+  const [twoFaBusy, setTwoFaBusy] = useState(false);
+
   useEffect(() => {
     if (!loading && !user) { router.push('/auth/login'); return; }
     if (user) {
-      Promise.all([getFavorites(), getSavedLocations()])
-        .then(([favs, locs]) => { setFavorites(favs); setLocations(locs); setLoadingData(false); });
+      Promise.all([getFavorites(), getSavedLocations(), get2faStatus()])
+        .then(([favs, locs, sec]) => { setFavorites(favs); setLocations(locs); setSecurity(sec); setLoadingData(false); });
     }
   }, [user, loading, router]);
+
+  async function startEnrollment() {
+    setTwoFaError('');
+    setTwoFaBusy(true);
+    try {
+      const data = await setup2fa();
+      setEnrollment(data);
+    } catch (err) { setTwoFaError(err.message); }
+    finally { setTwoFaBusy(false); }
+  }
+
+  async function confirmEnrollment(e) {
+    e.preventDefault();
+    setTwoFaError('');
+    setTwoFaBusy(true);
+    try {
+      const data = await enable2fa(twoFaCode);
+      setBackupCodes(data.backupCodes);
+      setEnrollment(null);
+      setTwoFaCode('');
+      setSecurity(s => ({ ...s, totpEnabled: true, backupCodesLeft: data.backupCodes.length }));
+    } catch (err) { setTwoFaError(err.message); }
+    finally { setTwoFaBusy(false); }
+  }
+
+  async function confirmDisable(e) {
+    e.preventDefault();
+    setTwoFaError('');
+    setTwoFaBusy(true);
+    try {
+      await disable2fa(twoFaCode);
+      setDisabling(false);
+      setTwoFaCode('');
+      setBackupCodes(null);
+      setSecurity(s => ({ ...s, totpEnabled: false, backupCodesLeft: 0 }));
+    } catch (err) { setTwoFaError(err.message); }
+    finally { setTwoFaBusy(false); }
+  }
 
   async function handleRemoveFav(stationId) {
     await removeFavorite(stationId);
@@ -60,6 +107,73 @@ export default function DashboardPage() {
         <h1 className={styles.title}>Dashboard</h1>
         <p className={styles.sub}>{user?.email}</p>
       </div>
+
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>Security</h2>
+        <div className={styles.secRow}>
+          <div>
+            <div className={styles.secName}>Two-factor authentication</div>
+            <div className={styles.secDetail}>
+              {security?.totpEnabled
+                ? `On — authenticator app · ${security.backupCodesLeft} backup code${security.backupCodesLeft === 1 ? '' : 's'} left`
+                : 'Off — protect your account with an authenticator app (Google Authenticator, Authy, 1Password…)'}
+            </div>
+          </div>
+          {security?.totpEnabled
+            ? <button className={styles.cancelBtn} onClick={() => { setDisabling(v => !v); setTwoFaCode(''); setTwoFaError(''); }} disabled={twoFaBusy}>Turn off</button>
+            : <button className={styles.addBtn} onClick={startEnrollment} disabled={twoFaBusy || !!enrollment}>{enrollment ? 'Scanning…' : 'Turn on'}</button>}
+        </div>
+
+        {enrollment && (
+          <form onSubmit={confirmEnrollment} className={styles.secPanel}>
+            <p className={styles.secDetail}>1. Scan this QR code with your authenticator app (or enter the key manually):</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={enrollment.qr} alt="Two-factor QR code" className={styles.secQr} width={180} height={180} />
+            <code className={styles.secKey}>{enrollment.secret}</code>
+            <p className={styles.secDetail}>2. Enter the 6-digit code the app shows:</p>
+            <div className={styles.locFormBtns}>
+              <input className={styles.input} value={twoFaCode} onChange={e => setTwoFaCode(e.target.value)} placeholder="123456" inputMode="numeric" autoComplete="one-time-code" required />
+              <button className={styles.saveBtn} type="submit" disabled={twoFaBusy}>Confirm</button>
+              <button type="button" className={styles.cancelBtn} onClick={() => { setEnrollment(null); setTwoFaCode(''); setTwoFaError(''); }}>Cancel</button>
+            </div>
+            {twoFaError && <p className={styles.secError}>{twoFaError}</p>}
+          </form>
+        )}
+
+        {disabling && security?.totpEnabled && (
+          <form onSubmit={confirmDisable} className={styles.secPanel}>
+            <p className={styles.secDetail}>Enter a code from your authenticator app (or a backup code) to turn two-factor off:</p>
+            <div className={styles.locFormBtns}>
+              <input className={styles.input} value={twoFaCode} onChange={e => setTwoFaCode(e.target.value)} placeholder="123456" autoComplete="one-time-code" required />
+              <button className={styles.saveBtn} type="submit" disabled={twoFaBusy}>Turn off</button>
+              <button type="button" className={styles.cancelBtn} onClick={() => { setDisabling(false); setTwoFaCode(''); setTwoFaError(''); }}>Cancel</button>
+            </div>
+            {twoFaError && <p className={styles.secError}>{twoFaError}</p>}
+          </form>
+        )}
+
+        {backupCodes && (
+          <div className={styles.secPanel}>
+            <p className={styles.secDetail}><b>Save these backup codes now</b> — each works once if you lose your authenticator. They will not be shown again.</p>
+            <div className={styles.secCodes}>
+              {backupCodes.map(c => <code key={c}>{c}</code>)}
+            </div>
+            <div className={styles.locFormBtns}>
+              <button type="button" className={styles.saveBtn} onClick={() => navigator.clipboard?.writeText(backupCodes.join('\n'))}>Copy all</button>
+              <button type="button" className={styles.cancelBtn} onClick={() => setBackupCodes(null)}>Done — I saved them</button>
+            </div>
+          </div>
+        )}
+
+        <div className={styles.secRow}>
+          <div>
+            <div className={styles.secName}>Sign-in methods</div>
+            <div className={styles.secDetail}>
+              {[security?.hasPassword && 'Password', security?.googleLinked && 'Google'].filter(Boolean).join(' · ') || '—'}
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Favorite Stations</h2>
