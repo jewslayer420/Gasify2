@@ -1,14 +1,16 @@
-name: Sync monitor (freshness alert)
+name: Sync monitor (hourly Discord report)
 
-# Independent of the sync jobs: queries Neon for per-country price age and alerts
-# Discord (webhook) and/or Telegram if anything is stale or the DB is unreachable.
-# Catches a total sync outage, a partial failure, or a dead DB — none of which the
-# sync runs surface on their own. Add DISCORD_WEBHOOK_URL (free, no phone) and/or
-# TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID as repo secrets to enable delivery.
+# Hourly heartbeat + health check, independent of the sync jobs. Every hour it
+# posts one Discord (and/or Telegram) message: overall health (all countries vs
+# a stale list) and which countries completed a sync in the past hour with how
+# many prices actually moved. Catches a total sync outage, a partial failure,
+# or a dead DB — none of which the sync runs surface on their own.
+# Delivery needs DISCORD_WEBHOOK_URL (free, no phone) and/or
+# TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID as repo secrets.
 
 on:
   schedule:
-    - cron: '45 */6 * * *'   # every 6h at :45, between the sync runs
+    - cron: '45 * * * *'   # hourly at :45, after the sync runs land
   workflow_dispatch: {}
 
 concurrency:
@@ -34,4 +36,4 @@ jobs:
           node-version: 24
       - run: npm ci
       - run: npx prisma generate
-      - run: node src/scripts/check_freshness.js
+      - run: node src/scripts/hourly_report.js
