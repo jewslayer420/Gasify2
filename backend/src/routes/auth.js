@@ -129,6 +129,9 @@ router.get('/me', (req, res) => {
   if (!token) return res.json({ user: null });
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
+    // Reject the intermediate 2FA challenge token (mfa claim, no email) — it is
+    // not a session and must never be treated as one.
+    if (decoded.mfa || !decoded.email) return res.json({ user: null });
     res.json({ user: { id: decoded.userId, email: decoded.email } });
   } catch {
     res.json({ user: null });
