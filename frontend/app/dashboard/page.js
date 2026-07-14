@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUser } from '../../lib/context/UserContext';
 import { useCurrency } from '../../lib/context/CurrencyContext';
-import { getFavorites, removeFavorite, getSavedLocations, saveLocation, deleteLocation, get2faStatus, setup2fa, enable2fa, disable2fa } from '../../lib/api';
+import { getFavorites, removeFavorite, getSavedLocations, saveLocation, deleteLocation, get2faStatus, setup2fa, enable2fa, disable2fa, setEmail2fa } from '../../lib/api';
 import styles from './page.module.css';
 
 const FUEL_LABELS = { diesel: 'Diesel', sp95: '95', sp98: '98', sp100: '100', diesel_premium: 'Diesel+', lpg: 'LPG' };
@@ -77,6 +77,17 @@ export default function DashboardPage() {
       setTwoFaCode('');
       setBackupCodes(null);
       setSecurity(s => ({ ...s, totpEnabled: false, backupCodesLeft: 0 }));
+    } catch (err) { setTwoFaError(err.message); }
+    finally { setTwoFaBusy(false); }
+  }
+
+  async function toggleEmail2fa() {
+    setTwoFaError('');
+    setTwoFaBusy(true);
+    try {
+      const next = !security?.emailTwoFactor;
+      await setEmail2fa(next);
+      setSecurity(s => ({ ...s, emailTwoFactor: next, trustedDevices: next ? s.trustedDevices : 0 }));
     } catch (err) { setTwoFaError(err.message); }
     finally { setTwoFaBusy(false); }
   }
@@ -164,6 +175,20 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        <div className={styles.secRow}>
+          <div>
+            <div className={styles.secName}>Email sign-in codes</div>
+            <div className={styles.secDetail}>
+              {security?.emailTwoFactor
+                ? `On — a code is emailed at sign-in${security.trustedDevices ? ` · ${security.trustedDevices} remembered device${security.trustedDevices === 1 ? '' : 's'}` : ''}`
+                : 'Off — email a one-time code at each sign-in (no authenticator app needed)'}
+            </div>
+          </div>
+          <button className={security?.emailTwoFactor ? styles.cancelBtn : styles.addBtn} onClick={toggleEmail2fa} disabled={twoFaBusy}>
+            {security?.emailTwoFactor ? 'Turn off' : 'Turn on'}
+          </button>
+        </div>
 
         <div className={styles.secRow}>
           <div>

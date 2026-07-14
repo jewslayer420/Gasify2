@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../services/email');
+const { sendLoginCode, consumeTrustedDevice, maskEmail } = require('../services/email2fa');
 const prisma = require('../lib/prisma');
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
 const JWT_EXPIRES = '7d';
@@ -64,16 +65,30 @@ router.post('/login', async (req, res) => {
     if (!user.emailVerified) return res.status(403).json({ error: 'Please verify your email first' });
 
     // 2FA-enabled accounts get a short-lived MFA token instead of a session;
-    // /api/auth/2fa/login swaps it (plus a valid code) for the real cookie.
+    // the matching /api/auth/2fa/* endpoint swaps it (plus a valid code) for the
+    // real cookie. Authenticator app (TOTP) takes precedence over email codes.
     if (user.totpEnabled) {
       const mfaToken = jwt.sign({ userId: user.id, mfa: true }, JWT_SECRET, { expiresIn: '5m' });
-      return res.json({ requires2fa: true, mfaToken });
+      return res.json({ requires2fa: true, method: 'totp', mfaToken });
+    }
+    if (user.emailTwoFactor) {
+      // A remembered device skips the code (the password already matched).
+      if (!(await consumeTrustedDevice(prisma, req, res, user))) {
+        const r = await sendLoginCode(prisma, user);
+        const mfaToken = jwt.sign({ userId: user.id, mfa: true }, JWT_SECRET, { expiresIn: '10m' });
+        return res.json({
+          requires2fa: true, method: 'email', mfaToken,
+          emailHint: maskEmail(user.email),
+          devMode: r.dev === true, // dev fallback printed the code to the server log
+        });
+      }
     }
 
     const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
     res.cookie('gasify_token', token, COOKIE_OPTS);
     res.json({ user: { id: user.id, email: user.email } });
   } catch (err) {
+    console.error('[login]', err.message);
     res.status(500).json({ error: 'Login failed' });
   }
 });

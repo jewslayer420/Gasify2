@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { login, twoFactorLogin } from '../../../lib/api';
+import { login, twoFactorLogin, emailTwoFactorLogin, resendEmailCode } from '../../../lib/api';
 import { useUser } from '../../../lib/context/UserContext';
 import styles from '../auth.module.css';
 
@@ -25,13 +25,18 @@ function LoginForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [mfaToken, setMfaToken] = useState(null); // non-null → show the code step
+  const [mfaMethod, setMfaMethod] = useState('totp'); // 'totp' | 'email'
+  const [emailHint, setEmailHint] = useState('');
+  const [devMode, setDevMode] = useState(false);
+  const [rememberDevice, setRememberDevice] = useState(true);
+  const [resent, setResent] = useState('');
   const [code, setCode] = useState('');
 
-  // Arriving from Google with 2FA enabled (?mfa=…) or with an OAuth error (?error=…)
+  // Arriving from Google with 2FA enabled (?mfa=…&method=…) or an OAuth error (?error=…)
   useEffect(() => {
     const mfa = params.get('mfa');
     const err = params.get('error');
-    if (mfa) setMfaToken(mfa);
+    if (mfa) { setMfaToken(mfa); setMfaMethod(params.get('method') === 'email' ? 'email' : 'totp'); }
     if (err) setError(OAUTH_ERRORS[err] ?? 'Sign-in failed — please try again.');
   }, [params]);
 
@@ -43,6 +48,9 @@ function LoginForm() {
       const data = await login(email, password);
       if (data.requires2fa) {
         setMfaToken(data.mfaToken);
+        setMfaMethod(data.method === 'email' ? 'email' : 'totp');
+        setEmailHint(data.emailHint || '');
+        setDevMode(!!data.devMode);
         return;
       }
       setUser?.(data.user);
@@ -59,7 +67,9 @@ function LoginForm() {
     setError('');
     setLoading(true);
     try {
-      const data = await twoFactorLogin(mfaToken, code);
+      const data = mfaMethod === 'email'
+        ? await emailTwoFactorLogin(mfaToken, code, rememberDevice)
+        : await twoFactorLogin(mfaToken, code);
       setUser?.(data.user);
       router.push('/map');
     } catch (err) {
@@ -69,12 +79,33 @@ function LoginForm() {
     }
   }
 
+  async function handleResend() {
+    setError('');
+    setResent('');
+    try {
+      const r = await resendEmailCode(mfaToken);
+      setResent(r.devMode ? 'New code printed to the server log (dev mode).' : 'A new code is on its way.');
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   if (mfaToken) {
+    const isEmail = mfaMethod === 'email';
     return (
       <div className={styles.page}>
         <div className={styles.card}>
-          <h1 className={styles.title}>Two-factor code</h1>
-          <p className={styles.sub}>Enter the 6-digit code from your authenticator app, or one of your backup codes.</p>
+          <h1 className={styles.title}>{isEmail ? 'Check your email' : 'Two-factor code'}</h1>
+          <p className={styles.sub}>
+            {isEmail
+              ? <>We sent a 6-digit code to <b>{emailHint || 'your email'}</b>. Enter it below to finish signing in.</>
+              : 'Enter the 6-digit code from your authenticator app, or one of your backup codes.'}
+          </p>
+          {isEmail && devMode && (
+            <p className={styles.sub} style={{ marginTop: -18 }}>
+              Dev mode: email isn’t configured, so the code was printed to the server log.
+            </p>
+          )}
           <form onSubmit={handleCodeSubmit} className={styles.form}>
             <input
               className={`${styles.input} ${styles.codeInput}`}
@@ -86,14 +117,29 @@ function LoginForm() {
               autoFocus
               required
             />
+            {isEmail && (
+              <label className={styles.remember}>
+                <input type="checkbox" checked={rememberDevice} onChange={e => setRememberDevice(e.target.checked)} />
+                Remember this device for 30 days
+              </label>
+            )}
+            {resent && <p className={styles.hint} style={{ color: 'var(--green)' }}>{resent}</p>}
             {error && <p className={styles.error}>{error}</p>}
             <button className={styles.btn} type="submit" disabled={loading}>
               {loading ? 'Checking…' : 'Verify'}
             </button>
           </form>
           <div className={styles.footer}>
+            {isEmail && (
+              <>
+                <button className={styles.footerLink} style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }} onClick={handleResend}>
+                  Resend code
+                </button>
+                <span className={styles.footerSep}>·</span>
+              </>
+            )}
             <button className={styles.footerLink} style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}
-              onClick={() => { setMfaToken(null); setCode(''); setError(''); }}>
+              onClick={() => { setMfaToken(null); setCode(''); setError(''); setResent(''); }}>
               Back to sign in
             </button>
           </div>

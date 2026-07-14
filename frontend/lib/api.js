@@ -138,6 +138,38 @@ export async function disable2fa(code) {
   return data;
 }
 
+// ── Email-code 2FA ──
+export async function emailTwoFactorLogin(mfaToken, code, rememberDevice) {
+  const res = await fetch(`${BASE}/api/auth/2fa/email/login`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mfaToken, code, rememberDevice }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Sign-in failed');
+  return data;
+}
+
+export async function resendEmailCode(mfaToken) {
+  const res = await fetch(`${BASE}/api/auth/2fa/email/resend`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mfaToken }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Could not resend the code');
+  return data;
+}
+
+export async function setEmail2fa(enabled) {
+  const res = await fetch(`${BASE}/api/auth/2fa/email/${enabled ? 'enable' : 'disable'}`, {
+    method: 'POST', credentials: 'include',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Could not update email codes');
+  return data;
+}
+
 export async function getFavorites() {
   const res = await fetch(`${BASE}/api/user/favorites`, { credentials: 'include' });
   if (!res.ok) return [];

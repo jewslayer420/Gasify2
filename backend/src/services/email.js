@@ -8,6 +8,36 @@ const transporter = nodemailer.createTransport({
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
+// SMTP is only usable once a user + app password are set (host alone isn't enough).
+function emailConfigured() {
+  return !!(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+}
+
+// Email-code 2FA. When SMTP isn't configured, real production fails loudly (so a
+// misconfigured deploy doesn't silently write OTPs to logs), but a dev box can
+// opt into a console fallback with EMAIL_DEV_CODE_LOG=true (or any non-production
+// NODE_ENV) so the flow is testable without a mail server.
+async function sendLoginCodeEmail(email, code) {
+  if (!emailConfigured()) {
+    const devFallback = process.env.EMAIL_DEV_CODE_LOG === 'true' || process.env.NODE_ENV !== 'production';
+    if (!devFallback) throw new Error('email transport not configured');
+    console.warn(`[email-2fa] DEV (no SMTP creds): sign-in code for ${email} is ${code}`);
+    return { delivered: false, dev: true };
+  }
+  await transporter.sendMail({
+    from: `"Gasify" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+    to: email,
+    subject: `${code} is your Gasify sign-in code`,
+    html: `
+      <h2>Your sign-in code</h2>
+      <p>Enter this code to finish signing in to Gasify:</p>
+      <p style="font-size:32px;font-weight:800;letter-spacing:6px;margin:16px 0">${code}</p>
+      <p style="color:#888;font-size:12px">This code expires in 10 minutes. If you didn't try to sign in, you can ignore this email.</p>
+    `,
+  });
+  return { delivered: true, dev: false };
+}
+
 async function sendVerificationEmail(email, token) {
   await transporter.sendMail({
     from: `"Gasify" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
@@ -62,4 +92,4 @@ async function sendPriceStaleAlert(to, staleList) {
   });
 }
 
-module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendPriceStaleAlert };
+module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendPriceStaleAlert, sendLoginCodeEmail, emailConfigured };

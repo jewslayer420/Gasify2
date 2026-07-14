@@ -14,6 +14,7 @@ model User {
   emailVerified  Boolean             @default(false)
   totpSecret     String? // set at 2FA enrollment; active once totpEnabled
   totpEnabled    Boolean             @default(false)
+  emailTwoFactor Boolean             @default(false) // email-code 2FA at login
   backupCodes    String[]            @default([]) // sha256 hex of one-time recovery codes
   googleId       String?             @unique
   createdAt      DateTime            @default(now())
@@ -21,6 +22,36 @@ model User {
   favorites      Favorite[]
   savedLocations SavedLocation[]
   tokens         VerificationToken[]
+  emailOtps      EmailOtp[]
+  trustedDevices TrustedDevice[]
+}
+
+// One-time email sign-in codes (email-code 2FA). One active row per user;
+// short TTL + attempt cap make online brute force infeasible.
+model EmailOtp {
+  id        String   @id @default(cuid())
+  userId    String
+  codeHash  String // sha256(userId:code)
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// "Remember this device" — a trusted-device token lets a browser skip the
+// email code (the password is still required, so a stolen cookie alone is useless).
+model TrustedDevice {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique // sha256(random cookie token)
+  label     String? // truncated User-Agent, for a future device list
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model VerificationToken {

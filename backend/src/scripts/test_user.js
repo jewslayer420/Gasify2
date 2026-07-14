@@ -11,11 +11,14 @@ async function main() {
   const cmd = process.argv[2];
   if (cmd === 'create') {
     const passwordHash = await bcrypt.hash(PASSWORD, 12);
-    await prisma.user.upsert({
+    const user = await prisma.user.upsert({
       where: { email: EMAIL },
       create: { email: EMAIL, passwordHash, emailVerified: true },
-      update: { passwordHash, emailVerified: true, totpEnabled: false, totpSecret: null, backupCodes: [] },
+      update: { passwordHash, emailVerified: true, totpEnabled: false, totpSecret: null, backupCodes: [], emailTwoFactor: false },
     });
+    // Clear any 2FA side-state so the account starts clean every run
+    await prisma.emailOtp.deleteMany({ where: { userId: user.id } });
+    await prisma.trustedDevice.deleteMany({ where: { userId: user.id } });
     console.log(`created ${EMAIL} / ${PASSWORD}`);
   } else if (cmd === 'delete') {
     await prisma.user.deleteMany({ where: { email: EMAIL } });

@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { sendLoginCode, consumeTrustedDevice } = require('../services/email2fa');
 const prisma = require('../lib/prisma');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
@@ -86,7 +87,12 @@ router.get('/callback', async (req, res) => {
     // 2FA still applies to social sign-in — hand the login page an MFA token
     if (user.totpEnabled) {
       const mfaToken = jwt.sign({ userId: user.id, mfa: true }, JWT_SECRET, { expiresIn: '5m' });
-      return res.redirect(`${ORIGIN}/auth/login?mfa=${encodeURIComponent(mfaToken)}`);
+      return res.redirect(`${ORIGIN}/auth/login?mfa=${encodeURIComponent(mfaToken)}&method=totp`);
+    }
+    if (user.emailTwoFactor && !(await consumeTrustedDevice(prisma, req, res, user))) {
+      await sendLoginCode(prisma, user);
+      const mfaToken = jwt.sign({ userId: user.id, mfa: true }, JWT_SECRET, { expiresIn: '10m' });
+      return res.redirect(`${ORIGIN}/auth/login?mfa=${encodeURIComponent(mfaToken)}&method=email`);
     }
 
     const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: JWT_EXPIRES });

@@ -10,6 +10,7 @@ const crypto = require('crypto');
 const { authenticator } = require('otplib');
 const qrcode = require('qrcode');
 const requireAuth = require('../middleware/requireAuth');
+const { sendLoginCode, verifyLoginCode, issueTrustedDevice } = require('../services/email2fa');
 const prisma = require('../lib/prisma');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
@@ -134,17 +135,98 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// ── Email-code 2FA ──
+
+// POST /api/auth/2fa/email/enable — turn on email sign-in codes (auth required).
+// The account email is already verified at registration, so this is immediate.
+router.post('/email/enable', requireAuth, async (req, res) => {
+  try {
+    await prisma.user.update({ where: { id: req.user.userId }, data: { emailTwoFactor: true } });
+    res.json({ emailTwoFactor: true });
+  } catch (err) {
+    console.error('[2fa/email/enable]', err.message);
+    res.status(500).json({ error: 'Could not enable email codes' });
+  }
+});
+
+// POST /api/auth/2fa/email/disable — turn off + forget trusted devices/codes
+router.post('/email/disable', requireAuth, async (req, res) => {
+  try {
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: req.user.userId }, data: { emailTwoFactor: false } }),
+      prisma.emailOtp.deleteMany({ where: { userId: req.user.userId } }),
+      prisma.trustedDevice.deleteMany({ where: { userId: req.user.userId } }),
+    ]);
+    res.json({ emailTwoFactor: false });
+  } catch (err) {
+    console.error('[2fa/email/disable]', err.message);
+    res.status(500).json({ error: 'Could not disable email codes' });
+  }
+});
+
+// POST /api/auth/2fa/email/resend — { mfaToken } → resend the code (rate limited)
+router.post('/email/resend', async (req, res) => {
+  try {
+    let payload;
+    try { payload = jwt.verify(String(req.body.mfaToken || ''), JWT_SECRET); }
+    catch { return res.status(401).json({ error: 'Sign-in expired — start again' }); }
+    if (!payload.mfa) return res.status(401).json({ error: 'Invalid sign-in token' });
+
+    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+    if (!user?.emailTwoFactor) return res.status(400).json({ error: 'Email codes are not enabled' });
+
+    const r = await sendLoginCode(prisma, user);
+    if (r.throttled) return res.status(429).json({ error: `Please wait ${Math.ceil(r.retryInMs / 1000)}s before requesting another code` });
+    res.json({ sent: true, devMode: r.dev === true });
+  } catch (err) {
+    console.error('[2fa/email/resend]', err.message);
+    res.status(500).json({ error: 'Could not resend the code' });
+  }
+});
+
+// POST /api/auth/2fa/email/login — { mfaToken, code, rememberDevice } → session
+router.post('/email/login', async (req, res) => {
+  try {
+    let payload;
+    try { payload = jwt.verify(String(req.body.mfaToken || ''), JWT_SECRET); }
+    catch { return res.status(401).json({ error: 'Sign-in expired — start again' }); }
+    if (!payload.mfa) return res.status(401).json({ error: 'Invalid sign-in token' });
+
+    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+    if (!user?.emailTwoFactor) return res.status(400).json({ error: 'Email codes are not enabled' });
+
+    const { ok, reason } = await verifyLoginCode(prisma, user, req.body.code);
+    if (!ok) {
+      const msg = reason === 'expired' ? 'That code has expired — request a new one'
+        : reason === 'too-many' ? 'Too many attempts — request a new code'
+        : 'That code is not valid';
+      return res.status(401).json({ error: msg });
+    }
+
+    if (req.body.rememberDevice) await issueTrustedDevice(prisma, res, user, req.headers['user-agent']);
+
+    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    res.cookie('gasify_token', token, COOKIE_OPTS);
+    res.json({ user: { id: user.id, email: user.email } });
+  } catch (err) {
+    console.error('[2fa/email/login]', err.message);
+    res.status(500).json({ error: 'Sign-in failed' });
+  }
+});
+
 // GET /api/auth/2fa/status — is 2FA on for the signed-in user?
 router.get('/status', requireAuth, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
-      select: { totpEnabled: true, backupCodes: true, googleId: true, passwordHash: true },
+      select: { totpEnabled: true, emailTwoFactor: true, backupCodes: true, googleId: true, passwordHash: true, trustedDevices: { select: { id: true } } },
     });
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({
       totpEnabled: user.totpEnabled,
+      emailTwoFactor: user.emailTwoFactor,
       backupCodesLeft: user.backupCodes.length,
+      trustedDevices: user.trustedDevices.length,
       hasPassword: !!user.passwordHash,
       googleLinked: !!user.googleId,
     });
