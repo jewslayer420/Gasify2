@@ -1,5 +1,12 @@
 // Country display names (ISO-2 -> English). Single source for map + league.
 // (Landing page keeps its own copy until the 2c consolidation.)
+
+// ISO-2 -> flag emoji, derived from regional-indicator codepoints.
+export function flagOf(cc) {
+  if (!cc || cc.length !== 2) return '🏳️';
+  return String.fromCodePoint(...[...cc.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
+}
+
 export const COUNTRY_NAMES = {
   SI: 'Slovenia', FR: 'France', AT: 'Austria', HU: 'Hungary', DE: 'Germany',
   CZ: 'Czechia', SK: 'Slovakia', NL: 'Netherlands', BE: 'Belgium', CH: 'Switzerland',

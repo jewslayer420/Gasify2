@@ -45,24 +45,41 @@ const COUNTRY_NAMES = {
   AZ: 'Azerbaijan', DZ: 'Algeria',
 };
 
+const TOTEM_FUELS = [
+  { key: 'diesel', tab: 'Diesel', label: 'Diesel' },
+  { key: 'sp95', tab: '95', label: 'Petrol 95' },
+  { key: 'sp98', tab: '98', label: 'Petrol 98' },
+  { key: 'sp100', tab: '100', label: 'Petrol 100' },
+  { key: 'lpg', tab: 'LPG', label: 'LPG' },
+];
+
 export default function LandingPage() {
   const [counts, setCounts] = useState({});
-  const [league, setLeague] = useState([]);
+  const [fuel, setFuel] = useState('diesel');
+  const [leagues, setLeagues] = useState({}); // fuel key -> top-10 rows, cached per visit
 
   useEffect(() => {
     fetch('/api/stations/counts')
       .then(r => r.ok ? r.json() : {})
       .then(d => setCounts(d))
       .catch(() => {});
-    fetch('/api/stations/country-meta?fuel=diesel')
-      .then(r => r.ok ? r.json() : [])
-      .then(d => setLeague(
-        d.filter(m => m.median != null && FLAGS[m.country])
-          .sort((a, b) => a.median - b.median)
-          .slice(0, 10)
-      ))
-      .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (leagues[fuel]) return;
+    fetch(`/api/stations/country-meta?fuel=${fuel}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setLeagues(prev => ({
+        ...prev,
+        [fuel]: d.filter(m => m.median != null && FLAGS[m.country])
+          .sort((a, b) => a.median - b.median)
+          .slice(0, 10),
+      })))
+      .catch(() => {});
+  }, [fuel, leagues]);
+
+  const league = leagues[fuel] ?? [];
+  const fuelMeta = TOTEM_FUELS.find(f => f.key === fuel);
 
   const covered = Object.keys(FLAGS).filter(c => counts[c] > 0);
   const totalStations = Object.values(counts).reduce((a, b) => a + b, 0);
@@ -82,18 +99,37 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {league.length > 0 && (
+        {Object.keys(leagues).length > 0 && (
           <figure className={styles.totem}>
-            <div className={styles.totemHead}>Diesel — cheapest today</div>
+            <div className={styles.totemHead}>{fuelMeta.label} — cheapest today</div>
+            <div className={styles.totemTabs} role="tablist" aria-label="Fuel type">
+              {TOTEM_FUELS.map(f => (
+                <button
+                  key={f.key}
+                  role="tab"
+                  aria-selected={fuel === f.key}
+                  className={`${styles.totemTab} ${fuel === f.key ? styles.totemTabActive : ''}`}
+                  onClick={() => setFuel(f.key)}
+                >
+                  {f.tab}
+                </button>
+              ))}
+            </div>
             {league.slice(0, 5).map((m, i) => (
               <Link key={m.country} href="/map" className={styles.totemRow}>
                 <span className={styles.totemLabel}>{COUNTRY_NAMES[m.country] ?? m.country}</span>
                 <span className={styles.ledPrice} style={{ animationDelay: `${i * 130}ms` }}>{m.median.toFixed(3)}</span>
               </Link>
             ))}
+            {leagues[fuel] === undefined && (
+              <div className={styles.totemEmpty}>Reading the sign…</div>
+            )}
+            {leagues[fuel]?.length === 0 && (
+              <div className={styles.totemEmpty}>No live {fuelMeta.label} medians right now.</div>
+            )}
             <div className={styles.totemFoot}>EUR / LITRE · LIVE</div>
             <figcaption className={styles.totemCaption}>
-              The five cheapest countries for diesel, right now.
+              The five cheapest countries for {fuelMeta.key === 'lpg' ? 'LPG' : fuelMeta.label.toLowerCase()}, right now.
             </figcaption>
           </figure>
         )}

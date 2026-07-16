@@ -1,0 +1,167 @@
+.page {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: calc(var(--nav-h) + 32px) 24px 64px;
+}
+
+.header { margin-bottom: 40px; }
+
+.title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.sub { color: var(--text-muted); font-size: 0.9rem; }
+.muted { color: var(--text-muted); font-size: 0.9rem; }
+.error { color: var(--red); font-size: 0.85rem; margin-bottom: 16px; }
+
+.section { margin-bottom: 48px; }
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+/* ── Stat tiles ────────────────────────────── */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.tile {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px 18px;
+}
+
+.tileLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.tileValue { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+.tileSub { color: var(--text-muted); font-size: 0.75rem; margin-top: 6px; }
+
+/* ── Tables ────────────────────────────────── */
+.tableWrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.table th {
+  text-align: left;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr:hover { background: var(--bg-secondary); }
+
+.countryCell { font-weight: 600; }
+.emailCell { font-weight: 600; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.flagsCell { color: var(--text-muted); }
+
+.youTag {
+  margin-left: 8px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--green);
+  background: rgba(47, 191, 132, 0.12);
+  border: 1px solid rgba(47, 191, 132, 0.3);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.roleAdmin { color: var(--orange); font-weight: 700; }
+
+/* Status dots */
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 7px;
+  vertical-align: middle;
+}
+.dotGreen { background: var(--green); box-shadow: 0 0 6px rgba(47, 191, 132, 0.6); }
+.dotAmber { background: var(--orange); }
+.dotRed   { background: var(--red); box-shadow: 0 0 6px rgba(224, 82, 82, 0.5); }
+.dotGray  { background: var(--text-muted); }
+
+/* ── Users controls ────────────────────────── */
+.searchRow { display: flex; gap: 8px; margin-bottom: 12px; }
+
+.input {
+  flex: 1;
+  max-width: 340px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--text);
+  font-size: 0.875rem;
+  outline: none;
+}
+.input:focus { border-color: var(--green); }
+
+.searchBtn, .clearBtn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.searchBtn:hover, .clearBtn:hover { border-color: var(--green); }
+
+.actionsCell { display: flex; gap: 6px; }
+
+.actionBtn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.actionBtn:hover:not(:disabled) { border-color: var(--green); }
+.actionBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.dangerBtn:hover:not(:disabled) { border-color: var(--red); color: var(--red); }

@@ -79,6 +79,7 @@ app.use('/api/auth/2fa', require('./routes/auth_2fa'));
 app.use('/api/auth/google', require('./routes/auth_google'));
 app.use('/api/auth', authRouter);
 app.use('/api/user', usersRouter);
+app.use('/api/admin', require('./routes/admin'));
 app.use('/api/news', newsRouter);
 app.use('/api/fx', require('./routes/fx'));
 

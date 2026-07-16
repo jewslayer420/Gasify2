@@ -83,6 +83,48 @@
   border-bottom: 1px solid #232838;
 }
 
+/* Fuel-grade selector: the row of little buttons under the sign head */
+.totemTabs {
+  display: flex;
+  background: #0B0E15;
+  border-bottom: 1px solid #232838;
+  padding: 6px;
+  gap: 4px;
+}
+
+.totemTab {
+  flex: 1;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 5px 0;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.totemTab:hover { color: var(--text); }
+
+.totemTabActive,
+.totemTab.totemTabActive:hover {
+  color: #37D3A0;
+  background: rgba(55, 211, 160, 0.08);
+  border-color: rgba(55, 211, 160, 0.35);
+  text-shadow: 0 0 8px rgba(55, 211, 160, 0.45);
+}
+
+.totemEmpty {
+  padding: 26px 18px;
+  text-align: center;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
 .totemRow {
   display: flex;
   align-items: center;

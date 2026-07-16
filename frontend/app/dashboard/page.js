@@ -168,10 +168,10 @@ export default function DashboardPage() {
         {account?.role === 'admin' && (
           <div className={styles.secRow}>
             <div>
-              <div className={styles.secName}>Account type</div>
-              <div className={styles.secDetail}>Full administrator access.</div>
+              <div className={styles.secName}>Account type <span className={styles.badgeAdmin}>Admin</span></div>
+              <div className={styles.secDetail}>Full administrator access — users, plans and data sync.</div>
             </div>
-            <span className={styles.badgeAdmin}>Admin</span>
+            <Link href="/admin" className={styles.addBtn}>Open admin panel</Link>
           </div>
         )}
 

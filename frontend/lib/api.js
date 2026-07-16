@@ -119,6 +119,25 @@ export async function logout() {
   await fetch(`${BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' });
 }
 
+// ── Admin (requires role=admin; backend re-checks on every call) ──
+
+async function adminFetch(path, opts = {}) {
+  const res = await fetch(`${BASE}/api/admin${path}`, {
+    credentials: 'include',
+    headers: opts.body ? { 'Content-Type': 'application/json' } : undefined,
+    ...opts,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Admin request failed (${res.status})`);
+  return data;
+}
+
+export const adminOverview = () => adminFetch('/overview');
+export const adminSyncStatus = () => adminFetch('/sync');
+export const adminUsers = (q = '', skip = 0) => adminFetch(`/users?q=${encodeURIComponent(q)}&skip=${skip}`);
+export const adminUpdateUser = (id, patch) => adminFetch(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+export const adminDeleteUser = (id) => adminFetch(`/users/${id}`, { method: 'DELETE' });
+
 // ── Two-factor authentication ──
 export async function twoFactorLogin(mfaToken, code) {
   const res = await fetch(`${BASE}/api/auth/2fa/login`, {
