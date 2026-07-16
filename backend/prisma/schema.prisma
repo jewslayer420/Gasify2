@@ -17,6 +17,8 @@ model User {
   emailTwoFactor Boolean             @default(false) // email-code 2FA at login
   backupCodes    String[]            @default([]) // sha256 hex of one-time recovery codes
   googleId       String?             @unique
+  role           String              @default("user") // "user" | "admin"
+  plan           String              @default("free") // "free" | "premium"
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   favorites      Favorite[]

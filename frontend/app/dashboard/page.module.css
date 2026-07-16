@@ -205,3 +205,59 @@
 }
 
 .secError { color: var(--red); font-size: 0.82rem; }
+
+/* ── Account badges ────────────────────────── */
+.badgeOk {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--green);
+  background: rgba(47, 191, 132, 0.12);
+  border: 1px solid rgba(47, 191, 132, 0.3);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+.badgeAdmin {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--orange);
+  background: rgba(232, 162, 61, 0.12);
+  border: 1px solid rgba(232, 162, 61, 0.3);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+/* ── Billing ───────────────────────────────── */
+.planCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.planLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.planValue { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+.upgradeBtn {
+  flex-shrink: 0;
+  background: var(--green);
+  color: #000;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-radius: 10px;
+  padding: 10px 18px;
+  transition: filter 0.15s;
+}
+.upgradeBtn:hover { filter: brightness(1.08); }

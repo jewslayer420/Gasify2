@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../services/email');
 const { sendLoginCode, consumeTrustedDevice, maskEmail } = require('../services/email2fa');
+const requireAuth = require('../middleware/requireAuth');
 const prisma = require('../lib/prisma');
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
 const JWT_EXPIRES = '7d';
@@ -32,6 +33,26 @@ router.post('/register', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+// POST /api/auth/resend-verification — { email }. Always responds the same way
+// (no account enumeration); only actually sends for an existing unverified user.
+router.post('/resend-verification', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = email ? await prisma.user.findUnique({ where: { email } }) : null;
+    if (user && !user.emailVerified) {
+      const token = crypto.randomBytes(32).toString('hex');
+      await prisma.verificationToken.create({
+        data: { userId: user.id, token, type: 'verify_email', expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+      });
+      await sendVerificationEmail(email, token);
+    }
+    res.json({ message: 'If that account exists and is unverified, a new link is on its way.' });
+  } catch (err) {
+    console.error('[resend-verification]', err.message);
+    res.status(500).json({ error: 'Could not resend the verification email' });
   }
 });
 
@@ -135,6 +156,30 @@ router.post('/reset-password', async (req, res) => {
     res.json({ message: 'Password reset successfully' });
   } catch (err) {
     res.status(500).json({ error: 'Reset failed' });
+  }
+});
+
+// POST /api/auth/change-password — signed-in password change (or first-time set
+// for social-only accounts). Requires the current password unless none is set.
+router.post('/change-password', requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters' });
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (user.passwordHash) {
+      if (!currentPassword || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+      }
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+    res.json({ message: 'Password updated' });
+  } catch (err) {
+    console.error('[change-password]', err.message);
+    res.status(500).json({ error: 'Could not change password' });
   }
 });
 

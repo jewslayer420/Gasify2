@@ -5,6 +5,28 @@ const prisma = require('../lib/prisma');
 
 router.use(requireAuth);
 
+// GET /api/user/account — profile for the dashboard Account + Billing sections
+router.get('/account', async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { email: true, emailVerified: true, role: true, plan: true, createdAt: true, passwordHash: true, googleId: true },
+    });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({
+      email: user.email,
+      emailVerified: user.emailVerified,
+      role: user.role,
+      plan: user.plan,
+      createdAt: user.createdAt,
+      hasPassword: !!user.passwordHash,
+      googleLinked: !!user.googleId,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not load account' });
+  }
+});
+
 // GET /api/user/favorites
 router.get('/favorites', async (req, res) => {
   try {

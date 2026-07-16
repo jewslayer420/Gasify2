@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { register } from '../../../lib/api';
+import { register, resendVerification } from '../../../lib/api';
 import styles from '../auth.module.css';
 
 export default function RegisterPage() {
@@ -10,6 +10,17 @@ export default function RegisterPage() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resent, setResent] = useState('');
+
+  async function handleResend() {
+    setResent('');
+    try {
+      await resendVerification(email);
+      setResent('Sent — check your inbox again.');
+    } catch (err) {
+      setResent(err.message);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -31,8 +42,13 @@ export default function RegisterPage() {
         <div className={styles.card}>
           <div className={styles.successIcon}>✉️</div>
           <h1 className={styles.title}>Check your email</h1>
-          <p className={styles.sub}>We sent a verification link to <strong>{email}</strong>. Click it to activate your account.</p>
+          <p className={styles.sub}>We sent a verification link to <strong>{email}</strong>. Click it to activate your account, then sign in.</p>
           <Link href="/auth/login" className={styles.btn} style={{ textAlign: 'center', marginTop: 24 }}>Back to login</Link>
+          <div className={styles.footer}>
+            Didn’t get it?{' '}
+            <button className={styles.footerLink} style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }} onClick={handleResend}>Resend link</button>
+          </div>
+          {resent && <p className={styles.hint} style={{ textAlign: 'center', color: 'var(--green)' }}>{resent}</p>}
         </div>
       </div>
     );

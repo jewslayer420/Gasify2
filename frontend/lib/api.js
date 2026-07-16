@@ -87,6 +87,34 @@ export async function register(email, password) {
   return data;
 }
 
+export async function resendVerification(email) {
+  const res = await fetch(`${BASE}/api/auth/resend-verification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Could not resend');
+  return data;
+}
+
+export async function getAccount() {
+  const res = await fetch(`${BASE}/api/user/account`, { credentials: 'include' });
+  if (!res.ok) return null;
+  return res.json(); // { email, emailVerified, role, plan, createdAt, hasPassword, googleLinked }
+}
+
+export async function changePassword(currentPassword, newPassword) {
+  const res = await fetch(`${BASE}/api/auth/change-password`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Could not change password');
+  return data;
+}
+
 export async function logout() {
   await fetch(`${BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' });
 }
