@@ -24,16 +24,25 @@ process.on('uncaughtException', (err) => {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Behind Render's load balancer req.ip is the LB without this — which would
+// collapse every visitor into one rate-limit bucket.
+app.set('trust proxy', 1);
+
 app.use(compression());
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000', credentials: true }));
 app.use(cookieParser());
 app.use(express.json());
 
+// Ops endpoints below (sync trigger, kill-switch, probes) predate the account
+// system and used to be open — they are admin-only now.
+const requireAuth = require('./middleware/requireAuth');
+const requireAdmin = require('./middleware/requireAdmin');
+const adminOnly = [requireAuth, requireAdmin];
+
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 // Admin: trigger a named scraper on demand and return results
-// Usage: POST /api/admin/sync/france  (no auth — internal/debugging use only)
-app.post('/api/admin/sync/:country', async (req, res) => {
+app.post('/api/admin/sync/:country', ...adminOnly, async (req, res) => {
   const country = req.params.country.toLowerCase();
   try {
     const result = await triggerSync(country);
@@ -44,7 +53,7 @@ app.post('/api/admin/sync/:country', async (req, res) => {
 });
 
 // Admin: manual-price freshness. GET = full table; ?run=1 also emails an alert if stale.
-app.get('/api/admin/price-freshness', async (req, res) => {
+app.get('/api/admin/price-freshness', ...adminOnly, async (req, res) => {
   try {
     if (req.query.run === '1') return res.json(await runPriceFreshnessCheck());
     const all = priceFreshness();
@@ -56,17 +65,17 @@ app.get('/api/admin/price-freshness', async (req, res) => {
 
 // Admin kill-switch for commercial-terms-risk sources (see services/killswitch.js).
 // GET = status (rows + sync-disabled). POST /:slug = purge that source's rows NOW.
-app.get('/api/admin/kill', async (req, res) => {
+app.get('/api/admin/kill', ...adminOnly, async (req, res) => {
   try { res.json(await killStatus()); }
   catch (err) { res.status(500).json({ error: err.message }); }
 });
-app.post('/api/admin/kill/:slug', async (req, res) => {
+app.post('/api/admin/kill/:slug', ...adminOnly, async (req, res) => {
   try { res.json(await killSource(req.params.slug.toLowerCase())); }
   catch (err) { res.status(400).json({ error: err.message }); }
 });
 
 // TEMP — Peru reachability + schema-discovery probe (delete with probes/peru.js once Peru scraper lands)
-app.get('/api/admin/probe/peru', async (req, res) => {
+app.get('/api/admin/probe/peru', ...adminOnly, async (req, res) => {
   try {
     res.json(await probePeru());
   } catch (err) {

@@ -126,7 +126,7 @@ router.post('/login', async (req, res) => {
       await prisma.user.update({ where: { id: user.id }, data: { backupCodes: remainingBackup } });
     }
 
-    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    const token = jwt.sign({ userId: user.id, email: user.email, tv: user.tokenVersion }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
     res.cookie('gasify_token', token, COOKIE_OPTS);
     res.json({ user: { id: user.id, email: user.email } });
   } catch (err) {
@@ -205,7 +205,7 @@ router.post('/email/login', async (req, res) => {
 
     if (req.body.rememberDevice) await issueTrustedDevice(prisma, res, user, req.headers['user-agent']);
 
-    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    const token = jwt.sign({ userId: user.id, email: user.email, tv: user.tokenVersion }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
     res.cookie('gasify_token', token, COOKIE_OPTS);
     res.json({ user: { id: user.id, email: user.email } });
   } catch (err) {

@@ -139,6 +139,14 @@ export async function logout() {
   await fetch(`${BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' });
 }
 
+// Revokes every session on every device (and forgets trusted 2FA devices).
+export async function logoutAll() {
+  const res = await fetch(`${BASE}/api/auth/logout-all`, { method: 'POST', credentials: 'include' });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Could not sign out everywhere');
+  return data;
+}
+
 // ── Admin (requires role=admin; backend re-checks on every call) ──
 
 async function adminFetch(path, opts = {}) {

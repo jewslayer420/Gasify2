@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUser } from '../../lib/context/UserContext';
 import { useCurrency } from '../../lib/context/CurrencyContext';
-import { getFavorites, removeFavorite, getSavedLocations, saveLocation, deleteLocation, get2faStatus, setup2fa, enable2fa, disable2fa, setEmail2fa, getAccount, changePassword, resendVerification, setAlerts } from '../../lib/api';
+import { getFavorites, removeFavorite, getSavedLocations, saveLocation, deleteLocation, get2faStatus, setup2fa, enable2fa, disable2fa, setEmail2fa, getAccount, changePassword, resendVerification, setAlerts, logoutAll } from '../../lib/api';
 import styles from './page.module.css';
 
 const FUEL_LABELS = { diesel: 'Diesel', sp95: '95', sp98: '98', sp100: '100', diesel_premium: 'Diesel+', lpg: 'LPG' };
@@ -58,7 +58,7 @@ export default function DashboardPage() {
     setPwError(''); setPwOk(''); setPwBusy(true);
     try {
       await changePassword(pwForm.current, pwForm.next);
-      setPwOk('Password updated.');
+      setPwOk('Password updated — other devices were signed out.');
       setChangingPw(false);
       setPwForm({ current: '', next: '' });
     } catch (err) { setPwError(err.message); }
@@ -74,6 +74,12 @@ export default function DashboardPage() {
   async function handleSignOut() {
     await logout?.();
     router.push('/');
+  }
+
+  async function handleSignOutEverywhere() {
+    try { await logoutAll(); } catch {}
+    await logout?.(); // clears local user state; server cookie is already gone
+    router.push('/auth/login');
   }
 
   async function handleToggleAlerts() {
@@ -226,6 +232,14 @@ export default function DashboardPage() {
             <div className={styles.secDetail}>End your session on this device.</div>
           </div>
           <button className={styles.cancelBtn} onClick={handleSignOut}>Sign out</button>
+        </div>
+
+        <div className={styles.secRow}>
+          <div>
+            <div className={styles.secName}>Sign out everywhere</div>
+            <div className={styles.secDetail}>End your sessions on every device and forget trusted 2FA devices.</div>
+          </div>
+          <button className={styles.cancelBtn} onClick={handleSignOutEverywhere}>Sign out everywhere</button>
         </div>
       </section>
 

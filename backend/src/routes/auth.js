@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../services/email');
 const { sendLoginCode, consumeTrustedDevice, maskEmail } = require('../services/email2fa');
 const requireAuth = require('../middleware/requireAuth');
+const { loginLimiter, loginIpLimiter, emailFlowLimiter } = require('../middleware/rateLimit');
 const prisma = require('../lib/prisma');
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
 const JWT_EXPIRES = '7d';
@@ -38,7 +39,7 @@ router.post('/register', async (req, res) => {
 
 // POST /api/auth/resend-verification — { email }. Always responds the same way
 // (no account enumeration); only actually sends for an existing unverified user.
-router.post('/resend-verification', async (req, res) => {
+router.post('/resend-verification', emailFlowLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     const user = email ? await prisma.user.findUnique({ where: { email } }) : null;
@@ -74,8 +75,8 @@ router.post('/verify-email', async (req, res) => {
   }
 });
 
-// POST /api/auth/login
-router.post('/login', async (req, res) => {
+// POST /api/auth/login — throttled per ip+email (10/15min) and per ip (30/15min)
+router.post('/login', loginIpLimiter, loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
@@ -105,7 +106,7 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    const token = jwt.sign({ userId: user.id, email: user.email, tv: user.tokenVersion }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
     res.cookie('gasify_token', token, COOKIE_OPTS);
     res.json({ user: { id: user.id, email: user.email } });
   } catch (err) {
@@ -121,7 +122,7 @@ router.post('/logout', (req, res) => {
 });
 
 // POST /api/auth/forgot-password
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', emailFlowLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
@@ -149,8 +150,10 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ error: 'Invalid or expired token' });
     }
     const passwordHash = await bcrypt.hash(newPassword, 12);
+    // tokenVersion bump revokes every session issued before the reset — whoever
+    // triggered the reset (possibly an attacker's victim) gets a clean slate.
     await prisma.$transaction([
-      prisma.user.update({ where: { id: record.userId }, data: { passwordHash } }),
+      prisma.user.update({ where: { id: record.userId }, data: { passwordHash, tokenVersion: { increment: 1 } } }),
       prisma.verificationToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
     ]);
     res.json({ message: 'Password reset successfully' });
@@ -175,16 +178,40 @@ router.post('/change-password', requireAuth, async (req, res) => {
       }
     }
     const passwordHash = await bcrypt.hash(newPassword, 12);
-    await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
-    res.json({ message: 'Password updated' });
+    // Revoke all other sessions, then re-issue THIS session's cookie at the new
+    // version so the user changing their password stays signed in.
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash, tokenVersion: { increment: 1 } },
+      select: { tokenVersion: true },
+    });
+    const token = jwt.sign({ userId: user.id, email: user.email, tv: updated.tokenVersion }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    res.cookie('gasify_token', token, COOKIE_OPTS);
+    res.json({ message: 'Password updated — other devices were signed out' });
   } catch (err) {
     console.error('[change-password]', err.message);
     res.status(500).json({ error: 'Could not change password' });
   }
 });
 
+// POST /api/auth/logout-all — revoke every session (tokenVersion bump) and
+// forget trusted 2FA devices, then end this session too.
+router.post('/logout-all', requireAuth, async (req, res) => {
+  try {
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: req.user.userId }, data: { tokenVersion: { increment: 1 } } }),
+      prisma.trustedDevice.deleteMany({ where: { userId: req.user.userId } }),
+    ]);
+    res.clearCookie('gasify_token');
+    res.json({ message: 'Signed out everywhere' });
+  } catch (err) {
+    console.error('[logout-all]', err.message);
+    res.status(500).json({ error: 'Could not sign out everywhere' });
+  }
+});
+
 // GET /api/auth/me
-router.get('/me', (req, res) => {
+router.get('/me', async (req, res) => {
   const token = req.cookies?.gasify_token || req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.json({ user: null });
   try {
@@ -192,6 +219,10 @@ router.get('/me', (req, res) => {
     // Reject the intermediate 2FA challenge token (mfa claim, no email) — it is
     // not a session and must never be treated as one.
     if (decoded.mfa || !decoded.email) return res.json({ user: null });
+    // Revocation check: a token minted before the last tokenVersion bump
+    // (password change/reset, sign-out-everywhere) is dead.
+    const u = await prisma.user.findUnique({ where: { id: decoded.userId }, select: { tokenVersion: true } });
+    if (!u || (decoded.tv ?? 0) !== u.tokenVersion) return res.json({ user: null });
     res.json({ user: { id: decoded.userId, email: decoded.email } });
   } catch {
     res.json({ user: null });

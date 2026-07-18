@@ -95,7 +95,7 @@ router.get('/callback', async (req, res) => {
       return res.redirect(`${ORIGIN}/auth/login?mfa=${encodeURIComponent(mfaToken)}&method=email`);
     }
 
-    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    const token = jwt.sign({ userId: user.id, email: user.email, tv: user.tokenVersion }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
     res.cookie('gasify_token', token, COOKIE_OPTS);
     res.redirect(`${ORIGIN}/map`);
   } catch (err) {
