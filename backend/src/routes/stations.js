@@ -72,6 +72,50 @@ router.get('/country-meta', async (req, res) => {
   }
 });
 
+// GET /api/stations/sync-health — public read-only sync freshness per country.
+// Consumed by the cloud sync-sentinel routine (which has no DB access) and safe
+// to expose: country codes, timestamps and thresholds only — no user data.
+let syncHealthCache = null; // { data, expiresAt }
+router.get('/sync-health', async (req, res) => {
+  if (syncHealthCache && syncHealthCache.expiresAt > Date.now()) return res.json(syncHealthCache.data);
+  try {
+    const { computeStaleness, thresholdHoursFor } = require('../services/freshness_monitor');
+    const { priceFreshness } = require('../services/price_freshness');
+    const [{ stale, dbOk, error }, rows, syncRows] = await Promise.all([
+      computeStaleness(prisma),
+      prisma.$queryRaw`
+        SELECT s.country, COUNT(DISTINCT s.id)::int AS stations, MAX(fp."updatedAt") AS "freshestPrice"
+        FROM "Station" s LEFT JOIN "FuelPrice" fp ON fp."stationId" = s.id
+        GROUP BY s.country ORDER BY s.country`,
+      prisma.countrySyncStatus.findMany(),
+    ]);
+    if (!dbOk) return res.status(500).json({ error });
+    const syncByCc = Object.fromEntries(syncRows.map(s => [s.country, s]));
+    const manualByCc = Object.fromEntries(priceFreshness().map(m => [m.cc, m]));
+    const data = {
+      generatedAt: new Date().toISOString(),
+      healthy: stale.length === 0,
+      stale,
+      countries: rows.map(r => ({
+        country: r.country,
+        stations: r.stations,
+        freshestPrice: r.freshestPrice,
+        lastSyncAt: syncByCc[r.country]?.lastSyncAt ?? null,
+        fetched: syncByCc[r.country]?.fetched ?? null,
+        thresholdHours: thresholdHoursFor(r.country),
+        manual: manualByCc[r.country]
+          ? { asOf: manualByCc[r.country].asOf, ageDays: manualByCc[r.country].ageDays, staleAfterDays: manualByCc[r.country].staleAfterDays }
+          : null,
+      })),
+    };
+    syncHealthCache = { data, expiresAt: Date.now() + 5 * 60 * 1000 };
+    res.json(data);
+  } catch (err) {
+    console.error('[sync-health]', err.message);
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
 const GEOJSON_CHUNK = 20000; // rows per DB page — bounds peak memory
 
 // Build the whole-world GeoJSON for a fuel type without ever holding the full
