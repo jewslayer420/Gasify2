@@ -62,8 +62,8 @@ const COUNTRIES = [
   },
   {
     cc: 'BH', label: 'bahrain', currency: 'BHD', bbox: [25.5, 50.3, 26.4, 50.8],
-    asOf: '2026-06', source: 'Bahrain official fuel prices (NOGA)',
-    prices: { sp95: 0.269, sp98: 0.362, diesel: 0.229 }, // BHD/L (Mumtaz 95, Super 98, Jayyid 91 omitted)
+    asOf: '2026-07-02', source: 'Bahrain Fuel Pricing and Monitoring Committee (revised monthly since 2026)',
+    prices: { sp95: 0.247, sp98: 0.362, diesel: 0.229 }, // BHD/L (Mumtaz 95, Super 98, Jayyid 91 omitted)
   },
   {
     cc: 'BN', label: 'brunei', currency: 'BND', bbox: [4.0, 114.0, 5.1, 115.4],
@@ -107,7 +107,7 @@ const COUNTRIES = [
   },
   {
     cc: 'BD', label: 'bangladesh', currency: 'BDT', bbox: [20.5, 88.0, 26.7, 92.7],
-    asOf: '2026-06-01', source: 'Bangladesh BPC automatic pricing mechanism (monthly)',
+    asOf: '2026-07-01', source: 'Bangladesh BPC automatic pricing mechanism (monthly; July unchanged per EMRD)',
     prices: { sp95: 140, sp98: 145, diesel: 115 }, // BDT/L (petrol, octane, diesel)
   },
   {
