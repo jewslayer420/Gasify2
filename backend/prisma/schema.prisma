@@ -19,6 +19,8 @@ model User {
   googleId       String?             @unique
   role           String              @default("user") // "user" | "admin"
   plan           String              @default("free") // "free" | "premium"
+  alertsEnabled  Boolean             @default(false) // price-drop email digests (opt-in)
+  lastAlertAt    DateTime? // last digest sent — double-send guard for the daily job
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   favorites      Favorite[]

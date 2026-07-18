@@ -92,4 +92,15 @@ async function sendPriceStaleAlert(to, staleList) {
   });
 }
 
-module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendPriceStaleAlert, sendLoginCodeEmail, emailConfigured };
+// Price-drop digest for a user's favorited stations. Caller supplies the
+// pre-rendered subject/html (formatDigestEmail in price_alerts.js).
+async function sendPriceDropEmail(to, { subject, html }) {
+  await transporter.sendMail({
+    from: `"Gasify" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html,
+  });
+}
+
+module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendPriceStaleAlert, sendLoginCodeEmail, sendPriceDropEmail, emailConfigured };

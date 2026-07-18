@@ -104,6 +104,17 @@ export async function getAccount() {
   return res.json(); // { email, emailVerified, role, plan, createdAt, hasPassword, googleLinked }
 }
 
+export async function setAlerts(enabled) {
+  const res = await fetch(`${BASE}/api/user/alerts`, {
+    method: 'PATCH', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Could not update alerts');
+  return data; // { alertsEnabled }
+}
+
 export async function changePassword(currentPassword, newPassword) {
   const res = await fetch(`${BASE}/api/auth/change-password`, {
     method: 'POST', credentials: 'include',

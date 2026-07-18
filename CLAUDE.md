@@ -15,7 +15,7 @@ Key backend paths: `src/services/scrapers/` (per-country price scrapers), `src/s
 
 ```bash
 # backend tests (node:test — run explicit files, `node --test src` misbehaves on Windows)
-cd backend && node --test src/services/scrapers/_overpass.test.js src/services/scrapers/thailand.test.js src/services/freshness_monitor.test.js src/services/telegram.test.js
+cd backend && node --test src/services/scrapers/_overpass.test.js src/services/scrapers/thailand.test.js src/services/freshness_monitor.test.js src/services/telegram.test.js src/services/price_alerts.test.js
 
 cd frontend && npm run build   # then: npx pm2 restart gasify-frontend
 npx pm2 status|logs|restart gasify-backend|gasify-frontend

@@ -10,6 +10,7 @@ const FREE = [
   'Live fuel prices across 60+ countries',
   'Interactive map, heatmap & cheapest-near-me',
   'Favorite stations & saved locations',
+  'Price-drop email alerts (3 favorites)',
   'Price-history charts per station',
   'Prices in 45+ currencies',
   'Daily price-change news',
@@ -18,7 +19,7 @@ const FREE = [
 // Premium tier = a direction, not a promise. Everything here is upcoming; the
 // exact lineup is still being decided, so nothing is billable yet.
 const PREMIUM = [
-  'Price-drop alerts for your favorites',
+  'Unlimited price-drop alerts',
   'Unlimited saved locations',
   'Ad-free, faster experience',
   'Priority data refresh',

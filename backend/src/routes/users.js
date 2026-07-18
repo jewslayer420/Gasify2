@@ -10,7 +10,7 @@ router.get('/account', async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
-      select: { email: true, emailVerified: true, role: true, plan: true, createdAt: true, passwordHash: true, googleId: true },
+      select: { email: true, emailVerified: true, role: true, plan: true, createdAt: true, passwordHash: true, googleId: true, alertsEnabled: true },
     });
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({
@@ -21,9 +21,22 @@ router.get('/account', async (req, res) => {
       createdAt: user.createdAt,
       hasPassword: !!user.passwordHash,
       googleLinked: !!user.googleId,
+      alertsEnabled: user.alertsEnabled,
     });
   } catch (err) {
     res.status(500).json({ error: 'Could not load account' });
+  }
+});
+
+// PATCH /api/user/alerts — { enabled }. Opt-in to the daily price-drop digest.
+router.patch('/alerts', async (req, res) => {
+  try {
+    const { enabled } = req.body;
+    if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled must be a boolean' });
+    await prisma.user.update({ where: { id: req.user.userId }, data: { alertsEnabled: enabled } });
+    res.json({ alertsEnabled: enabled });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not update alerts' });
   }
 });
 

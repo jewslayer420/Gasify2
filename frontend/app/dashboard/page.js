@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUser } from '../../lib/context/UserContext';
 import { useCurrency } from '../../lib/context/CurrencyContext';
-import { getFavorites, removeFavorite, getSavedLocations, saveLocation, deleteLocation, get2faStatus, setup2fa, enable2fa, disable2fa, setEmail2fa, getAccount, changePassword, resendVerification } from '../../lib/api';
+import { getFavorites, removeFavorite, getSavedLocations, saveLocation, deleteLocation, get2faStatus, setup2fa, enable2fa, disable2fa, setEmail2fa, getAccount, changePassword, resendVerification, setAlerts } from '../../lib/api';
 import styles from './page.module.css';
 
 const FUEL_LABELS = { diesel: 'Diesel', sp95: '95', sp98: '98', sp100: '100', diesel_premium: 'Diesel+', lpg: 'LPG' };
@@ -43,6 +43,7 @@ export default function DashboardPage() {
   const [pwOk, setPwOk] = useState('');
   const [pwBusy, setPwBusy] = useState(false);
   const [resent, setResent] = useState('');
+  const [alertsBusy, setAlertsBusy] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) { router.push('/auth/login'); return; }
@@ -73,6 +74,14 @@ export default function DashboardPage() {
   async function handleSignOut() {
     await logout?.();
     router.push('/');
+  }
+
+  async function handleToggleAlerts() {
+    setAlertsBusy(true);
+    try {
+      const { alertsEnabled } = await setAlerts(!account?.alertsEnabled);
+      setAccount(a => ({ ...a, alertsEnabled }));
+    } catch {} finally { setAlertsBusy(false); }
   }
 
   async function startEnrollment() {
@@ -303,6 +312,29 @@ export default function DashboardPage() {
 
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Favorite Stations</h2>
+
+        <div className={styles.secRow}>
+          <div>
+            <div className={styles.secName}>Price-drop alerts</div>
+            <div className={styles.secDetail}>
+              {!account?.emailVerified
+                ? 'Verify your email above to enable daily price-drop emails.'
+                : account?.alertsEnabled
+                  ? (account?.plan === 'premium'
+                      ? 'On — watching all your favorites; you get one digest email on days a price drops.'
+                      : 'On — watching your first 3 favorites (Premium watches all).')
+                  : 'Get one email a day when a favorite station gets cheaper.'}
+            </div>
+          </div>
+          <button
+            className={styles.addBtn}
+            disabled={alertsBusy || !account?.emailVerified}
+            onClick={handleToggleAlerts}
+          >
+            {account?.alertsEnabled ? 'Turn off' : 'Turn on'}
+          </button>
+        </div>
+
         {favorites.length === 0 && (
           <p className={styles.empty}>No favorites yet. <Link href="/map" className={styles.link}>Open the map</Link> and star stations you visit often.</p>
         )}

@@ -1,0 +1,44 @@
+name: Price-drop alert digests
+
+# Emails one daily digest to each opted-in user whose favorited stations got
+# cheaper in the last 24h. Runs after the nightly slow sync (03:30) so the
+# window covers it plus all four fast-sync runs. Free plan: 3 favorites;
+# premium: all. Spec: docs/superpowers/specs/2026-07-18-price-drop-alerts-design.md
+
+on:
+  schedule:
+    - cron: '0 5 * * *'   # daily 05:00 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Print digests without sending or stamping lastAlertAt'
+        type: boolean
+        default: false
+
+concurrency:
+  group: alerts
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+      EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+      EMAIL_USER: ${{ secrets.EMAIL_USER }}
+      EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npx prisma generate
+      - run: node src/scripts/send_price_alerts.js ${{ inputs.dry_run && '--dry-run' || '' }}
