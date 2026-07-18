@@ -1,5 +1,11 @@
 # Sync-health sentinel (scheduled cloud agent)
 
+> **Status: PAUSED (2026-07-18, owner decision).** Routine
+> `trig_01DbHhG3icvq2qhsRfLCc1zz` exists but is disabled — day-to-day
+> staleness alerting is the hourly Discord heartbeat (sync-monitor.yml).
+> Re-enable at https://claude.ai/code/routines when the app launches; the
+> `/api/stations/sync-health` endpoint it depends on stays live.
+
 An autonomous Claude Code routine that watches every country's price sync,
 diagnoses breakages, fixes what it safely can, and reports root causes —
 without anyone having to ask.
