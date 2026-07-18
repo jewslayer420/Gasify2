@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import Map, { Marker, AttributionControl } from 'react-map-gl/maplibre';
+import Map, { Marker, AttributionControl, Source, Layer } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { getStationsGeoJSON, getStation, getStationHistory, geocodeCity, addFavorite, removeFavorite, getFavorites, getCountryCounts, getCountryMeta } from '../../lib/api';
@@ -12,12 +12,23 @@ import { useCurrency } from '../../lib/context/CurrencyContext';
 import CurrencySelect from '../../components/CurrencySelect/CurrencySelect';
 import styles from './map.module.css';
 
-// MapTiler (commercial-licensed) when a key is configured; CARTO's free style as a
-// dev-only fallback (non-commercial — do not ship without the key).
+// MapTiler (commercial-licensed) when a key is configured; CARTO's free styles as a
+// dev-only fallback (non-commercial — do not ship without the key). Switching a
+// MapLibre style wipes custom sources/layers, so handleMapLoad re-adds them on
+// every style.load using the cached GeoJSON (no re-download).
 const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
-const MAP_STYLE = MAPTILER_KEY
-  ? `https://api.maptiler.com/maps/basic-v2-dark/style.json?key=${MAPTILER_KEY}`
-  : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const MAP_STYLES = MAPTILER_KEY
+  ? {
+      dark:      { label: 'Dark',      url: `https://api.maptiler.com/maps/basic-v2-dark/style.json?key=${MAPTILER_KEY}` },
+      light:     { label: 'Light',     url: `https://api.maptiler.com/maps/basic-v2/style.json?key=${MAPTILER_KEY}` },
+      streets:   { label: 'Streets',   url: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}` },
+      satellite: { label: 'Satellite', url: `https://api.maptiler.com/maps/hybrid/style.json?key=${MAPTILER_KEY}` },
+    }
+  : {
+      dark:  { label: 'Dark',  url: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' },
+      light: { label: 'Light', url: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json' },
+    };
+const STYLE_LS_KEY = 'gasify_map_style';
 
 const FUELS = [
   { key: 'diesel',         label: 'Diesel' },
@@ -146,6 +157,12 @@ export default function MapView() {
   const [citySearch, setCitySearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('bbox');
+  const [baseStyle, setBaseStyle] = useState(() => {
+    if (typeof window === 'undefined') return 'dark';
+    const saved = localStorage.getItem(STYLE_LS_KEY);
+    return MAP_STYLES[saved] ? saved : 'dark';
+  });
+  const [stationsGeojson, setStationsGeojson] = useState(null);
   const [showCountryBadges, setShowCountryBadges] = useState(true);
   const [mapZoom, setMapZoom] = useState(4.3); // must match initialViewState.zoom — onMove only fires on interaction
   const [countryTotals, setCountryTotals] = useState({});
@@ -236,14 +253,13 @@ export default function MapView() {
   }
 
   // Load all stations for a fuel type: one request, cached 30 min by the browser.
-  // After loading, push GeoJSON into MapLibre and refresh the sidebar in-memory.
+  // The GeoJSON lives in React state and renders via declarative <Source>/<Layer>,
+  // which react-map-gl re-attaches automatically after basemap style switches.
   async function loadStations(fuelType) {
     setLoading(true);
     try {
       const geojson = await getStationsGeoJSON(fuelType);
-      const map = mapRef.current?.getMap();
-      const src = map?.getSource('stations');
-      if (src) src.setData(geojson);
+      setStationsGeojson(geojson);
       allStations.current = geojson.features.map(f => ({
         id: f.properties.id,
         name: f.properties.name,
@@ -280,17 +296,15 @@ export default function MapView() {
   }, [fuel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleMapLoad(e) {
-    const map = e.target;
-    map.addSource('stations', {
-      type: 'geojson',
-      data: { type: 'FeatureCollection', features: [] },
-      buffer: 64,
-      generateId: true,
-    });
-    map.addLayer(heatmapLayer);
-    map.addLayer(pointLayer);
+    if (typeof window !== 'undefined') window.__gasifyMap = e.target; // debug/tuning hook
     mapLoaded.current = true;
     loadStations(fuelRef.current);
+  }
+
+  function switchBaseStyle(key) {
+    if (!MAP_STYLES[key] || key === baseStyle) return;
+    setBaseStyle(key);
+    try { localStorage.setItem(STYLE_LS_KEY, key); } catch {}
   }
 
   // After every pan/zoom-end: update sidebar from in-memory data — no network.
@@ -555,12 +569,25 @@ export default function MapView() {
             onMouseEnter={e => { e.target.getCanvas().style.cursor = 'pointer'; }}
             onMouseLeave={e => { e.target.getCanvas().style.cursor = ''; }}
             interactiveLayerIds={['points']}
-            mapStyle={MAP_STYLE}
+            mapStyle={MAP_STYLES[baseStyle].url}
             style={{ position: 'absolute', inset: 0 }}
             renderWorldCopies={false}
             minZoom={3.7}
             attributionControl={false}
           >
+            {/* Declarative source/layers: react-map-gl re-attaches these after
+                every basemap style switch (imperative addLayer would be wiped). */}
+            <Source
+              id="stations"
+              type="geojson"
+              data={stationsGeojson ?? { type: 'FeatureCollection', features: [] }}
+              buffer={64}
+              generateId
+            >
+              <Layer {...heatmapLayer} />
+              <Layer {...pointLayer} />
+            </Source>
+
             {/* Required attribution: OpenStreetMap (ODbL) basemap data + the tile
                 vendor (MapTiler, or CARTO on the dev fallback). Compact = a small
                 "ⓘ" that expands; the credits are always reachable. */}
@@ -612,6 +639,20 @@ export default function MapView() {
               </Marker>
             ))}
           </Map>
+
+          <div className={styles.styleSwitch} role="radiogroup" aria-label="Map style">
+            {Object.entries(MAP_STYLES).map(([key, s]) => (
+              <button
+                key={key}
+                role="radio"
+                aria-checked={baseStyle === key}
+                className={`${styles.styleBtn} ${baseStyle === key ? styles.styleBtnActive : ''}`}
+                onClick={() => switchBaseStyle(key)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className={styles.sidebar}>

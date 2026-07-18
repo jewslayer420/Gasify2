@@ -209,6 +209,41 @@
 
 .map { flex: 1; min-width: 0; min-height: 0; position: relative; }
 
+/* ── Basemap style switcher (bottom-left, above attribution) ── */
+.styleSwitch {
+  position: absolute;
+  bottom: 34px;
+  left: 10px;
+  z-index: 5;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: rgba(13, 16, 23, 0.88);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.styleBtn {
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.styleBtn:hover { color: var(--text); }
+
+.styleBtnActive,
+.styleBtn.styleBtnActive:hover {
+  color: #0D1017;
+  background: var(--green);
+}
+
 /* ── Sidebar ──────────────────────────────── */
 .sidebar {
   width: var(--panel-w);
