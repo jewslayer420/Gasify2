@@ -1,5 +1,12 @@
 # Map loading diet — design
 
+> **Status: REVERTED 2026-07-18 (owner decision).** The grid-fed heatmap
+> looked chopped/unnatural at mid zoom even after A/B tuning — a 0.3° density
+> grid cannot reproduce per-station texture. MapView is back on the full
+> `/geojson` download; the backend pieces (overview endpoint, sorted bbox,
+> `country=` param, Station indexes) were kept. The right long-term fix is
+> **vector tiles** (real per-station geometry, tiled): see Alternatives.
+
 2026-07-18. Replace the whole-world GeoJSON download (~11 MB gz, ~60 MB
 parsed, 427k features in client memory) with a tiny density overview plus
 viewport-scoped detail fetches. Target: ~0.5 MB on first paint (>20× less),
