@@ -111,6 +111,7 @@ with attribution + share-alike — the issue is the *free shared servers*.
 | Finland | `polttoaine.net/api` XML feed | Third-party site; ⚠️ verify ToS for redistribution | Check terms / seek permission. |
 | Iceland | **Gasvaktin** (open-source, GitHub JSON) | Check repo licence (likely permissive) ⚠️ verify | Attribute Gasvaktin per repo licence. |
 | Slovenia | `goriva.si` API | Third-party site republishing regulated prices; ⚠️ verify ToS | Check terms / seek permission. |
+| Thailand | **thai-oil-api** `api.chnwt.dev` (community crawler of official brand price boards) + **Bangchak official price API** fallback (`bangchak.co.th/api/oilprice`, added 2026-07-16) | Community project — ⚠️ verify repo licence; Bangchak board = brand's own published prices | Primary broke 2026-07-05 (success-shaped payload, all prices empty) — scraper now validates and falls back to the Bangchak board as a national price set. Prices are Bangkok-reference; stations ODbL. Watch for thai-oil-api recovery (per-brand granularity returns automatically). |
 | ~~Denmark~~ | ~~Shell/Q8/F24/Circle K endpoints~~ → **EU Oil Bulletin** | ✅ **RESOLVED 2026-06-18:** replaced the unofficial vendor endpoints with the EU Weekly Oil Bulletin (cc `DK`, **CC BY 4.0**, national-avg over OSM). Old `DK-SHELL-/DK-Q8-/DK-CK-` rows purged. |
 
 ### 🔴 Blockers — private aggregator scraping & borrowed keys (resolve before monetising)

@@ -1,9 +1,19 @@
-// Thailand fuel prices — OpenStreetMap stations + thai-oil-api brand prices
+// Thailand fuel prices — OpenStreetMap stations + thai-oil-api brand prices,
+// with the official Bangchak price board as fallback.
 //
-// Prices: thai-oil-api (crawls official brand price boards — no auth required)
+// Prices (primary): thai-oil-api (crawls official brand price boards — no auth)
 //   GET https://api.chnwt.dev/thai-oil-api/latest
 //   Returns per-brand prices in THB/L for Bangkok & vicinity
 //   Brands: ptt, bcp, shell, caltex, irpc, pt, susco, pure, susco_dealers
+//   ⚠️ Since ~2026-07-05 its upstream crawler is broken: the response is still
+//   success-shaped but every price is an empty string. We validate the payload
+//   and fall back rather than freeze.
+//
+// Prices (fallback): Bangchak official price API (state-linked refiner, ~2,200
+//   stations; standard grades are priced near-identically across Thai brands)
+//   GET https://www.bangchak.co.th/api/oilprice
+//   → data.items[{ OilNameEng, PriceToday }] in THB/L, Bangkok reference.
+//   Used as a national board for ALL stations when per-brand data is down.
 //
 // Stations: Overpass API — amenity=fuel nodes in Thailand
 //   POST https://overpass-api.de/api/interpreter
@@ -95,8 +105,52 @@ function extractPrices(brandPrices) {
   return prices;
 }
 
+// Bangchak's board → app fuel types. Higher prio wins the slot when several
+// grades map to the same fuelType (Gasohol 91 is listed before 95 upstream).
+const BANGCHAK_RULES = [
+  { re: /gasohol\s*95/i,      fuelType: 'sp95',           prio: 2 },
+  { re: /gasohol\s*91/i,      fuelType: 'sp95',           prio: 1 },
+  { re: /e20/i,               fuelType: 'e20',            prio: 1 },
+  { re: /e85/i,               fuelType: 'e85',            prio: 1 },
+  { re: /premium\s*diesel/i,  fuelType: 'diesel_premium', prio: 1 },
+  { re: /diesel\s*b20/i,      fuelType: null,             prio: 0 }, // restricted blend — skip
+  { re: /diesel/i,            fuelType: 'diesel',         prio: 1 },
+  { re: /98/i,                fuelType: 'sp98',           prio: 1 },
+];
+
+function pricesFromBangchak(items) {
+  const best = {}; // fuelType -> { price, prio }
+  for (const item of items ?? []) {
+    const rule = BANGCHAK_RULES.find(r => r.re.test(item?.OilNameEng || ''));
+    if (!rule || !rule.fuelType) continue;
+    const price = thbToEur(item.PriceToday);
+    if (!price) continue;
+    if (!best[rule.fuelType] || rule.prio > best[rule.fuelType].prio) {
+      best[rule.fuelType] = { price, prio: rule.prio };
+    }
+  }
+  return Object.entries(best).map(([fuelType, { price }]) => ({ fuelType, price }));
+}
+
+async function fetchBangchakPrices() {
+  try {
+    const r = await fetch('https://www.bangchak.co.th/api/oilprice', {
+      headers: { 'User-Agent': UA, Accept: 'application/json' },
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const json = await r.json();
+    const prices = pricesFromBangchak(json?.data?.items);
+    console.log(`[thailand] Bangchak board: ${prices.map(p => `${p.fuelType}=${p.price}`).join(' ') || 'no usable prices'}`);
+    return prices;
+  } catch (err) {
+    console.warn('[thailand] Bangchak fetch failed:', err.message);
+    return [];
+  }
+}
+
 async function fetchThailandStations() {
-  // 1. Fetch brand prices
+  // 1. Fetch brand prices (primary: thai-oil-api)
   let brandData = {};
   let defaultPrices = [];
   try {
@@ -111,15 +165,24 @@ async function fetchThailandStations() {
     defaultPrices = extractPrices(brandData.ptt);
     console.log(`[thailand] brand prices fetched (date: ${json.response.date})`);
   } catch (err) {
-    console.error('[thailand] price fetch error:', err.message);
-    return [];
+    console.warn('[thailand] thai-oil-api error:', err.message);
   }
-  if (!defaultPrices.length) return [];
 
   // Precompute prices per brand key
   const brandPriceCache = {};
-  for (const [key, val] of Object.entries(brandData)) {
-    brandPriceCache[key] = extractPrices(val);
+  if (defaultPrices.length) {
+    for (const [key, val] of Object.entries(brandData)) {
+      brandPriceCache[key] = extractPrices(val);
+    }
+  } else {
+    // thai-oil-api down or serving empty strings (its state since 2026-07-05) —
+    // use Bangchak's official board as a national price set for all brands.
+    console.warn('[thailand] thai-oil-api unusable — falling back to Bangchak official board');
+    defaultPrices = await fetchBangchakPrices();
+    if (!defaultPrices.length) {
+      console.error('[thailand] no price source available (thai-oil-api empty, Bangchak failed)');
+      return [];
+    }
   }
 
   // DB rows store the same rawBrand the OSM path derives, so per-brand pricing works
@@ -189,4 +252,4 @@ async function fetchThailandStations() {
   return stations;
 }
 
-module.exports = { fetchThailandStations };
+module.exports = { fetchThailandStations, extractPrices, pricesFromBangchak };
