@@ -6,7 +6,7 @@ export async function getStationsGeoJSON(fuel = 'diesel') {
   return res.json();
 }
 
-export async function getStations({ fuel = 'diesel', lat, lng, bbox, near, city, zoom } = {}) {
+export async function getStations({ fuel = 'diesel', lat, lng, bbox, near, city, zoom, country } = {}) {
   const params = new URLSearchParams({ fuel });
   if (lat) params.set('lat', lat);
   if (lng) params.set('lng', lng);
@@ -14,8 +14,17 @@ export async function getStations({ fuel = 'diesel', lat, lng, bbox, near, city,
   if (near) params.set('near', '1');
   if (city) params.set('city', city);
   if (zoom != null) params.set('zoom', zoom);
+  if (country) params.set('country', country);
   const res = await fetch(`${BASE}/api/stations?${params}`);
   if (!res.ok) throw new Error('Failed to fetch stations');
+  return res.json();
+}
+
+// World density grid for the map's low-zoom heatmap (one point per 0.3° cell,
+// properties.w = station count). ~300KB gz vs the 11MB whole-world GeoJSON.
+export async function getStationsOverview(fuel = 'diesel') {
+  const res = await fetch(`${BASE}/api/stations/overview?fuel=${fuel}`);
+  if (!res.ok) throw new Error('Failed to fetch overview');
   return res.json();
 }
 

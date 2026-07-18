@@ -83,6 +83,9 @@ model Station {
   prices       FuelPrice[]
   priceHistory PriceHistory[]
   favorites    Favorite[]
+
+  @@index([lat, lng]) // bbox viewport queries (map detail fetches)
+  @@index([country]) // country-focus lists, admin sync aggregates
 }
 
 // Last completed sync per country (written by bulkUpsertStations, read by the

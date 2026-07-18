@@ -72,6 +72,40 @@ router.get('/country-meta', async (req, res) => {
   }
 });
 
+// GET /api/stations/overview?fuel=diesel — world density grid for the map's
+// low-zoom heatmap: one point per 0.3° cell with w = station count. Replaces
+// shipping all ~400k stations to the client (11MB gz) with ~a few hundred KB.
+const overviewCache = new Map(); // fuel -> { data, expiresAt }
+router.get('/overview', async (req, res) => {
+  const fuel = req.query.fuel || 'diesel';
+  if (!VALID_FUELS.includes(fuel)) return res.status(400).json({ error: 'Unknown fuel' });
+  const cached = overviewCache.get(fuel);
+  if (cached && cached.expiresAt > Date.now()) return res.json(cached.data);
+  try {
+    const rows = await prisma.$queryRaw`
+      SELECT ROUND((s.lat / 0.3)::numeric) * 0.3 AS glat,
+             ROUND((s.lng / 0.3)::numeric) * 0.3 AS glng,
+             COUNT(*)::int AS w
+      FROM "Station" s
+      JOIN "FuelPrice" fp ON fp."stationId" = s.id AND fp."fuelType" = ${fuel}
+        AND fp.price >= 0.15 AND fp.price <= 3.5
+      GROUP BY 1, 2`;
+    const data = {
+      type: 'FeatureCollection',
+      features: rows.map(r => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [+Number(r.glng).toFixed(2), +Number(r.glat).toFixed(2)] },
+        properties: { w: r.w },
+      })),
+    };
+    overviewCache.set(fuel, { data, expiresAt: Date.now() + 10 * 60 * 1000 });
+    res.json(data);
+  } catch (err) {
+    console.error('[overview]', err.message);
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
 // GET /api/stations/sync-health — public read-only sync freshness per country.
 // Consumed by the cloud sync-sentinel routine (which has no DB access) and safe
 // to expose: country codes, timestamps and thresholds only — no user data.
@@ -261,22 +295,39 @@ router.get('/', async (req, res) => {
 
     if (bbox) {
       const [minLat, minLng, maxLat, maxLng] = bbox.split(',').map(Number);
+      // Take tiers align with the client's zoomBand(): z≤7 feeds only the
+      // sidebar (points invisible); z≤9 is the dot-field handover band where
+      // spatial coverage matters most; z>9 viewports are small.
       const z = zoom ? parseInt(zoom) : 14;
-      const take = z <= 8 ? 500 : z <= 10 ? 800 : z <= 12 ? 1200 : 2000;
+      const take = z <= 7 ? 800 : z <= 9 ? 5000 : 2500;
 
-      // DB only. The old live-Tankerkönig fill-in for German bboxes was
-      // decommissioned (dead API key, per-request external call; Germany is
-      // served from the DB via the EU Oil Bulletin sync).
-      const dbStations = await prisma.station.findMany({
-        where: {
-          lat: { gte: minLat, lte: maxLat },
-          lng: { gte: minLng, lte: maxLng },
-          prices: { some: { fuelType: fuel, price: { gt: 0 } } },
-        },
-        select: { id: true, externalId: true, name: true, brand: true, lat: true, lng: true, city: true, country: true, updatedAt: true, prices: true },
-        take,
-      });
-      return res.json(dbStations.map(s => normalizeStation(s, fuel, userLat, userLng)));
+      // Price-sorted so "cheapest in view" is correct at every zoom (findMany's
+      // arbitrary take order surfaced random stations at low zoom). DB only —
+      // the old live-Tankerkönig fill-in was decommissioned (dead key).
+      const rows = await prisma.$queryRaw`
+        SELECT s.id, s.name, s.brand, s.lat, s.lng, s.city, s.country,
+               fp.price, fp."updatedAt" AS "priceUpdatedAt"
+        FROM "Station" s
+        JOIN "FuelPrice" fp ON fp."stationId" = s.id AND fp."fuelType" = ${fuel}
+          AND fp.price >= 0.15 AND fp.price <= 3.5
+        WHERE s.lat BETWEEN ${minLat} AND ${maxLat}
+          AND s.lng BETWEEN ${minLng} AND ${maxLng}
+        ORDER BY fp.price ASC
+        LIMIT ${take}`;
+      return res.json(rows.map(normalizeRaw));
+    } else if (req.query.country) {
+      // Country focus: cheapest 100 nationwide (viewport-independent).
+      const cc = String(req.query.country).toUpperCase().slice(0, 2);
+      const rows = await prisma.$queryRaw`
+        SELECT s.id, s.name, s.brand, s.lat, s.lng, s.city, s.country,
+               fp.price, fp."updatedAt" AS "priceUpdatedAt"
+        FROM "Station" s
+        JOIN "FuelPrice" fp ON fp."stationId" = s.id AND fp."fuelType" = ${fuel}
+          AND fp.price >= 0.15 AND fp.price <= 3.5
+        WHERE s.country = ${cc}
+        ORDER BY fp.price ASC
+        LIMIT 100`;
+      return res.json(rows.map(normalizeRaw));
     } else if (near === '1' && userLat && userLng) {
       stations = await prisma.$queryRaw`
         SELECT s.*,

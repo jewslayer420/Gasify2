@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import Map, { Marker, AttributionControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { getStationsGeoJSON, getStation, getStationHistory, geocodeCity, addFavorite, removeFavorite, getFavorites, getCountryCounts, getCountryMeta } from '../../lib/api';
+import { getStations, getStationsOverview, getStation, getStationHistory, geocodeCity, addFavorite, removeFavorite, getFavorites, getCountryCounts, getCountryMeta } from '../../lib/api';
 import { COUNTRY_NAMES } from '../../lib/countries';
 import { COUNTRY_CENTROIDS } from '../../lib/countryCentroids';
 import { useUser } from '../../lib/context/UserContext';
@@ -59,17 +59,21 @@ function ledDigits(v) {
   return v.toFixed(3);
 }
 
-// Heatmap — GPU-rendered density view at mid zoom
+// Heatmap — GPU-rendered density view at mid zoom. Fed by the 0.3°-grid
+// overview source (one point per cell, w = station count) instead of every
+// station; the capped w weight reproduces the old per-station density.
 const heatmapLayer = {
   id: 'stations-heat',
   type: 'heatmap',
-  source: 'stations',
+  source: 'overview',
   minzoom: 0,
-  maxzoom: 13,
+  maxzoom: 9,
   paint: {
-    'heatmap-weight': 1,
-    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 0.011, 5, 0.03, 8, 0.1, 11, 0.3, 13, 0.5],
-    'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 4, 6, 8, 9, 14, 12, 28],
+    'heatmap-weight': ['min', ['get', 'w'], 40],
+    // Radius tracks the 0.3° grid spacing (~0.43 × 2^z px) so neighbouring
+    // cells merge into continuous density instead of reading as a dot matrix.
+    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 0.012, 5, 0.045, 8, 0.14],
+    'heatmap-radius': ['interpolate', ['exponential', 2], ['zoom'], 0, 5, 4, 10, 6, 26, 8, 80],
     'heatmap-color': [
       'interpolate', ['linear'], ['heatmap-density'],
       0,    'rgba(0,0,0,0)',
@@ -78,16 +82,17 @@ const heatmapLayer = {
       0.8,  'rgba(226,90,90,0.85)',
       1,    'rgba(226,90,90,0.95)',
     ],
-    'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.7, 12.5, 0],
+    'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 6.5, 0.7, 7.8, 0],
   },
 };
 
-// Individual station dot — fades in as heatmap fades out
+// Individual station dot — takes over from the heatmap at regional zoom
+// (the grid is too coarse past z8; real stations carry the detail from there)
 const pointLayer = {
   id: 'points',
   type: 'circle',
   source: 'stations',
-  minzoom: 10,
+  minzoom: 8,
   paint: {
     'circle-color': [
       'case',
@@ -96,10 +101,10 @@ const pointLayer = {
       ['<', ['get', 'price'], 1.90], '#E8A23D',
       '#E25A5A',
     ],
-    'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 12, 6, 15, 10],
-    'circle-stroke-width': 1.5,
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 3, 10, 4, 12, 6, 15, 10],
+    'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 8, 0.4, 11, 1.5],
     'circle-stroke-color': 'rgba(255,255,255,0.25)',
-    'circle-opacity': ['interpolate', ['linear'], ['zoom'], 10.5, 0, 12.5, 0.9],
+    'circle-opacity': ['interpolate', ['linear'], ['zoom'], 7.6, 0, 9, 0.85],
   },
 };
 
@@ -152,7 +157,7 @@ export default function MapView() {
   const [countryFocus, setCountryFocus] = useState(null); // cc: league/pill click scopes the sidebar to one country
 
   const mapRef = useRef(null);
-  const allStations = useRef([]);   // full in-memory station list for current fuel
+  const allStations = useRef([]);   // current buffered-bbox detail set (price-sorted from the server)
   const mapLoaded = useRef(false);
   const modeRef = useRef('bbox');
   const fuelRef = useRef(fuel);
@@ -198,17 +203,8 @@ export default function MapView() {
   // cheaper neighbours to the top — clicking Italy showed Bosnian stations).
   function updateSidebar() {
     if (modeRef.current !== 'bbox') return;
+    if (focusRef.current) return; // focus list is nationwide, set by fetchCountryList
     if (!allStations.current.length) return;
-    if (focusRef.current) {
-      const cc = focusRef.current;
-      setSidebarStations(
-        allStations.current
-          .filter(s => s.country === cc)
-          .sort((a, b) => (a.price ?? 9) - (b.price ?? 9))
-          .slice(0, 100)
-      );
-      return;
-    }
     const map = mapRef.current?.getMap();
     if (!map) return;
     const b = map.getBounds();
@@ -220,12 +216,21 @@ export default function MapView() {
     setSidebarStations(visible);
   }
 
+  // Country focus list: cheapest 100 nationwide from the server (a viewport at
+  // country zoom leaks cheaper neighbours — clicking Italy showed Bosnia).
+  async function fetchCountryList(cc) {
+    try {
+      const rows = await getStations({ fuel: fuelRef.current, country: cc });
+      if (focusRef.current === cc) setSidebarStations(rows);
+    } catch {}
+  }
+
   // Enter/leave country focus (league row or map pill click). Zooming back out
   // to the badge view clears it, restoring the all-countries league.
   function applyFocus(cc) {
     focusRef.current = cc;
     setCountryFocus(cc);
-    updateSidebar();
+    if (cc) fetchCountryList(cc); else updateSidebar();
   }
 
   function focusCountry(cc) {
@@ -235,29 +240,62 @@ export default function MapView() {
     mapRef.current?.flyTo({ center: [c.lng, c.lat], zoom: 6.6, duration: 1200 });
   }
 
-  // Load all stations for a fuel type: one request, cached 30 min by the browser.
-  // After loading, push GeoJSON into MapLibre and refresh the sidebar in-memory.
-  async function loadStations(fuelType) {
+  // Low-zoom heatmap data: the 0.3°-grid overview (~300KB gz vs the old 11MB
+  // whole-world GeoJSON). Loaded once per fuel.
+  async function loadOverview(fuelType) {
+    try {
+      const geojson = await getStationsOverview(fuelType);
+      const src = mapRef.current?.getMap()?.getSource('overview');
+      if (src) src.setData(geojson);
+    } catch {}
+  }
+
+  // Viewport detail: fetch the buffered bbox (×1.5) so pans inside the buffer
+  // are free; refetch only when the view escapes it, the zoom band changes,
+  // or the fuel changes. Server returns price-sorted rows (cheapest first).
+  const detailFetched = useRef(null); // { bbox: [s,w,n,e], fuel, band }
+  const detailSeq = useRef(0);
+  function zoomBand(z) { return z <= 7 ? 0 : z <= 9 ? 1 : 2; } // server take tiers
+
+  async function fetchDetail(force = false) {
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+    const b = map.getBounds();
+    const [s, w, n, e] = [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()];
+    const zoom = map.getZoom();
+    const prev = detailFetched.current;
+    const contained = prev && prev.fuel === fuelRef.current && prev.band === zoomBand(zoom)
+      && s >= prev.bbox[0] && w >= prev.bbox[1] && n <= prev.bbox[2] && e <= prev.bbox[3];
+    if (contained && !force) { updateSidebar(); return; }
+
+    const latPad = (n - s) * 0.25, lngPad = (e - w) * 0.25;
+    const buffered = [
+      Math.max(-85, s - latPad), Math.max(-180, w - lngPad),
+      Math.min(85, n + latPad), Math.min(180, e + lngPad),
+    ];
+    const seq = ++detailSeq.current;
     setLoading(true);
     try {
-      const geojson = await getStationsGeoJSON(fuelType);
-      const map = mapRef.current?.getMap();
-      const src = map?.getSource('stations');
-      if (src) src.setData(geojson);
-      allStations.current = geojson.features.map(f => ({
-        id: f.properties.id,
-        name: f.properties.name,
-        city: f.properties.city,
-        country: f.properties.country,
-        lat: f.geometry.coordinates[1],
-        lng: f.geometry.coordinates[0],
-        price: f.properties.price < 0 ? null : f.properties.price,
-        distance: null,
-        allPrices: {},
-      }));
+      const rows = await getStations({
+        fuel: fuelRef.current,
+        bbox: buffered.join(','),
+        zoom: Math.round(zoom),
+      });
+      if (seq !== detailSeq.current) return; // a newer fetch superseded this one
+      detailFetched.current = { bbox: buffered, fuel: fuelRef.current, band: zoomBand(zoom) };
+      allStations.current = rows;
+      const src = map.getSource('stations');
+      if (src) src.setData({
+        type: 'FeatureCollection',
+        features: rows.map(st => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [st.lng, st.lat] },
+          properties: { id: st.id, name: st.name, city: st.city, country: st.country, price: st.price ?? -1 },
+        })),
+      });
       updateSidebar();
     } catch {}
-    setLoading(false);
+    if (seq === detailSeq.current) setLoading(false);
   }
 
   // Re-fetch when fuel changes; also refresh history for the open station.
@@ -265,7 +303,10 @@ export default function MapView() {
   useEffect(() => {
     if (prevFuel.current === fuel) return;
     prevFuel.current = fuel;
-    if (mapLoaded.current) loadStations(fuel);
+    if (mapLoaded.current) {
+      loadOverview(fuel);
+      if (focusRef.current) fetchCountryList(focusRef.current); else fetchDetail(true);
+    }
     if (selected) {
       setHistory([]);
       setLoadingHistory(true);
@@ -281,6 +322,11 @@ export default function MapView() {
 
   function handleMapLoad(e) {
     const map = e.target;
+    map.addSource('overview', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+      buffer: 0,
+    });
     map.addSource('stations', {
       type: 'geojson',
       data: { type: 'FeatureCollection', features: [] },
@@ -290,12 +336,14 @@ export default function MapView() {
     map.addLayer(heatmapLayer);
     map.addLayer(pointLayer);
     mapLoaded.current = true;
-    loadStations(fuelRef.current);
+    loadOverview(fuelRef.current);
+    fetchDetail(true);
   }
 
-  // After every pan/zoom-end: update sidebar from in-memory data — no network.
+  // After every pan/zoom-end: refetch detail if the view left the buffered
+  // bbox (free otherwise), then refresh the sidebar.
   function handleMoveEnd(e) {
-    updateSidebar();
+    fetchDetail();
     if (e?.viewState?.zoom != null) setMapZoom(e.viewState.zoom);
   }
 
@@ -314,45 +362,35 @@ export default function MapView() {
     });
   }
 
-  // Near-me: sort all in-memory stations by distance — no network request.
-  function handleNearMe() {
+  // Near-me: the server returns the 50 nearest priced stations, distance-sorted.
+  async function handleNearMe() {
     if (!userPos) return;
     focusRef.current = null;
     setCountryFocus(null);
     setMode('near');
     modeRef.current = 'near';
     mapRef.current?.flyTo({ center: [userPos.lng, userPos.lat], zoom: 13, duration: 800 });
-    const { lat, lng } = userPos;
-    const near = allStations.current
-      .map(s => {
-        const dx = (s.lat - lat) * 111.32;
-        const dy = (s.lng - lng) * 111.32 * Math.cos(lat * Math.PI / 180);
-        return { ...s, distance: Math.round(Math.sqrt(dx * dx + dy * dy) * 10) / 10 };
-      })
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, 50);
-    setSidebarStations(near);
+    try {
+      const near = await getStations({ fuel: fuelRef.current, lat: userPos.lat, lng: userPos.lng, near: 1 });
+      setSidebarStations(near);
+    } catch {}
   }
 
   // One-click value prop: locate → rank nearby by price → crown the winner.
   function cheapestNearMe() {
     setCtaMsg(null);
-    const run = pos => {
+    const run = async pos => {
       focusRef.current = null;
       setCountryFocus(null);
       setMode('near');
       modeRef.current = 'near';
       const { lat, lng } = pos;
-      const near = allStations.current
-        .map(s => {
-          const dx = (s.lat - lat) * 111.32;
-          const dy = (s.lng - lng) * 111.32 * Math.cos(lat * Math.PI / 180);
-          return { ...s, distance: Math.round(Math.sqrt(dx * dx + dy * dy) * 10) / 10 };
-        })
-        .sort((a, b) => a.distance - b.distance)
-        .slice(0, 50);
-      setSidebarStations(near);
       mapRef.current?.flyTo({ center: [lng, lat], zoom: 12.5, duration: 900 });
+      let near = [];
+      try {
+        near = await getStations({ fuel: fuelRef.current, lat, lng, near: 1 });
+      } catch {}
+      setSidebarStations(near);
       const cheapest = near.slice(0, 25).filter(s => s.price)
         .sort((a, b) => a.price - b.price)[0];
       if (cheapest) {
