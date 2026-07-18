@@ -70,49 +70,74 @@ function ledDigits(v) {
   return v.toFixed(3);
 }
 
-// Heatmap — GPU-rendered density view at mid zoom
-const heatmapLayer = {
-  id: 'stations-heat',
-  type: 'heatmap',
-  source: 'stations',
-  minzoom: 0,
-  maxzoom: 13,
-  paint: {
-    'heatmap-weight': 1,
-    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 0.011, 5, 0.03, 8, 0.1, 11, 0.3, 13, 0.5],
-    'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 4, 6, 8, 9, 14, 12, 28],
-    'heatmap-color': [
-      'interpolate', ['linear'], ['heatmap-density'],
-      0,    'rgba(0,0,0,0)',
-      0.2,  'rgba(47,191,132,0.5)',
-      0.5,  'rgba(232,162,61,0.7)',
-      0.8,  'rgba(226,90,90,0.85)',
-      1,    'rgba(226,90,90,0.95)',
-    ],
-    'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.7, 12.5, 0],
+// Per-basemap data-layer palettes. The dark palette's pastels wash out on
+// light backgrounds and satellite imagery, so Light/Streets get deeper
+// saturated tones and Satellite gets vivid hot colours.
+const LAYER_THEMES = {
+  dark: {
+    ramp: ['rgba(47,191,132,0.5)', 'rgba(232,162,61,0.7)', 'rgba(226,90,90,0.85)', 'rgba(226,90,90,0.95)'],
+    dot: { green: '#2FBF84', amber: '#E8A23D', red: '#E25A5A', none: '#5A6072', stroke: 'rgba(255,255,255,0.25)' },
+  },
+  light: {
+    ramp: ['rgba(16,122,73,0.55)', 'rgba(202,102,0,0.8)', 'rgba(185,28,28,0.88)', 'rgba(140,16,16,0.95)'],
+    dot: { green: '#118A56', amber: '#C2650A', red: '#B91C1C', none: '#6B7280', stroke: 'rgba(0,0,0,0.3)' },
+  },
+  satellite: {
+    ramp: ['rgba(0,230,118,0.55)', 'rgba(255,193,7,0.8)', 'rgba(255,61,0,0.92)', 'rgba(255,23,0,0.97)'],
+    dot: { green: '#00E676', amber: '#FFC107', red: '#FF3D00', none: '#B0BEC5', stroke: 'rgba(255,255,255,0.6)' },
   },
 };
+const THEME_FOR_STYLE = { dark: 'dark', light: 'light', streets: 'light', satellite: 'satellite' };
+
+// Heatmap — GPU-rendered density view at mid zoom
+function makeHeatmapLayer(styleKey) {
+  const t = LAYER_THEMES[THEME_FOR_STYLE[styleKey] ?? 'dark'];
+  return {
+    id: 'stations-heat',
+    type: 'heatmap',
+    source: 'stations',
+    minzoom: 0,
+    maxzoom: 13,
+    paint: {
+      'heatmap-weight': 1,
+      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 0.011, 5, 0.03, 8, 0.1, 11, 0.3, 13, 0.5],
+      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 4, 6, 8, 9, 14, 12, 28],
+      'heatmap-color': [
+        'interpolate', ['linear'], ['heatmap-density'],
+        0,    'rgba(0,0,0,0)',
+        0.2,  t.ramp[0],
+        0.5,  t.ramp[1],
+        0.8,  t.ramp[2],
+        1,    t.ramp[3],
+      ],
+      'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.7, 12.5, 0],
+    },
+  };
+}
 
 // Individual station dot — fades in as heatmap fades out
-const pointLayer = {
-  id: 'points',
-  type: 'circle',
-  source: 'stations',
-  minzoom: 10,
-  paint: {
-    'circle-color': [
-      'case',
-      ['<', ['get', 'price'], 0], '#5A6072',
-      ['<', ['get', 'price'], 1.60], '#2FBF84',
-      ['<', ['get', 'price'], 1.90], '#E8A23D',
-      '#E25A5A',
-    ],
-    'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 12, 6, 15, 10],
-    'circle-stroke-width': 1.5,
-    'circle-stroke-color': 'rgba(255,255,255,0.25)',
-    'circle-opacity': ['interpolate', ['linear'], ['zoom'], 10.5, 0, 12.5, 0.9],
-  },
-};
+function makePointLayer(styleKey) {
+  const t = LAYER_THEMES[THEME_FOR_STYLE[styleKey] ?? 'dark'];
+  return {
+    id: 'points',
+    type: 'circle',
+    source: 'stations',
+    minzoom: 10,
+    paint: {
+      'circle-color': [
+        'case',
+        ['<', ['get', 'price'], 0], t.dot.none,
+        ['<', ['get', 'price'], 1.60], t.dot.green,
+        ['<', ['get', 'price'], 1.90], t.dot.amber,
+        t.dot.red,
+      ],
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 12, 6, 15, 10],
+      'circle-stroke-width': 1.5,
+      'circle-stroke-color': t.dot.stroke,
+      'circle-opacity': ['interpolate', ['linear'], ['zoom'], 10.5, 0, 12.5, 0.9],
+    },
+  };
+}
 
 // Badge-eligible countries = everything with a centroid. Derived (not a separate
 // hand-maintained list) so newly added countries can't silently miss a badge —
@@ -584,8 +609,8 @@ export default function MapView() {
               buffer={64}
               generateId
             >
-              <Layer {...heatmapLayer} />
-              <Layer {...pointLayer} />
+              <Layer {...makeHeatmapLayer(baseStyle)} />
+              <Layer {...makePointLayer(baseStyle)} />
             </Source>
 
             {/* Required attribution: OpenStreetMap (ODbL) basemap data + the tile
