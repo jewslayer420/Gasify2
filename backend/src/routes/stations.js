@@ -90,13 +90,30 @@ router.get('/overview', async (req, res) => {
       JOIN "FuelPrice" fp ON fp."stationId" = s.id AND fp."fuelType" = ${fuel}
         AND fp.price >= 0.15 AND fp.price <= 3.5
       GROUP BY 1, 2`;
+    // Deterministic jitter (±0.11°) breaks the grid alignment — a perfectly
+    // regular lattice reads as banded dot rows in the heatmap kernel.
+    const jitter = (a, b, salt) => {
+      let h = salt;
+      const s = `${a},${b}`;
+      for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+      return ((h >>> 4) % 1000) / 1000 * 0.22 - 0.11;
+    };
     const data = {
       type: 'FeatureCollection',
-      features: rows.map(r => ({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [+Number(r.glng).toFixed(2), +Number(r.glat).toFixed(2)] },
-        properties: { w: r.w },
-      })),
+      features: rows.map(r => {
+        const glat = Number(r.glat), glng = Number(r.glng);
+        return {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [
+              +(glng + jitter(glat, glng, 7)).toFixed(3),
+              +(glat + jitter(glng, glat, 13)).toFixed(3),
+            ],
+          },
+          properties: { w: r.w },
+        };
+      }),
     };
     overviewCache.set(fuel, { data, expiresAt: Date.now() + 10 * 60 * 1000 });
     res.json(data);

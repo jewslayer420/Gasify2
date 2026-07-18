@@ -69,10 +69,13 @@ const heatmapLayer = {
   minzoom: 0,
   maxzoom: 9,
   paint: {
-    'heatmap-weight': ['min', ['get', 'w'], 40],
+    // w/3 restores the old per-station mass balance (A/B-matched against the
+    // full-dataset reference layer over Europe and the US: /2 ran slightly
+    // hot, /4 too dim). No cap — dense metros WERE hot before.
+    'heatmap-weight': ['/', ['get', 'w'], 3],
     // Radius tracks the 0.3° grid spacing (~0.43 × 2^z px) so neighbouring
     // cells merge into continuous density instead of reading as a dot matrix.
-    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 0.012, 5, 0.045, 8, 0.14],
+    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 0.011, 5, 0.03, 8, 0.1],
     'heatmap-radius': ['interpolate', ['exponential', 2], ['zoom'], 0, 5, 4, 10, 6, 26, 8, 80],
     'heatmap-color': [
       'interpolate', ['linear'], ['heatmap-density'],
@@ -335,6 +338,7 @@ export default function MapView() {
     });
     map.addLayer(heatmapLayer);
     map.addLayer(pointLayer);
+    if (typeof window !== 'undefined') window.__gasifyMap = map; // debug/tuning hook
     mapLoaded.current = true;
     loadOverview(fuelRef.current);
     fetchDetail(true);
