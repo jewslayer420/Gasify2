@@ -9,7 +9,7 @@ Two apps, run locally under PM2 (not hot-reload dev servers):
 - **`backend/`** — Express API + Prisma on Neon Postgres (eu-central-1). PM2 app `gasify-backend`, local port **3002** (Render prod: `gasify-api.onrender.com`). Entry: `src/server.js`.
 - **`frontend/`** — Next.js (app router) with `react-map-gl/maplibre` on a MapTiler basemap. PM2 app `gasify-frontend`, port **3000**, serving a **production build** — code changes need `npm run build` then `pm2 restart gasify-frontend`; there is no hot reload.
 
-Key backend paths: `src/services/scrapers/` (per-country price scrapers), `src/services/sync.js` (bulkUpsertStations + scheduling), `src/routes/stations.js` (API incl. gzipped `/geojson` the frontend actually uses), `src/scripts/sync_all_now.js` (fast|slow|all runner), `src/scripts/check_freshness.js` (monitor, `--dry-run`).
+Key backend paths: `src/services/scrapers/` (per-country price scrapers), `src/services/sync.js` (bulkUpsertStations + scheduling), `src/routes/stations.js` (API — the map uses `/overview` (density grid) + bbox fetches since 2026-07-18; gzipped `/geojson` is legacy, kept but uncalled), `src/scripts/sync_all_now.js` (fast|slow|all runner), `src/scripts/check_freshness.js` (monitor, `--dry-run`).
 
 ## Commands
 
