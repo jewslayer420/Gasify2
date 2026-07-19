@@ -57,6 +57,25 @@
 }
 .linkQuiet:hover { color: var(--text); }
 
+/* Scroll choreography: hero exits into the station scene; sections rise in.
+   Country cards cascade once their section reports in-view (data-in). */
+.heroFx { display: flex; flex-direction: column; align-items: center; will-change: transform, opacity; }
+
+.countryGrid .countryCard {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+[data-in='1'] .countryGrid .countryCard { opacity: 1; transform: translateY(0); }
+[data-in='1'] .countryGrid .countryCard:nth-child(6n+2) { transition-delay: 0.05s; }
+[data-in='1'] .countryGrid .countryCard:nth-child(6n+3) { transition-delay: 0.1s; }
+[data-in='1'] .countryGrid .countryCard:nth-child(6n+4) { transition-delay: 0.15s; }
+[data-in='1'] .countryGrid .countryCard:nth-child(6n+5) { transition-delay: 0.2s; }
+[data-in='1'] .countryGrid .countryCard:nth-child(6n) { transition-delay: 0.25s; }
+@media (prefers-reduced-motion: reduce) {
+  .countryGrid .countryCard { opacity: 1; transform: none; transition: none; }
+}
+
 /* The totem: Gasify's own artifact, lit with live data */
 .totem {
   margin: 72px auto 0;

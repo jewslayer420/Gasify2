@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import styles from './page.module.css';
@@ -46,6 +46,50 @@ const COUNTRY_NAMES = {
   AZ: 'Azerbaijan', DZ: 'Algeria',
 };
 
+// Scrub-driven section choreography: 'rise' sections fade/slide in as they
+// enter the viewport, 'exit' fades the hero out as the station scene takes
+// over. Listens with capture on document (the BODY is the scroll container).
+function ScrollFx({ mode = 'rise', className, children }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      el.style.opacity = 1;
+      el.dataset.in = '1';
+      return;
+    }
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const r = el.getBoundingClientRect();
+        const vh = window.innerHeight;
+        if (mode === 'rise') {
+          const p = Math.max(0, Math.min(1, (vh - r.top) / (vh * 0.55)));
+          el.style.opacity = p;
+          el.style.transform = `translateY(${(1 - p) * 48}px) scale(${0.965 + p * 0.035})`;
+          if ((el.dataset.in === '1') !== p > 0.3) el.dataset.in = p > 0.3 ? '1' : '0';
+        } else {
+          const p = Math.max(0, Math.min(1, -r.top / (r.height * 0.9)));
+          el.style.opacity = 1 - p * 0.92;
+          el.style.transform = `translateY(${p * -44}px) scale(${1 - p * 0.045})`;
+        }
+      });
+    };
+    onScroll();
+    document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => {
+      document.removeEventListener('scroll', onScroll, { capture: true });
+      window.removeEventListener('resize', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [mode]);
+  return <div ref={ref} className={className}>{children}</div>;
+}
+
 const TOTEM_FUELS = [
   { key: 'diesel', tab: 'Diesel', label: 'Diesel' },
   { key: 'sp95', tab: '95', label: 'Petrol 95' },
@@ -88,6 +132,7 @@ export default function LandingPage() {
   return (
     <main className={styles.landing}>
       <section className={styles.hero}>
+        <ScrollFx mode="exit" className={styles.heroFx}>
         <div className={styles.heroContent}>
           <h1 className={styles.headline}>Every station.<br />One map.</h1>
           <p className={styles.sub}>
@@ -134,18 +179,22 @@ export default function LandingPage() {
             </figcaption>
           </figure>
         )}
+        </ScrollFx>
       </section>
 
       <ScrollStation />
 
       <section className={styles.shot}>
-        <h2 className={styles.countriesTitle}>See every price on one map</h2>
-        <div className={styles.shotFrame}>
-          <MapPreview />
-        </div>
+        <ScrollFx mode="rise">
+          <h2 className={styles.countriesTitle}>One station is a lucky find.<br />{totalStations ? `${Math.round(totalStations / 1000)},000+` : 'Every'} stations is a map.</h2>
+          <div className={styles.shotFrame}>
+            <MapPreview />
+          </div>
+        </ScrollFx>
       </section>
 
       <section className={styles.countries}>
+        <ScrollFx mode="rise">
         <h2 className={styles.countriesTitle}>Where Gasify works</h2>
         <div className={styles.countryGrid}>
           {Object.entries(FLAGS).map(([code, flag]) => {
@@ -161,6 +210,7 @@ export default function LandingPage() {
             );
           })}
         </div>
+        </ScrollFx>
       </section>
 
       <footer className={styles.footer}>
