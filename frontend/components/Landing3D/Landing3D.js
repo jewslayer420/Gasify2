@@ -93,7 +93,7 @@ function Scene({ progressRef }) {
     const K = [
       [0.0, [-18, 5, 34, -4, 2, 0]],   // hero: wide side view, station right
       [0.22, [-8, 4, 26, 0, 2, 3]],    // approach with the car
-      [0.42, [10, 5, 24, 8, 3, 1]],    // at the pumps, totem in frame
+      [0.42, [4, 4.5, 26, 10, 3.5, 0]], // at the pumps, totem in frame
       [0.6, [0, 26, 30, 0, 0, -10]],   // pull up: constellation reveals
       [0.8, [0, 60, 40, 0, 0, -40]],   // high map flyover
       [1.0, [0, 80, 10, 0, 0, -60]],   // top-down over the dot field
@@ -141,7 +141,7 @@ function Scene({ progressRef }) {
           <group key={x} position={[x, 0, 0]}>
             <mesh position={[0, 1.1, 0]}>
               <boxGeometry args={[1.4, 2.2, 1]} />
-              <meshStandardMaterial color="#1A2030" />
+              <meshStandardMaterial color="#2A3450" roughness={0.6} />
             </mesh>
             <mesh position={[0, 1.6, 0.51]}>
               <planeGeometry args={[1, 0.6]} />
@@ -149,7 +149,12 @@ function Scene({ progressRef }) {
             </mesh>
           </group>
         ))}
-        <pointLight position={[0, 5.2, 0]} intensity={40} color="#CFF5E6" distance={22} />
+        <pointLight position={[0, 5.2, 0]} intensity={90} color="#CFF5E6" distance={30} decay={1.8} />
+        {/* concrete apron catches the canopy light */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 1]}>
+          <planeGeometry args={[20, 14]} />
+          <meshStandardMaterial color="#131826" roughness={0.9} />
+        </mesh>
         {/* Totem with live LED texture */}
         <group position={[10.5, 0, 3]}>
           <mesh position={[0, 2.6, 0]}>
