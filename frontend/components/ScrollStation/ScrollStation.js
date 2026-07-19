@@ -67,8 +67,8 @@ export default function ScrollStation() {
       const carX = -360 + drive * 742; // front bumper ends up beside pump 1
       if (R('car')) R('car').setAttribute('transform', `translate(${carX} 0)`);
       const deg = (carX + 360) * 3.3;
-      if (R('wheelA')) R('wheelA').setAttribute('transform', `rotate(${deg} 74 640)`);
-      if (R('wheelB')) R('wheelB').setAttribute('transform', `rotate(${deg} 210 640)`);
+      if (R('wheelA')) R('wheelA').setAttribute('transform', `rotate(${deg} 62 640)`);
+      if (R('wheelB')) R('wheelB').setAttribute('transform', `rotate(${deg} 218 640)`);
       if (R('beam')) R('beam').style.opacity = drive > 0.02 && drive < 0.97 ? 0.65 : 0;
       if (R('brake')) R('brake').style.opacity = seg(p, 0.34, 0.39) * (1 - seg(p, 0.44, 0.5));
       if (R('shadow')) R('shadow').style.opacity = 0.5;
@@ -268,34 +268,43 @@ export default function ScrollStation() {
             <text x="1224" y="366" textAnchor="middle" fontFamily="var(--font-geist-sans), sans-serif" fontSize="9.5" fontWeight="700" letterSpacing="3" fill="#3C455A">EUR / LITRE</text>
           </g>
 
-          {/* Car — low hatchback with wheel-arch cutouts, scroll-driven */}
+          {/* Car — BMW M6-coupe proportions traced from a Commons reference:
+              long bonnet, short overhangs, roof peaking over the B-pillar into
+              a fast C-pillar with the Hofmeister kink, raised deck with lip,
+              high beltline crease nose-to-tail. Scroll-driven. */}
           <g ref={refs.car} transform="translate(-360 0)">
-            <ellipse ref={refs.shadow} cx="142" cy="658" rx="130" ry="9" fill="#000" style={{ opacity: 0.5 }} />
-            <polygon ref={refs.beam} points="268,606 440,590 440,648 268,638" fill="url(#st-beam)" style={{ opacity: 0 }} />
-            {/* body: sleek fastback — long bonnet right, tapering roofline, arches cut over the wheels */}
-            <path d="M24 650 Q9 650 9 634 Q9 620 16 613 Q24 606 44 603 L64 600 Q78 570 112 563 L158 561 Q172 561 182 568 Q196 578 206 594 L226 598 Q252 601 262 608 Q271 614 271 626 L271 638 Q271 650 256 650 L234 650 A24 24 0 0 0 186 650 L98 650 A24 24 0 0 0 50 650 Z"
+            <ellipse ref={refs.shadow} cx="145" cy="658" rx="138" ry="9" fill="#000" style={{ opacity: 0.5 }} />
+            <polygon ref={refs.beam} points="284,604 470,588 470,646 284,636" fill="url(#st-beam)" style={{ opacity: 0 }} />
+            <path d="M22 650 Q8 650 8 636 Q8 626 12 620 L14 610 Q15 602 26 598 Q40 594 56 594 L78 592 Q92 570 118 563 L150 560 Q165 561 178 566 Q192 574 204 590 L262 598 Q274 600 278 606 Q283 611 283 622 L283 638 Q283 650 268 650 L246 650 A28 28 0 0 0 190 650 L90 650 A28 28 0 0 0 34 650 Z"
               fill="url(#st-body)" stroke="#2C3550" strokeWidth="2" strokeLinejoin="round" />
-            {/* greenhouse */}
-            <path d="M78 598 Q88 574 112 568 L138 566 L138 598 Z" fill="url(#st-glass)" opacity="0.95" />
-            <path d="M146 566 L158 565 Q176 566 188 582 L196 596 L146 598 Z" fill="url(#st-glass)" opacity="0.95" />
-            {/* roofline highlight + character line + mirror */}
-            <path d="M64 600 Q78 570 112 563 L158 561" fill="none" stroke="#46536F" strokeWidth="1.6" opacity="0.75" />
-            <path d="M20 618 L258 613" fill="none" stroke="#2E3A56" strokeWidth="1.5" opacity="0.8" />
-            <path d="M194 578 l11 -4 4 5 -11 4 z" fill="#26304A" />
-            {/* lights */}
-            <rect x="8" y="612" width="12" height="8" rx="3" fill="#E25A5A" opacity="0.95" />
-            <ellipse ref={refs.brake} cx="12" cy="616" rx="26" ry="14" fill="url(#st-brake)" style={{ opacity: 0 }} />
-            <path d="M256 605 q14 3 15 13 l0 3 -17 -2 z" fill="#F2ECCF" opacity="0.9" />
-            {[[74], [210]].map(([cx], i) => (
+            {/* greenhouse — narrow, Hofmeister kink on the rear pane's lower-rear corner */}
+            <path d="M122 588 L122 566 Q102 568 92 577 L85 588 Z" fill="url(#st-glass)" opacity="0.95" />
+            <path d="M130 566 L148 564 Q168 566 182 584 L186 588 L130 588 Z" fill="url(#st-glass)" opacity="0.95" />
+            {/* trunk lip, roof highlight, beltline crease, sill line, mirror, gill */}
+            <path d="M14 608 Q22 600 34 597" fill="none" stroke="#46536F" strokeWidth="1.6" opacity="0.8" />
+            <path d="M78 592 Q92 570 118 563 L150 560" fill="none" stroke="#46536F" strokeWidth="1.6" opacity="0.75" />
+            <path d="M26 604 L272 601" fill="none" stroke="#2E3A56" strokeWidth="1.6" opacity="0.85" />
+            <path d="M96 634 Q150 628 188 631" fill="none" stroke="#252E45" strokeWidth="1.4" opacity="0.8" />
+            <path d="M186 572 l12 -5 5 5 -12 5 z" fill="#26304A" />
+            <rect x="180" y="608" width="11" height="4" rx="2" fill="#10151F" />
+            {/* door handles on the crease */}
+            <rect x="112" y="598" width="14" height="2.6" rx="1.3" fill="#39445F" />
+            <rect x="160" y="597" width="14" height="2.6" rx="1.3" fill="#39445F" />
+            {/* lights — wrap-around tail, slim angled head */}
+            <path d="M8 614 L28 610 L28 622 L8 625 Z" fill="#E25A5A" opacity="0.95" />
+            <ellipse ref={refs.brake} cx="14" cy="618" rx="26" ry="14" fill="url(#st-brake)" style={{ opacity: 0 }} />
+            <path d="M260 599 L282 607 L282 616 L256 607 Z" fill="#F2ECCF" opacity="0.9" />
+            {[[62], [218]].map(([cx], i) => (
               <g key={cx} ref={i === 0 ? refs.wheelA : refs.wheelB}>
                 <circle cx={cx} cy="640" r="17" fill="#0B0E15" stroke="#39445F" strokeWidth="3.5" />
                 <circle cx={cx} cy="640" r="8.5" fill="none" stroke="#4A577A" strokeWidth="2" />
                 <line x1={cx} y1="633" x2={cx} y2="647" stroke="#4A577A" strokeWidth="2" />
+                <line x1={cx - 6} y1="640" x2={cx + 6} y2="640" stroke="#4A577A" strokeWidth="2" />
                 <circle cx={cx} cy="640" r="2.4" fill="#4A577A" />
               </g>
             ))}
             {/* Tank gauge floating above the roof */}
-            <g transform="translate(140 522)">
+            <g transform="translate(148 522)">
               <path d="M-20 8 a20 20 0 1 1 40 0" fill="none" stroke="#232838" strokeWidth="5" strokeLinecap="round" />
               <path ref={refs.gauge} d="M20 8 a20 20 0 1 0 -40 0" fill="none" stroke="#37D3A0" strokeWidth="5" strokeLinecap="round"
                 strokeDasharray="126" style={{ strokeDashoffset: 126, filter: 'drop-shadow(0 0 4px rgba(55,211,160,0.7))' }} />

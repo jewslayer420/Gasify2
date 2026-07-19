@@ -57,9 +57,56 @@
 }
 .linkQuiet:hover { color: var(--text); }
 
+/* Continuous night world: one fixed backdrop behind EVERY section (hero,
+   station stage, map, countries, footer) so the whole page reads as a single
+   scene. Star specks twinkle; faint green/amber glows = distant stations. */
+.nightWorld {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(#04060A 0%, #070A12 55%, #0A0E16 100%);
+}
+.nightWorld::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(220px 140px at 18% 78%, rgba(55, 211, 160, 0.07), transparent 70%),
+    radial-gradient(180px 120px at 82% 30%, rgba(232, 162, 61, 0.05), transparent 70%),
+    radial-gradient(260px 160px at 70% 85%, rgba(55, 211, 160, 0.05), transparent 70%);
+}
+.nightWorld::after {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #39445C;
+  box-shadow:
+    12vw 8vh 0 #39445C, 28vw 18vh 0 0.5px #2C3446, 44vw 6vh 0 #333C50,
+    61vw 14vh 0 0.5px #39445C, 76vw 9vh 0 #2C3446, 89vw 20vh 0 0.5px #333C50,
+    8vw 32vh 0 #2C3446, 33vw 41vh 0 0.5px #39445C, 55vw 36vh 0 #333C50,
+    71vw 47vh 0 0.5px #2C3446, 92vw 44vh 0 #39445C, 17vw 58vh 0 0.5px #333C50,
+    48vw 63vh 0 #2C3446, 83vw 66vh 0 0.5px #39445C, 27vw 74vh 0 #333C50,
+    64vw 79vh 0 0.5px #2C3446, 95vw 82vh 0 #39445C, 40vw 88vh 0 0.5px #333C50;
+  animation: nightTwinkle 5.5s ease-in-out infinite;
+}
+@keyframes nightTwinkle {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.4; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nightWorld::after { animation: none; }
+}
+
 /* Scroll choreography: hero exits into the station scene; sections rise in.
    Country cards cascade once their section reports in-view (data-in). */
 .heroFx { display: flex; flex-direction: column; align-items: center; will-change: transform, opacity; }
+
+/* Everything scrolls above the fixed night world */
+.landing { position: relative; z-index: 1; background: transparent; }
+.landing > *:not(.nightWorld) { position: relative; }
 
 .countryGrid .countryCard {
   opacity: 0;

@@ -131,6 +131,7 @@ export default function LandingPage() {
 
   return (
     <main className={styles.landing}>
+      <div className={styles.nightWorld} aria-hidden="true" />
       <section className={styles.hero}>
         <ScrollFx mode="exit" className={styles.heroFx}>
         <div className={styles.heroContent}>
@@ -214,6 +215,7 @@ export default function LandingPage() {
       </section>
 
       <footer className={styles.footer}>
+        <ScrollFx mode="rise">
         <div className={styles.footerInner}>
           <span className={styles.footerBrand}>Gasify<span className={styles.footerDot}>.</span></span>
           <div className={styles.footerLinks}>
@@ -228,6 +230,7 @@ export default function LandingPage() {
             <br />Map data © OpenStreetMap contributors · © MapTiler
           </span>
         </div>
+        </ScrollFx>
       </footer>
     </main>
   );
