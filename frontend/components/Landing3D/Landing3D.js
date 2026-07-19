@@ -59,7 +59,7 @@ function Scene({ progressRef }) {
     // Car: far left → parked at the station (x≈2) during the story band
     const drive = ease(seg(p, 0.14, 0.34));
     if (carRef.current) {
-      carRef.current.position.set(lerp(-38, 2, drive), 0, 4);
+      carRef.current.position.set(lerp(-40, -1, drive), 0, 7);
       carRef.current.rotation.y = Math.PI / 2;
     }
 
@@ -91,9 +91,9 @@ function Scene({ progressRef }) {
     const p = progressRef.current;
     // Camera keyframes: [x, y, z, tx, ty, tz]
     const K = [
-      [0.0, [-14, 3, 26, -6, 2, 0]],   // hero: side view, station far right
-      [0.22, [-6, 2.5, 18, 0, 2, 2]],  // approach with the car
-      [0.42, [6, 3, 14, 4, 3, 0]],     // at the pumps, totem in frame
+      [0.0, [-18, 5, 34, -4, 2, 0]],   // hero: wide side view, station right
+      [0.22, [-8, 4, 26, 0, 2, 3]],    // approach with the car
+      [0.42, [10, 5, 24, 8, 3, 1]],    // at the pumps, totem in frame
       [0.6, [0, 26, 30, 0, 0, -10]],   // pull up: constellation reveals
       [0.8, [0, 60, 40, 0, 0, -40]],   // high map flyover
       [1.0, [0, 80, 10, 0, 0, -60]],   // top-down over the dot field
@@ -109,9 +109,10 @@ function Scene({ progressRef }) {
 
   return (
     <>
-      <fog attach="fog" args={['#04060A', 30, 160]} />
-      <ambientLight intensity={0.25} />
-      <directionalLight position={[10, 20, 10]} intensity={0.35} color="#8FA3C8" />
+      <fog attach="fog" args={['#04060A', 40, 180]} />
+      <ambientLight intensity={0.45} />
+      <hemisphereLight args={['#22304A', '#0A0D13', 0.5]} />
+      <directionalLight position={[10, 20, 10]} intensity={0.5} color="#8FA3C8" />
       <Stars radius={220} depth={40} count={1600} factor={3} fade speed={0.4} />
 
       {/* Ground */}
@@ -123,12 +124,12 @@ function Scene({ progressRef }) {
       {/* Station: canopy, posts, pumps, totem */}
       <group position={[8, 0, 0]}>
         <mesh position={[0, 6.2, 0]}>
-          <boxGeometry args={[16, 0.5, 10]} />
+          <boxGeometry args={[13, 0.5, 8]} />
           <meshStandardMaterial color="#10141F" />
         </mesh>
-        <mesh position={[0, 5.9, 0]}>
-          <boxGeometry args={[16.2, 0.12, 10.2]} />
-          <meshStandardMaterial color="#37D3A0" emissive="#37D3A0" emissiveIntensity={2} />
+        <mesh position={[0, 5.92, 0]}>
+          <boxGeometry args={[13.2, 0.1, 8.2]} />
+          <meshStandardMaterial color="#0F2A21" emissive="#37D3A0" emissiveIntensity={0.55} />
         </mesh>
         {[-6.5, 6.5].map(x => (
           <mesh key={x} position={[x, 3, 0]}>
