@@ -8,6 +8,7 @@ const MapPreview = dynamic(() => import('../components/MapPreview/MapPreview'), 
   ssr: false,
   loading: () => <div className={styles.shotLoading} />,
 });
+const ScrollStation = dynamic(() => import('../components/ScrollStation/ScrollStation'), { ssr: false });
 
 const FLAGS = {
   SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', DE: '🇩🇪', CZ: '🇨🇿', SK: '🇸🇰',
@@ -134,6 +135,8 @@ export default function LandingPage() {
           </figure>
         )}
       </section>
+
+      <ScrollStation />
 
       <section className={styles.shot}>
         <h2 className={styles.countriesTitle}>See every price on one map</h2>
