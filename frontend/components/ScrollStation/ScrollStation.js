@@ -13,6 +13,14 @@ const DIESEL_HIGH = 2.09, DIESEL_LOW = 1.52;
 const SP95_HIGH = 1.86, SP95_LOW = 1.61;
 const TANK_L = 50;
 
+// The zoom-out finale scatters "other stations" around the shrinking scene.
+const DOTS = Array.from({ length: 46 }, (_, i) => ({
+  x: 60 + (i * 167) % 1320,
+  y: 110 + (i * 211) % 440,
+  c: ['#37D3A0', '#37D3A0', '#E8A23D', '#37D3A0', '#E25A5A'][i % 5],
+  t: ((i * 37) % 89) / 100,
+}));
+
 const clamp01 = v => Math.max(0, Math.min(1, v));
 const ease = t => t * t * (3 - 2 * t);
 const seg = (p, a, b) => clamp01((p - a) / (b - a));
@@ -37,9 +45,9 @@ export default function ScrollStation() {
     beam: useRef(null), brake: useRef(null), shadow: useRef(null),
     glow: useRef(null), cones: useRef(null), trim: useRef(null), brand: useRef(null),
     dieselLed: useRef(null), sp95Led: useRef(null), pumpLedA: useRef(null), pumpLedB: useRef(null),
-    gauge: useRef(null), saved: useRef(null),
+    gauge: useRef(null), saved: useRef(null), zoom: useRef(null), dots: useRef(null),
   };
-  const copyRefs = [useRef(null), useRef(null), useRef(null)];
+  const copyRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
 
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -48,25 +56,39 @@ export default function ScrollStation() {
 
     function render(p) {
       // ── Power-up: canopy lights, cones, brand, sign flicker ──
-      const power = flicker(seg(p, 0.03, 0.3));
+      const power = flicker(seg(p, 0.03, 0.2));
       if (R('glow')) R('glow').style.opacity = power * 0.9;
       if (R('cones')) R('cones').style.opacity = power * 0.55;
       if (R('trim')) R('trim').style.opacity = 0.15 + power * 0.85;
       if (R('brand')) R('brand').style.opacity = 0.25 + power * 0.75;
 
       // ── Car drives in, brakes at the pumps ──
-      const drive = ease(seg(p, 0.16, 0.52));
-      const carX = -340 + drive * 700; // front bumper ends up beside pump 1
+      const drive = ease(seg(p, 0.1, 0.4));
+      const carX = -360 + drive * 742; // front bumper ends up beside pump 1
       if (R('car')) R('car').setAttribute('transform', `translate(${carX} 0)`);
-      const deg = (carX + 340) * 2.6;
-      if (R('wheelA')) R('wheelA').setAttribute('transform', `rotate(${deg} 60 636)`);
-      if (R('wheelB')) R('wheelB').setAttribute('transform', `rotate(${deg} 196 636)`);
+      const deg = (carX + 360) * 3.3;
+      if (R('wheelA')) R('wheelA').setAttribute('transform', `rotate(${deg} 74 640)`);
+      if (R('wheelB')) R('wheelB').setAttribute('transform', `rotate(${deg} 210 640)`);
       if (R('beam')) R('beam').style.opacity = drive > 0.02 && drive < 0.97 ? 0.65 : 0;
-      if (R('brake')) R('brake').style.opacity = seg(p, 0.46, 0.5) * (1 - seg(p, 0.56, 0.62));
+      if (R('brake')) R('brake').style.opacity = seg(p, 0.34, 0.39) * (1 - seg(p, 0.44, 0.5));
       if (R('shadow')) R('shadow').style.opacity = 0.5;
 
+      // ── Camera pull-back finale: the station becomes one dot among many ──
+      const zoomP = ease(seg(p, 0.72, 0.95));
+      if (R('zoom')) {
+        const s = 1 - 0.4 * zoomP;
+        R('zoom').setAttribute('transform', `translate(${740 * (1 - s)} ${690 * (1 - s)}) scale(${s})`);
+        R('zoom').style.opacity = 1 - zoomP * 0.55;
+      }
+      if (R('dots')) {
+        const kids = R('dots').children;
+        for (let i = 0; i < kids.length; i++) {
+          kids[i].style.opacity = clamp01((zoomP - DOTS[i].t * 0.75) * 5) * 0.9;
+        }
+      }
+
       // ── LED rows roll down as the car arrives ──
-      const roll = ease(seg(p, 0.4, 0.66));
+      const roll = ease(seg(p, 0.3, 0.52));
       const diesel = DIESEL_HIGH + (DIESEL_LOW - DIESEL_HIGH) * roll;
       const sp95 = SP95_HIGH + (SP95_LOW - SP95_HIGH) * roll;
       const set = (ref, val) => {
@@ -83,12 +105,12 @@ export default function ScrollStation() {
       set(R('pumpLedB'), sp95);
 
       // ── Fill-up: gauge + savings ──
-      const fill = ease(seg(p, 0.64, 0.9));
+      const fill = ease(seg(p, 0.48, 0.66));
       if (R('gauge')) R('gauge').style.strokeDashoffset = 126 * (1 - fill);
       if (R('saved')) R('saved').textContent = `€${((DIESEL_HIGH - DIESEL_LOW) * TANK_L * fill).toFixed(2)}`;
 
       // ── Copy beats ──
-      const windows = [[0.02, 0.09, 0.26, 0.36], [0.32, 0.42, 0.56, 0.66], [0.62, 0.74, 1, 1.01]];
+      const windows = [[0.02, 0.07, 0.2, 0.27], [0.24, 0.31, 0.44, 0.51], [0.47, 0.55, 0.66, 0.73], [0.76, 0.84, 1, 1.01]];
       copyRefs.forEach((ref, i) => {
         if (!ref.current) return;
         const [a, b, c, d] = windows[i];
@@ -177,6 +199,8 @@ export default function ScrollStation() {
             <rect x="1154" y="456" width="6" height="6" /><rect x="1274" y="440" width="6" height="6" />
           </g>
 
+          {/* Everything below the horizon zooms out in the finale */}
+          <g ref={refs.zoom}>
           {/* Ground, forecourt slab, road */}
           <rect y="540" width="1440" height="90" fill="#0A0D14" />
           <rect x="300" y="540" width="880" height="90" fill="#0E121C" />
@@ -239,32 +263,44 @@ export default function ScrollStation() {
             <text x="1224" y="366" textAnchor="middle" fontFamily="var(--font-geist-sans), sans-serif" fontSize="9.5" fontWeight="700" letterSpacing="3" fill="#3C455A">EUR / LITRE</text>
           </g>
 
-          {/* Car — hatchback silhouette, scroll-driven */}
-          <g ref={refs.car} transform="translate(-340 0)">
-            <ellipse ref={refs.shadow} cx="128" cy="650" rx="122" ry="10" fill="#000" style={{ opacity: 0.5 }} />
-            <polygon ref={refs.beam} points="244,602 408,584 408,640 244,632" fill="url(#st-beam)" style={{ opacity: 0 }} />
-            <path d="M14 640 q-8 -2 -8 -12 q0 -22 20 -26 l20 -4 q10 -22 32 -34 q14 -8 34 -8 l52 0 q20 0 34 10 q16 11 24 26 l26 6 q22 5 22 26 q0 14 -10 16 z" fill="#151A26" stroke="#262E42" strokeWidth="2.5" />
-            <path d="M74 594 q8 -22 28 -30 l10 -4 0 34 z" fill="url(#st-glass)" opacity="0.9" />
-            <path d="M120 560 l40 0 q16 0 28 10 q10 8 14 22 l-82 2 z" fill="url(#st-glass)" opacity="0.9" />
-            <rect x="8" y="612" width="12" height="7" rx="3.5" fill="#E25A5A" opacity="0.95" />
-            <ellipse ref={refs.brake} cx="14" cy="615" rx="26" ry="14" fill="url(#st-brake)" style={{ opacity: 0 }} />
-            <rect x="238" y="606" width="12" height="7" rx="3.5" fill="#F2ECCF" opacity="0.95" />
-            <g ref={refs.wheelA}>
-              <circle cx="60" cy="636" r="17" fill="#0A0D13" stroke="#2E374C" strokeWidth="4" />
-              <line x1="60" y1="624" x2="60" y2="648" stroke="#2E374C" strokeWidth="2.5" />
-              <line x1="48" y1="636" x2="72" y2="636" stroke="#2E374C" strokeWidth="2.5" />
-            </g>
-            <g ref={refs.wheelB}>
-              <circle cx="196" cy="636" r="17" fill="#0A0D13" stroke="#2E374C" strokeWidth="4" />
-              <line x1="196" y1="624" x2="196" y2="648" stroke="#2E374C" strokeWidth="2.5" />
-              <line x1="184" y1="636" x2="208" y2="636" stroke="#2E374C" strokeWidth="2.5" />
-            </g>
+          {/* Car — low hatchback with wheel-arch cutouts, scroll-driven */}
+          <g ref={refs.car} transform="translate(-360 0)">
+            <ellipse ref={refs.shadow} cx="142" cy="658" rx="130" ry="9" fill="#000" style={{ opacity: 0.5 }} />
+            <polygon ref={refs.beam} points="268,606 440,590 440,648 268,638" fill="url(#st-beam)" style={{ opacity: 0 }} />
+            {/* body: one path, arches cut over the wheels */}
+            <path d="M16 650 Q6 650 6 636 L6 618 Q6 602 24 598 L48 592 Q78 560 116 556 L172 556 Q206 558 228 584 L252 590 Q272 594 272 612 L272 636 Q272 650 260 650 L234 650 A24 24 0 0 0 186 650 L98 650 A24 24 0 0 0 50 650 Z"
+              fill="#1B2130" stroke="#2C3550" strokeWidth="2.5" strokeLinejoin="round" />
+            {/* glass */}
+            <path d="M102 590 Q108 566 130 561 L146 560 L146 590 Z" fill="url(#st-glass)" opacity="0.95" />
+            <path d="M154 560 L170 560 Q198 562 214 586 L154 590 Z" fill="url(#st-glass)" opacity="0.95" />
+            {/* trim + lights */}
+            <rect x="20" y="622" width="238" height="3" rx="1.5" fill="#2C3550" />
+            <rect x="150" y="596" width="16" height="3" rx="1.5" fill="#39445F" />
+            <rect x="6" y="608" width="13" height="8" rx="4" fill="#E25A5A" opacity="0.95" />
+            <ellipse ref={refs.brake} cx="10" cy="612" rx="26" ry="14" fill="url(#st-brake)" style={{ opacity: 0 }} />
+            <path d="M258 600 q14 2 14 12 l0 4 -16 0 z" fill="#F2ECCF" opacity="0.9" />
+            {[[74], [210]].map(([cx], i) => (
+              <g key={cx} ref={i === 0 ? refs.wheelA : refs.wheelB}>
+                <circle cx={cx} cy="640" r="17" fill="#0B0E15" stroke="#39445F" strokeWidth="3.5" />
+                <circle cx={cx} cy="640" r="8.5" fill="none" stroke="#4A577A" strokeWidth="2" />
+                <line x1={cx} y1="633" x2={cx} y2="647" stroke="#4A577A" strokeWidth="2" />
+                <circle cx={cx} cy="640" r="2.4" fill="#4A577A" />
+              </g>
+            ))}
             {/* Tank gauge floating above the roof */}
-            <g transform="translate(128 528)">
+            <g transform="translate(140 522)">
               <path d="M-20 8 a20 20 0 1 1 40 0" fill="none" stroke="#232838" strokeWidth="5" strokeLinecap="round" />
               <path ref={refs.gauge} d="M20 8 a20 20 0 1 0 -40 0" fill="none" stroke="#37D3A0" strokeWidth="5" strokeLinecap="round"
                 strokeDasharray="126" style={{ strokeDashoffset: 126, filter: 'drop-shadow(0 0 4px rgba(55,211,160,0.7))' }} />
             </g>
+          </g>
+          </g>
+
+          {/* The finale constellation: every station, one map */}
+          <g ref={refs.dots}>
+            {DOTS.map((d, i) => (
+              <circle key={i} cx={d.x} cy={d.y} r="4" fill={d.c} style={{ opacity: 0, filter: `drop-shadow(0 0 5px ${d.c})` }} />
+            ))}
           </g>
         </svg>
 
@@ -279,7 +315,11 @@ export default function ScrollStation() {
         <div ref={copyRefs[2]} className={styles.copy} style={{ opacity: 0 }}>
           <p className={styles.kicker}>On a 50-litre tank, that&apos;s</p>
           <h2 className={styles.line}><span ref={refs.saved} className={styles.saved}>€0.00</span> back in your pocket.</h2>
-          <p className={styles.sub}>Keep scrolling — every station is on the map.</p>
+        </div>
+        <div ref={copyRefs[3]} className={styles.copy} style={{ opacity: 0 }}>
+          <p className={styles.kicker}>And this was one station</p>
+          <h2 className={styles.line}>There are 427,000<br />more on the map.</h2>
+          <p className={styles.sub}>Keep scrolling.</p>
         </div>
       </div>
     </section>

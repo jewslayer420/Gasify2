@@ -2,7 +2,7 @@
    scroll progress drives the SVG scene (see ScrollStation.js). */
 
 .stage {
-  height: 320vh;
+  height: 520vh; /* long runway = slow, deliberate scrub */
   position: relative;
   background: #05070B;
 }
@@ -76,7 +76,7 @@
 }
 
 @media (max-width: 640px) {
-  .stage { height: 260vh; }
+  .stage { height: 420vh; }
   .copy {
     left: 20px;
     right: 20px;
