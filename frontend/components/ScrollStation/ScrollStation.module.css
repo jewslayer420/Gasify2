@@ -4,8 +4,12 @@
 .stage {
   height: 520vh; /* long runway = slow, deliberate scrub */
   position: relative;
-  background: #05070B;
+  background: transparent; /* the Landing3D canvas is the scenery now */
+  z-index: 1;
 }
+/* 3D era: the SVG scene retired in favour of the full-page canvas —
+   this component now only carries the scroll-scrubbed copy beats. */
+.scene { display: none; }
 
 .sticky {
   position: sticky;
@@ -15,14 +19,11 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  /* Continues the SVG's sky above the letterboxed scene */
-  background: #04060A;
+  background: transparent;
 }
 
 .scene {
-  width: min(1200px, 100%);
-  height: 100%;
-  display: block;
+  display: none; /* retired: the Landing3D canvas is the scenery now */
 }
 
 /* Copy beats — pinned upper-left over the night sky */

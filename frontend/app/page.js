@@ -9,6 +9,7 @@ const MapPreview = dynamic(() => import('../components/MapPreview/MapPreview'), 
   loading: () => <div className={styles.shotLoading} />,
 });
 const ScrollStation = dynamic(() => import('../components/ScrollStation/ScrollStation'), { ssr: false });
+const Landing3D = dynamic(() => import('../components/Landing3D/Landing3D'), { ssr: false });
 
 const FLAGS = {
   SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', DE: '🇩🇪', CZ: '🇨🇿', SK: '🇸🇰',
@@ -131,6 +132,7 @@ export default function LandingPage() {
 
   return (
     <main className={styles.landing}>
+      <Landing3D />
       <section className={styles.hero}>
         <ScrollFx mode="exit" className={styles.heroFx}>
         <div className={styles.heroContent}>
