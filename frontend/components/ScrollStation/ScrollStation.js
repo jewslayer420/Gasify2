@@ -105,12 +105,13 @@ export default function ScrollStation() {
       set(R('pumpLedB'), sp95);
 
       // ── Fill-up: gauge + savings ──
-      const fill = ease(seg(p, 0.48, 0.66));
+      const fill = ease(seg(p, 0.31, 0.41));
       if (R('gauge')) R('gauge').style.strokeDashoffset = 126 * (1 - fill);
       if (R('saved')) R('saved').textContent = `€${((DIESEL_HIGH - DIESEL_LOW) * TANK_L * fill).toFixed(2)}`;
 
-      // ── Copy beats ──
-      const windows = [[0.02, 0.07, 0.2, 0.27], [0.24, 0.31, 0.44, 0.51], [0.47, 0.55, 0.66, 0.73], [0.76, 0.84, 1, 1.01]];
+      // ── Copy beats — GLOBAL page-progress windows, synced with the
+      // Landing3D camera timeline (approach → pumps → fill → constellation) ──
+      const windows = [[0.1, 0.13, 0.19, 0.225], [0.21, 0.24, 0.3, 0.33], [0.31, 0.34, 0.4, 0.43], [0.44, 0.47, 0.54, 0.57]];
       copyRefs.forEach((ref, i) => {
         if (!ref.current) return;
         const [a, b, c, d] = windows[i];
@@ -126,10 +127,10 @@ export default function ScrollStation() {
       if (raf) return;
       raf = requestAnimationFrame(() => {
         raf = 0;
-        const el = wrapRef.current;
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        render(clamp01(-rect.top / Math.max(1, el.offsetHeight - window.innerHeight)));
+        // Global page progress — same timeline the Landing3D camera reads,
+        // so the words land exactly on their camera beats.
+        const b = document.body;
+        render(clamp01(b.scrollTop / Math.max(1, b.scrollHeight - window.innerHeight)));
       });
     }
     onScroll();
