@@ -105,13 +105,12 @@ export default function ScrollStation() {
       set(R('pumpLedB'), sp95);
 
       // ── Fill-up: gauge + savings ──
-      const fill = ease(seg(p, 0.31, 0.41));
+      const fill = ease(seg(p, 0.48, 0.66));
       if (R('gauge')) R('gauge').style.strokeDashoffset = 126 * (1 - fill);
       if (R('saved')) R('saved').textContent = `€${((DIESEL_HIGH - DIESEL_LOW) * TANK_L * fill).toFixed(2)}`;
 
-      // ── Copy beats — GLOBAL page-progress windows, synced with the
-      // Landing3D camera timeline (approach → pumps → fill → constellation) ──
-      const windows = [[0.1, 0.13, 0.19, 0.225], [0.21, 0.24, 0.3, 0.33], [0.31, 0.34, 0.4, 0.43], [0.44, 0.47, 0.54, 0.57]];
+      // ── Copy beats ──
+      const windows = [[0.02, 0.07, 0.2, 0.27], [0.24, 0.31, 0.44, 0.51], [0.47, 0.55, 0.66, 0.73], [0.76, 0.84, 1, 1.01]];
       copyRefs.forEach((ref, i) => {
         if (!ref.current) return;
         const [a, b, c, d] = windows[i];
@@ -127,10 +126,10 @@ export default function ScrollStation() {
       if (raf) return;
       raf = requestAnimationFrame(() => {
         raf = 0;
-        // Global page progress — same timeline the Landing3D camera reads,
-        // so the words land exactly on their camera beats.
-        const b = document.body;
-        render(clamp01(b.scrollTop / Math.max(1, b.scrollHeight - window.innerHeight)));
+        const el = wrapRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        render(clamp01(-rect.top / Math.max(1, el.offsetHeight - window.innerHeight)));
       });
     }
     onScroll();
@@ -165,6 +164,11 @@ export default function ScrollStation() {
             <linearGradient id="st-beam" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0" stopColor="#F2ECCF" stopOpacity="0.5" />
               <stop offset="1" stopColor="#F2ECCF" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="st-body" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#28324E" />
+              <stop offset="0.55" stopColor="#1B2233" />
+              <stop offset="1" stopColor="#121824" />
             </linearGradient>
             <linearGradient id="st-glass" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0" stopColor="#22304A" />
@@ -268,18 +272,20 @@ export default function ScrollStation() {
           <g ref={refs.car} transform="translate(-360 0)">
             <ellipse ref={refs.shadow} cx="142" cy="658" rx="130" ry="9" fill="#000" style={{ opacity: 0.5 }} />
             <polygon ref={refs.beam} points="268,606 440,590 440,648 268,638" fill="url(#st-beam)" style={{ opacity: 0 }} />
-            {/* body: one path, arches cut over the wheels */}
-            <path d="M16 650 Q6 650 6 636 L6 618 Q6 602 24 598 L48 592 Q78 560 116 556 L172 556 Q206 558 228 584 L252 590 Q272 594 272 612 L272 636 Q272 650 260 650 L234 650 A24 24 0 0 0 186 650 L98 650 A24 24 0 0 0 50 650 Z"
-              fill="#1B2130" stroke="#2C3550" strokeWidth="2.5" strokeLinejoin="round" />
-            {/* glass */}
-            <path d="M102 590 Q108 566 130 561 L146 560 L146 590 Z" fill="url(#st-glass)" opacity="0.95" />
-            <path d="M154 560 L170 560 Q198 562 214 586 L154 590 Z" fill="url(#st-glass)" opacity="0.95" />
-            {/* trim + lights */}
-            <rect x="20" y="622" width="238" height="3" rx="1.5" fill="#2C3550" />
-            <rect x="150" y="596" width="16" height="3" rx="1.5" fill="#39445F" />
-            <rect x="6" y="608" width="13" height="8" rx="4" fill="#E25A5A" opacity="0.95" />
-            <ellipse ref={refs.brake} cx="10" cy="612" rx="26" ry="14" fill="url(#st-brake)" style={{ opacity: 0 }} />
-            <path d="M258 600 q14 2 14 12 l0 4 -16 0 z" fill="#F2ECCF" opacity="0.9" />
+            {/* body: sleek fastback — long bonnet right, tapering roofline, arches cut over the wheels */}
+            <path d="M24 650 Q9 650 9 634 Q9 620 16 613 Q24 606 44 603 L64 600 Q78 570 112 563 L158 561 Q172 561 182 568 Q196 578 206 594 L226 598 Q252 601 262 608 Q271 614 271 626 L271 638 Q271 650 256 650 L234 650 A24 24 0 0 0 186 650 L98 650 A24 24 0 0 0 50 650 Z"
+              fill="url(#st-body)" stroke="#2C3550" strokeWidth="2" strokeLinejoin="round" />
+            {/* greenhouse */}
+            <path d="M78 598 Q88 574 112 568 L138 566 L138 598 Z" fill="url(#st-glass)" opacity="0.95" />
+            <path d="M146 566 L158 565 Q176 566 188 582 L196 596 L146 598 Z" fill="url(#st-glass)" opacity="0.95" />
+            {/* roofline highlight + character line + mirror */}
+            <path d="M64 600 Q78 570 112 563 L158 561" fill="none" stroke="#46536F" strokeWidth="1.6" opacity="0.75" />
+            <path d="M20 618 L258 613" fill="none" stroke="#2E3A56" strokeWidth="1.5" opacity="0.8" />
+            <path d="M194 578 l11 -4 4 5 -11 4 z" fill="#26304A" />
+            {/* lights */}
+            <rect x="8" y="612" width="12" height="8" rx="3" fill="#E25A5A" opacity="0.95" />
+            <ellipse ref={refs.brake} cx="12" cy="616" rx="26" ry="14" fill="url(#st-brake)" style={{ opacity: 0 }} />
+            <path d="M256 605 q14 3 15 13 l0 3 -17 -2 z" fill="#F2ECCF" opacity="0.9" />
             {[[74], [210]].map(([cx], i) => (
               <g key={cx} ref={i === 0 ? refs.wheelA : refs.wheelB}>
                 <circle cx={cx} cy="640" r="17" fill="#0B0E15" stroke="#39445F" strokeWidth="3.5" />
