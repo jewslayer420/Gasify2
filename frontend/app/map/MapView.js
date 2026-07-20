@@ -14,6 +14,7 @@ import { useUnits } from '../../lib/context/UnitsContext';
 import { getRoute, fmtDuration } from '../../lib/routing';
 import CurrencySelect from '../../components/CurrencySelect/CurrencySelect';
 import ThemeToggle from '../../components/ThemeToggle/ThemeToggle';
+import CarMarker from '../../components/CarMarker/CarMarker';
 import styles from './map.module.css';
 
 // MapTiler (commercial-licensed) when a key is configured; CARTO's free styles as a
@@ -68,6 +69,23 @@ function priceColor(p, light) {
   if (p <= 1.60) return t.green;
   if (p <= 1.90) return t.amber;
   return t.red;
+}
+
+// Straight-line distance in metres (equirectangular approx — fine at this
+// scale, same trick as the near-me sort below).
+function metersBetween(a, b) {
+  const dx = (b.lat - a.lat) * 111320;
+  const dy = (b.lng - a.lng) * 111320 * Math.cos(a.lat * Math.PI / 180);
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// Initial great-circle bearing from a to b, in degrees (0 = north, clockwise).
+function bearingBetween(a, b) {
+  const toRad = d => d * Math.PI / 180;
+  const φ1 = toRad(a.lat), φ2 = toRad(b.lat), Δλ = toRad(b.lng - a.lng);
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
 }
 
 // Bare digits for the LED totem (no symbol, no grouping — like a real sign).
@@ -213,6 +231,7 @@ export default function MapView() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [favorites, setFavorites] = useState(new Set());
   const [userPos, setUserPos] = useState(null);
+  const [carRotation, setCarRotation] = useState(0); // continuous degrees (can exceed 360) so the car turns the short way
   const [route, setRoute] = useState(null);       // { geometry, distanceKm, durationMin, steps }
   const [routingBusy, setRoutingBusy] = useState(false);
   const [routeError, setRouteError] = useState(null);
@@ -270,10 +289,37 @@ export default function MapView() {
     getCountryMeta(fuel).then(setCountryMeta).catch(() => {});
   }, [fuel]);
 
+  // Turns the car marker to face the direction of travel. Prefers the
+  // device's own GPS course (coords.heading) when it's actually available —
+  // in practice that's rare outside a moving phone — and otherwise derives a
+  // bearing from consecutive fixes, ignoring sub-3m jitter so the car doesn't
+  // spin in place while parked. Tracks a continuous (unwrapped) degree value
+  // so the CSS transition always turns the short way, never the long way
+  // round through 0/360.
+  const prevGeoPos = useRef(null);
+  function updateCarHeading(newHeadingDeg) {
+    setCarRotation(prev => {
+      const prevMod = ((prev % 360) + 360) % 360;
+      let delta = newHeadingDeg - prevMod;
+      if (delta > 180) delta -= 360;
+      if (delta < -180) delta += 360;
+      return prev + delta;
+    });
+  }
+
   useEffect(() => {
     if (!navigator.geolocation) return;
     const id = navigator.geolocation.watchPosition(
-      pos => setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      pos => {
+        const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserPos(next);
+        if (pos.coords.heading != null && !Number.isNaN(pos.coords.heading)) {
+          updateCarHeading(pos.coords.heading);
+        } else if (prevGeoPos.current && metersBetween(prevGeoPos.current, next) > 3) {
+          updateCarHeading(bearingBetween(prevGeoPos.current, next));
+        }
+        prevGeoPos.current = next;
+      },
       null,
       { enableHighAccuracy: true }
     );
@@ -711,11 +757,7 @@ export default function MapView() {
             )}
             {userPos && (
               <Marker longitude={userPos.lng} latitude={userPos.lat} anchor="center">
-                <div style={{
-                  width: 16, height: 16, borderRadius: '50%',
-                  background: '#3b82f6', border: '3px solid #fff',
-                  boxShadow: '0 0 0 3px rgba(59,130,246,0.3)',
-                }} />
+                <CarMarker rotation={carRotation} />
               </Marker>
             )}
 
