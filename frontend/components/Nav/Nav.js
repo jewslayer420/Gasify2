@@ -10,8 +10,9 @@ export default function Nav() {
   const router = useRouter();
   const { user, logout } = useUser() ?? {};
 
-  // The map is a clean full-screen experience — the home page is the hub.
-  if (path === '/map') return null;
+  // The map is a clean full-screen experience, and the landing page ships
+  // its own light masthead — both own their chrome.
+  if (path === '/map' || path === '/') return null;
 
   async function handleLogout() {
     await logout?.();

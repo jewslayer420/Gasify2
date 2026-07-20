@@ -1,30 +1,15 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { useUser } from '../lib/context/UserContext';
 import styles from './page.module.css';
 
 const MapPreview = dynamic(() => import('../components/MapPreview/MapPreview'), {
   ssr: false,
-  loading: () => <div className={styles.shotLoading} />,
+  loading: () => <div className={styles.plateLoading} />,
 });
-const ScrollStation = dynamic(() => import('../components/ScrollStation/ScrollStation'), { ssr: false });
-
-const FLAGS = {
-  SI: '🇸🇮', FR: '🇫🇷', AT: '🇦🇹', HU: '🇭🇺', DE: '🇩🇪', CZ: '🇨🇿', SK: '🇸🇰',
-  NL: '🇳🇱', BE: '🇧🇪', CH: '🇨🇭', PL: '🇵🇱', RO: '🇷🇴', HR: '🇭🇷', RS: '🇷🇸',
-  ES: '🇪🇸', IT: '🇮🇹', PT: '🇵🇹', LU: '🇱🇺', BG: '🇧🇬', GR: '🇬🇷', BA: '🇧🇦',
-  ME: '🇲🇪', MK: '🇲🇰', AL: '🇦🇱', XK: '🇽🇰', GB: '🇬🇧', DK: '🇩🇰',
-  FI: '🇫🇮', IE: '🇮🇪', LV: '🇱🇻', LT: '🇱🇹', EE: '🇪🇪', TR: '🇹🇷',
-  AU: '🇦🇺', IS: '🇮🇸', MX: '🇲🇽', TW: '🇹🇼',
-  MY: '🇲🇾', TH: '🇹🇭', NZ: '🇳🇿', CA: '🇨🇦',
-  CL: '🇨🇱', BR: '🇧🇷', US: '🇺🇸', ZA: '🇿🇦',
-  CY: '🇨🇾', MT: '🇲🇹', AE: '🇦🇪', SA: '🇸🇦', KE: '🇰🇪', DO: '🇩🇴', UY: '🇺🇾',
-  QA: '🇶🇦', KW: '🇰🇼', OM: '🇴🇲', BH: '🇧🇭', BN: '🇧🇳', EC: '🇪🇨',
-  VN: '🇻🇳', EG: '🇪🇬', JO: '🇯🇴', TN: '🇹🇳', MA: '🇲🇦', ID: '🇮🇩', IN: '🇮🇳',
-  MD: '🇲🇩', IL: '🇮🇱', PK: '🇵🇰', JP: '🇯🇵', BD: '🇧🇩', LK: '🇱🇰', NP: '🇳🇵',
-  CR: '🇨🇷', PA: '🇵🇦', AZ: '🇦🇿', DZ: '🇩🇿',
-};
 
 const COUNTRY_NAMES = {
   SI: 'Slovenia', FR: 'France', AT: 'Austria', HU: 'Hungary', DE: 'Germany',
@@ -46,62 +31,57 @@ const COUNTRY_NAMES = {
   AZ: 'Azerbaijan', DZ: 'Algeria',
 };
 
-// Scrub-driven section choreography: 'rise' sections fade/slide in as they
-// enter the viewport, 'exit' fades the hero out as the station scene takes
-// over. Listens with capture on document (the BODY is the scroll container).
-function ScrollFx({ mode = 'rise', className, children }) {
+// EN 16942 pump labels: petrol lives in a circle, diesel in a square,
+// gaseous fuels in a diamond — the board's fuel selector reuses that geometry.
+const FUELS = [
+  { key: 'diesel', name: 'Diesel', label: 'B7', shape: 'square' },
+  { key: 'sp95', name: 'Petrol 95', label: 'E10', shape: 'circle' },
+  { key: 'sp98', name: 'Petrol 98', label: 'E5', shape: 'circle' },
+  { key: 'lpg', name: 'LPG', label: 'LPG', shape: 'diamond' },
+];
+
+// Space-grouped thousands, the way European timetables set large numbers.
+// Narrow no-break space, so counts never wrap inside the index columns.
+function fmtNum(n) {
+  return n.toLocaleString('en-US').replaceAll(',', '\u202F');
+}
+
+// One-shot rise-in on first viewport entry; instant under reduced motion.
+function Reveal({ className = '', children }) {
   const ref = useRef(null);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      el.style.opacity = 1;
-      el.dataset.in = '1';
+      el.classList.add(styles.revealOn);
       return;
     }
-    let raf = 0;
-    const onScroll = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        const r = el.getBoundingClientRect();
-        const vh = window.innerHeight;
-        if (mode === 'rise') {
-          const p = Math.max(0, Math.min(1, (vh - r.top) / (vh * 0.55)));
-          el.style.opacity = p;
-          el.style.transform = `translateY(${(1 - p) * 48}px) scale(${0.965 + p * 0.035})`;
-          if ((el.dataset.in === '1') !== p > 0.3) el.dataset.in = p > 0.3 ? '1' : '0';
-        } else {
-          const p = Math.max(0, Math.min(1, -r.top / (r.height * 0.9)));
-          el.style.opacity = 1 - p * 0.92;
-          el.style.transform = `translateY(${p * -44}px) scale(${1 - p * 0.045})`;
-        }
-      });
-    };
-    onScroll();
-    document.addEventListener('scroll', onScroll, { capture: true, passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
-    return () => {
-      document.removeEventListener('scroll', onScroll, { capture: true });
-      window.removeEventListener('resize', onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, [mode]);
-  return <div ref={ref} className={className}>{children}</div>;
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) {
+        el.classList.add(styles.revealOn);
+        io.disconnect();
+      }
+    }, { threshold: 0.12 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return <div ref={ref} className={`${styles.reveal} ${className}`}>{children}</div>;
 }
 
-const TOTEM_FUELS = [
-  { key: 'diesel', tab: 'Diesel', label: 'Diesel' },
-  { key: 'sp95', tab: '95', label: 'Petrol 95' },
-  { key: 'sp98', tab: '98', label: 'Petrol 98' },
-  { key: 'sp100', tab: '100', label: 'Petrol 100' },
-  { key: 'lpg', tab: 'LPG', label: 'LPG' },
-];
+function FuelPict({ shape, label, active }) {
+  return (
+    <span className={`${styles.pict} ${styles[shape]} ${active ? styles.pictActive : ''}`}>
+      <span>{label}</span>
+    </span>
+  );
+}
 
 export default function LandingPage() {
+  const router = useRouter();
+  const { user, logout } = useUser() ?? {};
   const [counts, setCounts] = useState({});
   const [fuel, setFuel] = useState('diesel');
-  const [leagues, setLeagues] = useState({}); // fuel key -> top-10 rows, cached per visit
+  const [leagues, setLeagues] = useState({}); // fuel key -> ranked country rows
 
   useEffect(() => {
     fetch('/api/stations/counts')
@@ -116,121 +96,224 @@ export default function LandingPage() {
       .then(r => r.ok ? r.json() : [])
       .then(d => setLeagues(prev => ({
         ...prev,
-        [fuel]: d.filter(m => m.median != null && FLAGS[m.country])
+        [fuel]: d.filter(m => m.median != null && COUNTRY_NAMES[m.country])
           .sort((a, b) => a.median - b.median)
-          .slice(0, 10),
+          .slice(0, 8),
       })))
       .catch(() => {});
   }, [fuel, leagues]);
 
-  const league = leagues[fuel] ?? [];
-  const fuelMeta = TOTEM_FUELS.find(f => f.key === fuel);
+  const league = leagues[fuel];
+  const fuelMeta = FUELS.find(f => f.key === fuel);
 
-  const covered = Object.keys(FLAGS).filter(c => counts[c] > 0);
+  const covered = Object.keys(COUNTRY_NAMES).filter(c => counts[c] > 0);
   const totalStations = Object.values(counts).reduce((a, b) => a + b, 0);
+  const indexRows = Object.entries(COUNTRY_NAMES)
+    .sort((a, b) => a[1].localeCompare(b[1]));
+
+  async function handleLogout() {
+    await logout?.();
+    router.push('/');
+  }
 
   return (
-    <main className={styles.landing}>
-      <div className={styles.nightWorld} aria-hidden="true" />
-      <section className={styles.hero}>
-        <ScrollFx mode="exit" className={styles.heroFx}>
-        <div className={styles.heroContent}>
-          <h1 className={styles.headline}>Every station.<br />One map.</h1>
-          <p className={styles.sub}>
-            Live fuel prices from {totalStations ? `${Math.round(totalStations / 1000).toLocaleString()},000+` : 'hundreds of thousands of'} stations
-            in {covered.length || 'dozens of'} countries — straight from official sources.
-          </p>
-          <div className={styles.cta}>
-            <Link href="/map" className={styles.btnPrimary}>Open the map</Link>
-            <Link href="/auth/register" className={styles.linkQuiet}>Create an account →</Link>
-          </div>
-        </div>
+    <main className={styles.page}>
 
-        {Object.keys(leagues).length > 0 && (
-          <figure className={styles.totem}>
-            <div className={styles.totemHead}>{fuelMeta.label} — cheapest today</div>
-            <div className={styles.totemTabs} role="tablist" aria-label="Fuel type">
-              {TOTEM_FUELS.map(f => (
+      <header className={styles.masthead}>
+        <Link href="/" className={styles.wordmark}>Gasify<span className={styles.wordmarkDot}>.</span></Link>
+        <nav className={styles.mastNav} aria-label="Primary">
+          <Link href="/map" className={styles.mastLink}>Map</Link>
+          <Link href="/news" className={styles.mastLink}>News</Link>
+          <Link href="/pricing" className={styles.mastLink}>Pricing</Link>
+          <Link href="/credits" className={styles.mastLink}>Credits</Link>
+          {user && <Link href="/dashboard" className={styles.mastLink}>Dashboard</Link>}
+          {user
+            ? <button className={styles.mastBtn} onClick={handleLogout}>Logout</button>
+            : <Link href="/auth/login" className={styles.mastBtn}>Login</Link>}
+        </nav>
+      </header>
+
+      <section className={styles.hero}>
+        <div className={styles.heroGrid}>
+          <div className={styles.heroCopy}>
+            <p className={styles.eyebrow}>
+              <span className={styles.eyebrowMark} aria-hidden="true" />
+              Live fuel price index · {covered.length || '75'} countries
+            </p>
+            <h1 className={styles.headline}>Every station.<br />Every price.<br />One map.</h1>
+            <p className={styles.sub}>
+              Live pump prices from {totalStations ? fmtNum(totalStations) : 'hundreds of thousands of'} stations,
+              collected from government ministries, energy regulators and state oil
+              companies. Nothing crowdsourced, nothing stale.
+            </p>
+            <div className={styles.cta}>
+              <Link href="/map" className={styles.btnPrimary}>Open the map</Link>
+              <Link href="/auth/register" className={styles.linkQuiet}>Create a free account →</Link>
+            </div>
+          </div>
+
+          <figure className={styles.board}>
+            <div className={styles.boardHead}>
+              <span>Cheapest countries</span>
+              <span className={styles.boardUnit}>EUR / litre</span>
+            </div>
+            <div className={styles.boardTabs} role="tablist" aria-label="Fuel type">
+              {FUELS.map(f => (
                 <button
                   key={f.key}
                   role="tab"
                   aria-selected={fuel === f.key}
-                  className={`${styles.totemTab} ${fuel === f.key ? styles.totemTabActive : ''}`}
+                  className={`${styles.boardTab} ${fuel === f.key ? styles.boardTabActive : ''}`}
                   onClick={() => setFuel(f.key)}
                 >
-                  {f.tab}
+                  <FuelPict shape={f.shape} label={f.label} active={fuel === f.key} />
+                  <span className={styles.boardTabName}>{f.name}</span>
                 </button>
               ))}
             </div>
-            {league.slice(0, 5).map((m, i) => (
-              <Link key={m.country} href="/map" className={styles.totemRow}>
-                <span className={styles.totemLabel}>{COUNTRY_NAMES[m.country] ?? m.country}</span>
-                <span className={styles.ledPrice} style={{ animationDelay: `${i * 130}ms` }}>{m.median.toFixed(3)}</span>
-              </Link>
-            ))}
-            {leagues[fuel] === undefined && (
-              <div className={styles.totemEmpty}>Reading the sign…</div>
-            )}
-            {leagues[fuel]?.length === 0 && (
-              <div className={styles.totemEmpty}>No live {fuelMeta.label} medians right now.</div>
-            )}
-            <div className={styles.totemFoot}>EUR / LITRE · LIVE</div>
-            <figcaption className={styles.totemCaption}>
-              The five cheapest countries for {fuelMeta.key === 'lpg' ? 'LPG' : fuelMeta.label.toLowerCase()}, right now.
+            <ol className={styles.boardRows}>
+              {(league ?? []).map((m, i) => (
+                <li key={m.country}>
+                  <Link href="/map" className={styles.boardRow}>
+                    <span className={styles.boardRank}>{String(i + 1).padStart(2, '0')}</span>
+                    <span className={styles.boardCountry}>{COUNTRY_NAMES[m.country]}</span>
+                    <span className={styles.boardPrice}>{m.median.toFixed(3)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+            {league === undefined && <div className={styles.boardEmpty}>Loading prices…</div>}
+            {league?.length === 0 && <div className={styles.boardEmpty}>No live {fuelMeta.name} medians right now.</div>}
+            <figcaption className={styles.boardFoot}>
+              Median pump price per country · live
             </figcaption>
           </figure>
-        )}
-        </ScrollFx>
+        </div>
       </section>
 
-      <ScrollStation />
+      <section className={styles.stats} aria-label="Key figures">
+        <Reveal className={styles.statsGrid}>
+          <div className={styles.statCell}>
+            <span className={styles.statNum}>{totalStations ? fmtNum(totalStations) : '—'}</span>
+            <span className={styles.statLabel}>stations tracked</span>
+          </div>
+          <div className={styles.statCell}>
+            <span className={styles.statNum}>{covered.length || '—'}</span>
+            <span className={styles.statLabel}>countries live</span>
+          </div>
+          <div className={styles.statCell}>
+            <span className={styles.statNum}>100&thinsp;%</span>
+            <span className={styles.statLabel}>official sources</span>
+          </div>
+          <div className={styles.statCell}>
+            <span className={styles.statNum}>0</span>
+            <span className={styles.statLabel}>crowdsourced prices</span>
+          </div>
+        </Reveal>
+      </section>
 
-      <section className={styles.shot}>
-        <ScrollFx mode="rise">
-          <h2 className={styles.countriesTitle}>One station is a lucky find.<br />{totalStations ? `${Math.round(totalStations / 1000)},000+` : 'Every'} stations is a map.</h2>
-          <div className={styles.shotFrame}>
+      <section className={styles.plate}>
+        <Reveal>
+          <div className={styles.sectionRule}>
+            <span className={styles.sectionTag}>The map</span>
+          </div>
+          <h2 className={styles.h2}>The whole market, at a glance.</h2>
+          <div className={styles.plateFrame}>
             <MapPreview />
           </div>
-        </ScrollFx>
+          <p className={styles.plateCaption}>
+            Live median diesel price by country · pan and zoom · open the full map for every station
+          </p>
+        </Reveal>
       </section>
 
-      <section className={styles.countries}>
-        <ScrollFx mode="rise">
-        <h2 className={styles.countriesTitle}>Where Gasify works</h2>
-        <div className={styles.countryGrid}>
-          {Object.entries(FLAGS).map(([code, flag]) => {
-            const count = counts[code];
-            return (
-              <div key={code} className={`${styles.countryCard} ${count ? styles.countryCardActive : styles.countryCardInactive}`}>
-                <span className={styles.countryFlag}>{flag}</span>
-                <span className={styles.countryName}>{COUNTRY_NAMES[code]}</span>
-                {count > 0 && (
-                  <span className={styles.countryCount}>{count >= 1000 ? (count / 1000).toFixed(1) + 'k' : count}</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        </ScrollFx>
+      <section className={styles.coverage}>
+        <Reveal>
+          <div className={styles.sectionRule}>
+            <span className={styles.sectionTag}>Coverage</span>
+          </div>
+          <h2 className={styles.h2}>Where Gasify works.</h2>
+          <div className={styles.indexCols}>
+            {indexRows.map(([code, name]) => {
+              const count = counts[code];
+              return (
+                <div key={code} className={`${styles.indexRow} ${count ? '' : styles.indexRowPending}`}>
+                  <span className={styles.indexCode}>{code}</span>
+                  <span className={styles.indexName}>{name}</span>
+                  <span className={styles.indexCount}>{count > 0 ? fmtNum(count) : '·'}</span>
+                </div>
+              );
+            })}
+          </div>
+          <p className={styles.indexNote}>
+            Stations per country · counts update with every sync
+          </p>
+        </Reveal>
+      </section>
+
+      <section className={styles.method}>
+        <Reveal className={styles.methodGrid}>
+          <div className={styles.methodCol}>
+            <div className={styles.sectionRule}>
+              <span className={styles.sectionTag}>Sources</span>
+            </div>
+            <h3 className={styles.h3}>Official, or nothing.</h3>
+            <p className={styles.body}>
+              Every price comes from a government ministry, an energy regulator or a
+              state oil company — never from user reports. Each source is documented,
+              licensed and listed in the open.
+            </p>
+            <Link href="/credits" className={styles.methodLink}>See every source →</Link>
+          </div>
+          <div className={styles.methodCol}>
+            <div className={styles.sectionRule}>
+              <span className={styles.sectionTag}>Freshness</span>
+            </div>
+            <h3 className={styles.h3}>Synced around the clock.</h3>
+            <p className={styles.body}>
+              Automated pipelines pull new prices continuously, country by country,
+              and a freshness monitor watches every feed. When a source updates,
+              the map follows.
+            </p>
+            <Link href="/news" className={styles.methodLink}>Read fuel news →</Link>
+          </div>
+          <div className={styles.methodCol}>
+            <div className={styles.sectionRule}>
+              <span className={styles.sectionTag}>Scale</span>
+            </div>
+            <h3 className={styles.h3}>One map, every market.</h3>
+            <p className={styles.body}>
+              Compare a single junction or an entire continent. Median prices,
+              per-station detail and multi-currency conversion sit on one
+              continuous map of the world.
+            </p>
+            <Link href="/map" className={styles.methodLink}>Open the map →</Link>
+          </div>
+        </Reveal>
+      </section>
+
+      <section className={styles.finale}>
+        <Reveal className={styles.finaleInner}>
+          <h2 className={styles.finaleHead}>The cheapest station<br />is already on the map.</h2>
+          <div className={styles.finaleCta}>
+            <Link href="/map" className={styles.btnFinale}>Open the map</Link>
+            <Link href="/auth/register" className={styles.finaleQuiet}>Create a free account →</Link>
+          </div>
+        </Reveal>
       </section>
 
       <footer className={styles.footer}>
-        <ScrollFx mode="rise">
-        <div className={styles.footerInner}>
-          <span className={styles.footerBrand}>Gasify<span className={styles.footerDot}>.</span></span>
-          <div className={styles.footerLinks}>
-            <Link href="/map">Map</Link>
-            <Link href="/news">News</Link>
-            <Link href="/credits">Data sources</Link>
-            <Link href="/auth/login">Login</Link>
-          </div>
-          <span className={styles.footerNote}>
-            Official sources only — every price comes from a government ministry, energy regulator
-            or state oil company. <Link href="/credits" className={styles.footerNoteLink}>See every source</Link>
-            <br />Map data © OpenStreetMap contributors · © MapTiler
-          </span>
+        <span className={styles.footerBrand}>Gasify<span className={styles.wordmarkDot}>.</span></span>
+        <div className={styles.footerLinks}>
+          <Link href="/map">Map</Link>
+          <Link href="/news">News</Link>
+          <Link href="/pricing">Pricing</Link>
+          <Link href="/credits">Data sources</Link>
+          <Link href="/auth/login">Login</Link>
         </div>
-        </ScrollFx>
+        <span className={styles.footerNote}>
+          Prices from official government sources · Map data © OpenStreetMap contributors · © MapTiler
+        </span>
       </footer>
     </main>
   );
