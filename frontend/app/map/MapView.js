@@ -14,7 +14,7 @@ import { useUnits } from '../../lib/context/UnitsContext';
 import { getRoute, fmtDuration } from '../../lib/routing';
 import CurrencySelect from '../../components/CurrencySelect/CurrencySelect';
 import ThemeToggle from '../../components/ThemeToggle/ThemeToggle';
-import CarMarker from '../../components/CarMarker/CarMarker';
+import LocationArrow from '../../components/LocationArrow/LocationArrow';
 import styles from './map.module.css';
 
 // MapTiler (commercial-licensed) when a key is configured; CARTO's free styles as a
@@ -231,7 +231,7 @@ export default function MapView() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [favorites, setFavorites] = useState(new Set());
   const [userPos, setUserPos] = useState(null);
-  const [carRotation, setCarRotation] = useState(0); // continuous degrees (can exceed 360) so the car turns the short way
+  const [headingRotation, setHeadingRotation] = useState(0); // continuous degrees (can exceed 360) so the arrow turns the short way
   const [route, setRoute] = useState(null);       // { geometry, distanceKm, durationMin, steps }
   const [routingBusy, setRoutingBusy] = useState(false);
   const [routeError, setRouteError] = useState(null);
@@ -289,16 +289,16 @@ export default function MapView() {
     getCountryMeta(fuel).then(setCountryMeta).catch(() => {});
   }, [fuel]);
 
-  // Turns the car marker to face the direction of travel. Prefers the
+  // Turns the location arrow to face the direction of travel. Prefers the
   // device's own GPS course (coords.heading) when it's actually available —
   // in practice that's rare outside a moving phone — and otherwise derives a
-  // bearing from consecutive fixes, ignoring sub-3m jitter so the car doesn't
+  // bearing from consecutive fixes, ignoring sub-3m jitter so it doesn't
   // spin in place while parked. Tracks a continuous (unwrapped) degree value
   // so the CSS transition always turns the short way, never the long way
   // round through 0/360.
   const prevGeoPos = useRef(null);
-  function updateCarHeading(newHeadingDeg) {
-    setCarRotation(prev => {
+  function updateHeading(newHeadingDeg) {
+    setHeadingRotation(prev => {
       const prevMod = ((prev % 360) + 360) % 360;
       let delta = newHeadingDeg - prevMod;
       if (delta > 180) delta -= 360;
@@ -314,9 +314,9 @@ export default function MapView() {
         const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserPos(next);
         if (pos.coords.heading != null && !Number.isNaN(pos.coords.heading)) {
-          updateCarHeading(pos.coords.heading);
+          updateHeading(pos.coords.heading);
         } else if (prevGeoPos.current && metersBetween(prevGeoPos.current, next) > 3) {
-          updateCarHeading(bearingBetween(prevGeoPos.current, next));
+          updateHeading(bearingBetween(prevGeoPos.current, next));
         }
         prevGeoPos.current = next;
       },
@@ -757,7 +757,7 @@ export default function MapView() {
             )}
             {userPos && (
               <Marker longitude={userPos.lng} latitude={userPos.lat} anchor="center">
-                <CarMarker rotation={carRotation} />
+                <LocationArrow rotation={headingRotation} />
               </Marker>
             )}
 
