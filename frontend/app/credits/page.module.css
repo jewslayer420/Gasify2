@@ -46,10 +46,11 @@
 
 .licence {
   flex-shrink: 0;
-  font-size: 0.75rem;
+  font-family: var(--sw-mono);
+  font-size: 0.7rem;
   color: var(--text-muted);
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 0;
   padding: 3px 10px;
   white-space: nowrap;
 }

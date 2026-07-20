@@ -4,31 +4,10 @@
    for voice, Fragment Mono for every number. Rules, not boxes.
    ———————————————————————————————————————————————————————————————— */
 
-@font-face {
-  font-family: 'Archivo';
-  src: url('/fonts/archivo-var.woff2') format('woff2');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Fragment Mono';
-  src: url('/fonts/fragment-mono-400.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
+/* Palette, Archivo/Fragment Mono @font-face and --sw-* aliases now live in
+   globals.css so every page (and the dark-mode variant) shares one source
+   of truth. Only the landing page's own layout token stays local. */
 .page {
-  --sw-paper: #FFFFFF;
-  --sw-paper-2: #F4F4F1;
-  --sw-ink: #101010;
-  --sw-muted: #66665F;
-  --sw-faint: #B9B9B2;
-  --sw-rule: #DCDCD6;
-  --sw-accent: #1435EB;
-  --sw-sans: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
-  --sw-mono: 'Fragment Mono', Consolas, monospace;
   /* full-bleed bands with a centred 1200px column */
   --sw-gutter: max(calc((100vw - 1200px) / 2), 24px);
 
@@ -61,7 +40,7 @@
   justify-content: space-between;
   height: 64px;
   padding: 0 var(--sw-gutter);
-  background: rgba(255, 255, 255, 0.92);
+  background: color-mix(in srgb, var(--sw-paper) 92%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--sw-rule);
@@ -89,15 +68,17 @@
 .mastBtn {
   margin-left: 12px;
   padding: 9px 22px;
-  background: var(--sw-ink);
+  background: var(--sw-accent);
   color: #fff;
   border: none;
   font-family: var(--sw-sans);
   font-size: 0.88rem;
   font-weight: 600;
-  transition: background 0.12s;
+  transition: opacity 0.12s;
 }
-.mastBtn:hover { background: var(--sw-accent); }
+.mastBtn:hover { opacity: 0.85; }
+
+.mastToggle { margin-left: 4px; }
 
 /* ——— Hero ——— */
 
@@ -435,10 +416,13 @@
 
 /* ——— Finale ——— */
 
+/* Deliberate full-contrast punctuation mark — stays black-on-white text
+   regardless of site theme, using the fixed --sw-invert-* tokens rather
+   than --sw-ink (which flips light in dark mode). */
 .finale {
   padding: 118px var(--sw-gutter) 126px;
-  background: var(--sw-ink);
-  color: #fff;
+  background: var(--sw-invert-bg);
+  color: var(--sw-invert-text);
 }
 
 .finaleHead {
@@ -459,7 +443,7 @@
   font-weight: 600;
   transition: background 0.12s, color 0.12s;
 }
-.btnFinale:hover { background: #fff; color: var(--sw-ink); }
+.btnFinale:hover { background: var(--sw-invert-text); color: var(--sw-invert-bg); }
 
 .finaleQuiet {
   font-size: 0.92rem;

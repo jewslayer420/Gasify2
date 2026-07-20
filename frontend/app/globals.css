@@ -1,28 +1,88 @@
 :root {
-  /* Gasify Refined Dark — spec 2026-07-07 (dark direction). Same names, tuned values. */
-  --bg: #0C0E13;
-  --bg-secondary: #141720;
-  --bg-card: #191D28;
-  --border: rgba(232, 234, 240, 0.07);
-  --text: #F2F4F8;
-  --text-muted: #8A91A6;
-  --accent: #37D3A0;
-  --green: #2FBF84;
-  --green-dim: #166534;
-  --orange: #E8A23D;
-  --orange-dim: #7c2d12;
-  --red: #E25A5A;
-  --red-dim: #7f1d1d;
-  --blue: #3b82f6;
-  --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.35);
-  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.5), 0 20px 48px rgba(0, 0, 0, 0.4);
+  /* Gasify — Swiss/International, spec 2026-07-20. Paper, ink, signal cobalt.
+     Same token names as before so every page keeps working; values retuned.
+     The map page pins its own copy of the old dark set locally and never
+     reads these — see .root in app/map/map.module.css. */
+  --bg: #FFFFFF;
+  --bg-secondary: #F4F4F1;
+  --bg-card: #FFFFFF;
+  --border: #DCDCD6;
+  --text: #101010;
+  --text-muted: #66665F;
+  --text-faint: #B9B9B2;
+  --accent: #1435EB;
+  --green: #1C8A5B;
+  --orange: #A15C00;
+  --red: #C22E2E;
+  --shadow-1: 0 1px 3px rgba(16, 16, 16, 0.06), 0 6px 20px rgba(16, 16, 16, 0.05);
+  --shadow-2: 0 4px 10px rgba(16, 16, 16, 0.08), 0 16px 40px rgba(16, 16, 16, 0.08);
   --panel-w: 380px;
   --peek-h: 120px;
-  --r: 14px;
-  --nav-h: 56px;
+  --r: 0px;
+  --nav-h: 64px;
+
+  /* Landing-page aliases (kept so page.module.css can use the descriptive
+     sw-* names without duplicating the palette) */
+  --sw-paper: var(--bg);
+  --sw-paper-2: var(--bg-secondary);
+  --sw-ink: var(--text);
+  --sw-muted: var(--text-muted);
+  --sw-faint: var(--text-faint);
+  --sw-rule: var(--border);
+  --sw-accent: var(--accent);
+  --sw-sans: 'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --sw-mono: 'Fragment Mono', Consolas, monospace;
+
+  /* Fixed, theme-invariant — for the one section that deliberately punches
+     to full-contrast black regardless of light/dark mode (e.g. the landing
+     finale). Never overridden under [data-theme='dark']. */
+  --sw-invert-bg: #101010;
+  --sw-invert-text: #FFFFFF;
 }
 
-/* Manrope — premium geometric sans, self-hosted (SIL OFL) */
+[data-theme='dark'] {
+  --bg: #0B0D12;
+  --bg-secondary: #14171F;
+  --bg-card: #14171F;
+  --border: rgba(242, 244, 248, 0.1);
+  --text: #F2F4F8;
+  --text-muted: #9AA1B4;
+  --text-faint: #5C6377;
+  --accent: #4C6FFF;
+  --green: #37D3A0;
+  --orange: #E8A23D;
+  --red: #E8685F;
+  --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.5), 0 20px 48px rgba(0, 0, 0, 0.4);
+}
+
+/* No-JS / pre-hydration fallback for OS dark mode — the inline bootstrap
+   script in layout.js normally sets data-theme before this ever paints. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #0B0D12;
+    --bg-secondary: #14171F;
+    --bg-card: #14171F;
+    --border: rgba(242, 244, 248, 0.1);
+    --text: #F2F4F8;
+    --text-muted: #9AA1B4;
+    --text-faint: #5C6377;
+    --accent: #4C6FFF;
+    --green: #37D3A0;
+    --orange: #E8A23D;
+    --red: #E8685F;
+    --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.5), 0 20px 48px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Archivo — variable weight, self-hosted (SIL OFL) */
+@font-face { font-family: 'Archivo'; src: url('/fonts/archivo-var.woff2') format('woff2'); font-weight: 100 900; font-style: normal; font-display: swap; }
+
+/* Fragment Mono — self-hosted (SIL OFL), used for every numeral site-wide */
+@font-face { font-family: 'Fragment Mono'; src: url('/fonts/fragment-mono-400.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+
+/* Manrope — kept only for the map page, which pins it locally (see above) */
 @font-face { font-family: 'Manrope'; src: url('/fonts/manrope-400.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Manrope'; src: url('/fonts/manrope-600.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Manrope'; src: url('/fonts/manrope-700.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
@@ -43,9 +103,10 @@ html, body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--sw-sans);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  transition: background 0.15s, color 0.15s;
 }
 
 a { color: inherit; text-decoration: none; }

@@ -48,7 +48,7 @@
   margin-bottom: 8px;
 }
 
-.tileValue { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+.tileValue { font-family: var(--sw-mono); font-size: 1.4rem; font-variant-numeric: tabular-nums; }
 .tileSub { color: var(--text-muted); font-size: 0.75rem; margin-top: 6px; }
 
 /* ── Tables ────────────────────────────────── */
@@ -92,15 +92,16 @@
 
 .youTag {
   margin-left: 8px;
-  font-size: 0.65rem;
-  font-weight: 700;
+  font-family: var(--sw-mono);
+  font-size: 0.62rem;
+  font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--green);
-  background: rgba(47, 191, 132, 0.12);
-  border: 1px solid rgba(47, 191, 132, 0.3);
-  border-radius: 999px;
-  padding: 1px 8px;
+  background: none;
+  border: 1px solid var(--green);
+  border-radius: 0;
+  padding: 1px 7px;
 }
 
 .roleAdmin { color: var(--orange); font-weight: 700; }
@@ -114,9 +115,9 @@
   margin-right: 7px;
   vertical-align: middle;
 }
-.dotGreen { background: var(--green); box-shadow: 0 0 6px rgba(47, 191, 132, 0.6); }
+.dotGreen { background: var(--green); box-shadow: 0 0 6px color-mix(in srgb, var(--green) 60%, transparent); }
 .dotAmber { background: var(--orange); }
-.dotRed   { background: var(--red); box-shadow: 0 0 6px rgba(224, 82, 82, 0.5); }
+.dotRed   { background: var(--red); box-shadow: 0 0 6px color-mix(in srgb, var(--red) 55%, transparent); }
 .dotGray  { background: var(--text-muted); }
 
 /* ── Users controls ────────────────────────── */
@@ -127,18 +128,18 @@
   max-width: 340px;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 9px 12px;
   color: var(--text);
   font-size: 0.875rem;
   outline: none;
 }
-.input:focus { border-color: var(--green); }
+.input:focus { border-color: var(--accent); }
 
 .searchBtn, .clearBtn {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 6px 14px;
   font-size: 0.8rem;
   font-weight: 600;
@@ -146,14 +147,14 @@
   cursor: pointer;
   transition: border-color 0.15s;
 }
-.searchBtn:hover, .clearBtn:hover { border-color: var(--green); }
+.searchBtn:hover, .clearBtn:hover { border-color: var(--accent); }
 
 .actionsCell { display: flex; gap: 6px; }
 
 .actionBtn {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   padding: 4px 10px;
   font-size: 0.72rem;
   font-weight: 600;
@@ -161,7 +162,7 @@
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
 }
-.actionBtn:hover:not(:disabled) { border-color: var(--green); }
+.actionBtn:hover:not(:disabled) { border-color: var(--accent); }
 .actionBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .dangerBtn:hover:not(:disabled) { border-color: var(--red); color: var(--red); }

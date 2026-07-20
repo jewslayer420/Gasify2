@@ -560,7 +560,7 @@ export default function MapView() {
               </button>
             ))}
           </div>
-          <CurrencySelect />
+          <CurrencySelect className={styles.currencyPin} />
           <button className={styles.ctaBtn} onClick={cheapestNearMe} disabled={ctaBusy}>
             {ctaBusy ? 'Locating…' : 'Cheapest near me'}
           </button>

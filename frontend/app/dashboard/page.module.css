@@ -38,7 +38,7 @@
   padding: 24px 0;
 }
 
-.link { color: var(--green); }
+.link { color: var(--accent); }
 .link:hover { text-decoration: underline; }
 
 .favList, .locList { display: flex; flex-direction: column; gap: 10px; }
@@ -73,7 +73,7 @@
   color: var(--text-muted);
   font-size: 14px;
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   transition: color 0.15s, background 0.15s;
 }
@@ -82,7 +82,7 @@
 .addBtn {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 6px 14px;
   font-size: 0.8rem;
   font-weight: 600;
@@ -90,7 +90,7 @@
   cursor: pointer;
   transition: border-color 0.15s;
 }
-.addBtn:hover { border-color: var(--green); }
+.addBtn:hover { border-color: var(--accent); }
 
 .locForm {
   background: var(--bg-secondary);
@@ -106,22 +106,22 @@
 .select, .input {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 9px 12px;
   color: var(--text);
   font-size: 0.875rem;
   outline: none;
 }
-.select:focus, .input:focus { border-color: var(--green); }
+.select:focus, .input:focus { border-color: var(--accent); }
 
 .locFormBtns { display: flex; gap: 8px; }
 
 .saveBtn {
-  background: var(--green);
-  color: #000;
+  background: var(--accent);
+  color: #fff;
   font-weight: 700;
   border: none;
-  border-radius: 8px;
+  border-radius: 0;
   padding: 8px 20px;
   font-size: 0.875rem;
   cursor: pointer;
@@ -130,7 +130,7 @@
 .cancelBtn {
   background: none;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 8px 16px;
   font-size: 0.875rem;
   color: var(--text-muted);
@@ -144,7 +144,7 @@
   width: 32px;
   height: 32px;
   border: 3px solid var(--border);
-  border-top-color: var(--green);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   margin: 80px auto;
@@ -167,7 +167,7 @@
 .secPanel {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 0;
   padding: 16px;
   margin: 6px 0 14px;
   display: flex;
@@ -176,7 +176,7 @@
 }
 
 .secQr {
-  border-radius: 8px;
+  border-radius: 0;
   background: #fff;
   padding: 6px;
   align-self: flex-start;
@@ -197,10 +197,11 @@
 .secCodes code {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   padding: 6px 10px;
   font-size: 0.85rem;
   text-align: center;
+  font-family: var(--sw-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -209,25 +210,29 @@
 /* ── Account badges ────────────────────────── */
 .badgeOk {
   flex-shrink: 0;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-family: var(--sw-mono);
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--green);
-  background: rgba(47, 191, 132, 0.12);
-  border: 1px solid rgba(47, 191, 132, 0.3);
-  border-radius: 999px;
-  padding: 4px 12px;
+  background: none;
+  border: 1px solid var(--green);
+  border-radius: 0;
+  padding: 4px 10px;
 }
 .badgeAdmin {
   flex-shrink: 0;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-family: var(--sw-mono);
+  font-size: 0.68rem;
+  font-weight: 400;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--orange);
-  background: rgba(232, 162, 61, 0.12);
-  border: 1px solid rgba(232, 162, 61, 0.3);
-  border-radius: 999px;
-  padding: 4px 12px;
+  background: none;
+  border: 1px solid var(--orange);
+  border-radius: 0;
+  padding: 4px 10px;
 }
 
 /* ── Billing ───────────────────────────────── */
@@ -249,15 +254,15 @@
   color: var(--text-muted);
   margin-bottom: 6px;
 }
-.planValue { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+.planValue { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; font-family: var(--sw-mono); }
 .upgradeBtn {
   flex-shrink: 0;
-  background: var(--green);
-  color: #000;
+  background: var(--accent);
+  color: #fff;
   font-weight: 700;
   font-size: 0.85rem;
-  border-radius: 10px;
+  border-radius: 0;
   padding: 10px 18px;
-  transition: filter 0.15s;
+  transition: opacity 0.15s;
 }
-.upgradeBtn:hover { filter: brightness(1.08); }
+.upgradeBtn:hover { opacity: 0.85; }

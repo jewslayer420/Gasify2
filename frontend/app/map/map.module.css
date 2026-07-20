@@ -1,4 +1,28 @@
+/* Map stays permanently on its own dark palette regardless of the site-wide
+   theme/light-dark switch — pinned locally so it can never drift. */
 .root {
+  --bg: #0C0E13;
+  --bg-secondary: #141720;
+  --bg-card: #191D28;
+  --border: rgba(232, 234, 240, 0.07);
+  --text: #F2F4F8;
+  --text-muted: #8A91A6;
+  --accent: #37D3A0;
+  --green: #2FBF84;
+  --green-dim: #166534;
+  --orange: #E8A23D;
+  --orange-dim: #7c2d12;
+  --red: #E25A5A;
+  --red-dim: #7f1d1d;
+  --blue: #3b82f6;
+  --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.5), 0 20px 48px rgba(0, 0, 0, 0.4);
+  --r: 14px;
+
+  /* Pin the font too — the site-wide font is switching to Archivo, but this
+     subtree previously only ever inherited Manrope from <body>. */
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
   height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -747,4 +771,15 @@
 /* Mobile: hide sidebar */
 @media (max-width: 767px) {
   .sidebar { display: none; }
+}
+
+/* CurrencySelect's shared stylesheet went flat/hairline for the sitewide
+   Swiss redesign; the map keeps its original pill treatment. !important
+   because CSS Modules give no source-order guarantee between this file
+   and CurrencySelect.module.css. */
+.currencyPin {
+  border-radius: 999px !important;
+}
+.currencyPin:hover {
+  border-color: rgba(232, 234, 240, 0.25) !important;
 }

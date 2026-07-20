@@ -53,22 +53,22 @@
 .input {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 10px 14px;
   color: var(--text);
   font-size: 0.9rem;
   outline: none;
   transition: border-color 0.15s;
 }
-.input:focus { border-color: var(--green); }
+.input:focus { border-color: var(--accent); }
 
 .btn {
   display: block;
-  background: var(--green);
-  color: #000;
+  background: var(--accent);
+  color: #fff;
   font-weight: 700;
   padding: 12px 24px;
-  border-radius: 8px;
+  border-radius: 0;
   font-size: 0.95rem;
   border: none;
   cursor: pointer;
@@ -94,7 +94,7 @@
   width: 100%;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 11px 24px;
   color: var(--text);
   font-size: 0.9rem;
@@ -102,7 +102,7 @@
   cursor: pointer;
   transition: border-color 0.15s;
 }
-.googleBtn:hover { border-color: rgba(232, 234, 240, 0.25); }
+.googleBtn:hover { border-color: var(--text-muted); }
 
 .divider {
   display: flex;
@@ -136,7 +136,7 @@
   color: var(--text-muted);
   cursor: pointer;
 }
-.remember input { width: 15px; height: 15px; accent-color: var(--green); cursor: pointer; }
+.remember input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
 
 .footer {
   margin-top: 24px;
@@ -149,7 +149,7 @@
   gap: 8px;
 }
 
-.footerLink { color: var(--green); }
+.footerLink { color: var(--accent); }
 .footerLink:hover { text-decoration: underline; }
 .footerSep { color: var(--border); }
 
@@ -162,7 +162,7 @@
   width: 32px;
   height: 32px;
   border: 3px solid var(--border);
-  border-top-color: var(--green);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   margin: 0 auto 16px;

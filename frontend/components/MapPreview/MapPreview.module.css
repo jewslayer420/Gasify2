@@ -1,5 +1,14 @@
-/* The outer .shotFrame on the landing page supplies border, radius and clipping */
+/* The outer .shotFrame on the landing page supplies border, radius and clipping.
+   This is a fixed dark "browser mockup" of the map regardless of site theme
+   (it always frames the dark MapTiler basemap) — pin the tokens it reads so
+   it can't drift when the light/dark switch flips the shared palette. */
 .window {
+  --bg: #0C0E13;
+  --text: #F2F4F8;
+  --text-muted: #8A91A6;
+  --green: #2FBF84;
+  --border: rgba(232, 234, 240, 0.07);
+
   overflow: hidden;
   background: #10131B;
 }

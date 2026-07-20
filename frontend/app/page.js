@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useUser } from '../lib/context/UserContext';
+import ThemeToggle from '../components/ThemeToggle/ThemeToggle';
 import styles from './page.module.css';
 
 const MapPreview = dynamic(() => import('../components/MapPreview/MapPreview'), {
@@ -127,6 +128,7 @@ export default function LandingPage() {
           <Link href="/pricing" className={styles.mastLink}>Pricing</Link>
           <Link href="/credits" className={styles.mastLink}>Credits</Link>
           {user && <Link href="/dashboard" className={styles.mastLink}>Dashboard</Link>}
+          <ThemeToggle className={styles.mastToggle} />
           {user
             ? <button className={styles.mastBtn} onClick={handleLogout}>Logout</button>
             : <Link href="/auth/login" className={styles.mastBtn}>Login</Link>}
