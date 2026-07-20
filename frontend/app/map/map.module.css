@@ -172,15 +172,6 @@
   .controls { right: 12px; }
 }
 
-.loadingDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--green);
-  animation: pulse 1s ease-in-out infinite;
-}
-@keyframes pulse { 0%,100% { opacity:1; transform: scale(1); } 50% { opacity:0.4; transform: scale(0.7); } }
-
 /* ── Map layout ───────────────────────────── */
 .mapWrap {
   flex: 1;

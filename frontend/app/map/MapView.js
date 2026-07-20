@@ -224,7 +224,6 @@ export default function MapView() {
   const [ctaBusy, setCtaBusy] = useState(false);
   const [ctaMsg, setCtaMsg] = useState(null);
   const [citySearch, setCitySearch] = useState('');
-  const [loading, setLoading] = useState(false);
   const [baseStyle, setBaseStyle] = useState(() => {
     if (typeof window === 'undefined') return 'dark';
     const saved = localStorage.getItem(STYLE_LS_KEY);
@@ -329,7 +328,6 @@ export default function MapView() {
   // The GeoJSON lives in React state and renders via declarative <Source>/<Layer>,
   // which react-map-gl re-attaches automatically after basemap style switches.
   async function loadStations(fuelType) {
-    setLoading(true);
     try {
       const geojson = await getStationsGeoJSON(fuelType);
       setStationsGeojson(geojson);
@@ -346,7 +344,6 @@ export default function MapView() {
       }));
       updateSidebar();
     } catch {}
-    setLoading(false);
   }
 
   // Re-fetch when fuel changes; also refresh history for the open station.
@@ -450,7 +447,6 @@ export default function MapView() {
   async function handleCitySearch(e) {
     e.preventDefault();
     if (!citySearch.trim()) return;
-    setLoading(true);
     focusRef.current = null;
     setCountryFocus(null);
     modeRef.current = 'bbox';
@@ -467,7 +463,6 @@ export default function MapView() {
         // onMoveEnd fires after fly completes and updates sidebar
       }
     } catch {}
-    setLoading(false);
   }
 
   async function handleSelectStation(station) {
@@ -636,7 +631,6 @@ export default function MapView() {
           <button className={styles.ctaBtn} onClick={cheapestNearMe} disabled={ctaBusy}>
             {ctaBusy ? 'Locating…' : 'Cheapest near me'}
           </button>
-          {loading && <div className={styles.loadingDot} />}
         </div>
         {ctaMsg && <div className={styles.toast}>{ctaMsg}</div>}
       </div>

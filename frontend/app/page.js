@@ -126,7 +126,6 @@ export default function LandingPage() {
           <Link href="/map" className={styles.mastLink}>Map</Link>
           <Link href="/news" className={styles.mastLink}>News</Link>
           <Link href="/pricing" className={styles.mastLink}>Pricing</Link>
-          <Link href="/credits" className={styles.mastLink}>Credits</Link>
           {user && <Link href="/dashboard" className={styles.mastLink}>Dashboard</Link>}
           <ThemeToggle className={styles.mastToggle} />
           {user
@@ -150,7 +149,7 @@ export default function LandingPage() {
             </p>
             <div className={styles.cta}>
               <Link href="/map" className={styles.btnPrimary}>Open the map</Link>
-              <Link href="/auth/register" className={styles.linkQuiet}>Create a free account →</Link>
+              {!user && <Link href="/auth/register" className={styles.linkQuiet}>Create a free account →</Link>}
             </div>
           </div>
 
@@ -299,7 +298,7 @@ export default function LandingPage() {
           <h2 className={styles.finaleHead}>The cheapest station<br />is already on the map.</h2>
           <div className={styles.finaleCta}>
             <Link href="/map" className={styles.btnFinale}>Open the map</Link>
-            <Link href="/auth/register" className={styles.finaleQuiet}>Create a free account →</Link>
+            {!user && <Link href="/auth/register" className={styles.finaleQuiet}>Create a free account →</Link>}
           </div>
         </Reveal>
       </section>

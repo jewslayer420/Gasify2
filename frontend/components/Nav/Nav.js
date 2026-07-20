@@ -27,7 +27,6 @@ export default function Nav() {
         <Link href="/map" className={`${styles.link} ${path === '/map' ? styles.linkActive : ''}`}>Map</Link>
         <Link href="/news" className={`${styles.link} ${path === '/news' ? styles.linkActive : ''}`}>News</Link>
         <Link href="/pricing" className={`${styles.link} ${path === '/pricing' ? styles.linkActive : ''}`}>Pricing</Link>
-        <Link href="/credits" className={`${styles.link} ${path === '/credits' ? styles.linkActive : ''}`}>Credits</Link>
         {user && <Link href="/dashboard" className={`${styles.link} ${path === '/dashboard' ? styles.linkActive : ''}`}>Dashboard</Link>}
         <CurrencySelect />
         <ThemeToggle />
