@@ -10,6 +10,8 @@ import { COUNTRY_CENTROIDS } from '../../lib/countryCentroids';
 import { useUser } from '../../lib/context/UserContext';
 import { useCurrency } from '../../lib/context/CurrencyContext';
 import { useTheme, STORAGE_KEY as THEME_STORAGE_KEY } from '../../lib/context/ThemeContext';
+import { useUnits } from '../../lib/context/UnitsContext';
+import { getRoute, fmtDuration } from '../../lib/routing';
 import CurrencySelect from '../../components/CurrencySelect/CurrencySelect';
 import ThemeToggle from '../../components/ThemeToggle/ThemeToggle';
 import styles from './map.module.css';
@@ -123,6 +125,34 @@ function makeHeatmapLayer(styleKey) {
   };
 }
 
+// Directions route line: a dark casing under a bright accent line, the usual
+// cartographic trick for staying legible over any basemap (dark/light/satellite).
+function makeRouteLayers(light) {
+  return [
+    {
+      id: 'route-casing',
+      type: 'line',
+      source: 'route',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': light ? '#FFFFFF' : '#0B0D12',
+        'line-width': ['interpolate', ['linear'], ['zoom'], 5, 4, 14, 9],
+        'line-opacity': 0.9,
+      },
+    },
+    {
+      id: 'route-line',
+      type: 'line',
+      source: 'route',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': light ? '#1435EB' : '#5B7CFF',
+        'line-width': ['interpolate', ['linear'], ['zoom'], 5, 2, 14, 5],
+      },
+    },
+  ];
+}
+
 // Individual station dot — fades in as heatmap fades out
 function makePointLayer(styleKey) {
   const t = LAYER_THEMES[THEME_FOR_STYLE[styleKey] ?? 'dark'];
@@ -174,7 +204,8 @@ export default function MapView() {
   const { user } = useUser() ?? {};
   const { theme } = useTheme() ?? {};
   const lightChrome = theme === 'light';
-  const { fmt, fmtCompact, convert, effCode } = useCurrency();
+  const { fmt, fmtCompact, convert, effCode, volumeUnit } = useCurrency();
+  const { fmtDistance } = useUnits() ?? {};
   const [fuel, setFuel] = useState('diesel');
   const [sidebarStations, setSidebarStations] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -182,6 +213,9 @@ export default function MapView() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [favorites, setFavorites] = useState(new Set());
   const [userPos, setUserPos] = useState(null);
+  const [route, setRoute] = useState(null);       // { geometry, distanceKm, durationMin, steps }
+  const [routingBusy, setRoutingBusy] = useState(false);
+  const [routeError, setRouteError] = useState(null);
   const [winner, setWinner] = useState(null);   // cheapest-near-me highlighted station
   const [countryMeta, setCountryMeta] = useState([]); // league/lens data per fuel
   const [mapCenter, setMapCenter] = useState({ lng: 15, lat: 50 });
@@ -191,7 +225,6 @@ export default function MapView() {
   const [ctaMsg, setCtaMsg] = useState(null);
   const [citySearch, setCitySearch] = useState('');
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState('bbox');
   const [baseStyle, setBaseStyle] = useState(() => {
     if (typeof window === 'undefined') return 'dark';
     const saved = localStorage.getItem(STYLE_LS_KEY);
@@ -217,7 +250,6 @@ export default function MapView() {
   const focusRef = useRef(null);    // mirrors countryFocus for map callbacks
   const prevZoomBelow7 = useRef(true);
   fuelRef.current = fuel;
-  modeRef.current = mode;
 
 
   useEffect(() => {
@@ -369,33 +401,12 @@ export default function MapView() {
     });
   }
 
-  // Near-me: sort all in-memory stations by distance — no network request.
-  function handleNearMe() {
-    if (!userPos) return;
-    focusRef.current = null;
-    setCountryFocus(null);
-    setMode('near');
-    modeRef.current = 'near';
-    mapRef.current?.flyTo({ center: [userPos.lng, userPos.lat], zoom: 13, duration: 800 });
-    const { lat, lng } = userPos;
-    const near = allStations.current
-      .map(s => {
-        const dx = (s.lat - lat) * 111.32;
-        const dy = (s.lng - lng) * 111.32 * Math.cos(lat * Math.PI / 180);
-        return { ...s, distance: Math.round(Math.sqrt(dx * dx + dy * dy) * 10) / 10 };
-      })
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, 50);
-    setSidebarStations(near);
-  }
-
   // One-click value prop: locate → rank nearby by price → crown the winner.
   function cheapestNearMe() {
     setCtaMsg(null);
     const run = pos => {
       focusRef.current = null;
       setCountryFocus(null);
-      setMode('near');
       modeRef.current = 'near';
       const { lat, lng } = pos;
       const near = allStations.current
@@ -427,12 +438,13 @@ export default function MapView() {
     );
   }
 
-  function handleBboxMode() {
-    focusRef.current = null;
-    setCountryFocus(null);
-    setMode('bbox');
+  // A manual drag means the user wants to look around — drop out of the
+  // frozen "near me" snapshot (from Cheapest near me) back to the sidebar
+  // normally following the viewport. Entering 'near' mode already clears
+  // any country focus, so there's nothing else to reset here.
+  function exitNearModeOnDrag() {
+    if (modeRef.current !== 'near') return;
     modeRef.current = 'bbox';
-    updateSidebar();
   }
 
   async function handleCitySearch(e) {
@@ -441,7 +453,6 @@ export default function MapView() {
     setLoading(true);
     focusRef.current = null;
     setCountryFocus(null);
-    setMode('bbox');
     modeRef.current = 'bbox';
     try {
       const geo = await geocodeCity(citySearch.trim());
@@ -461,6 +472,8 @@ export default function MapView() {
 
   async function handleSelectStation(station) {
     setSelected(station);
+    setRoute(null);
+    setRouteError(null);
     setHistory([]);
     setLoadingHistory(true);
     try {
@@ -476,6 +489,48 @@ export default function MapView() {
       })));
     } catch {}
     setLoadingHistory(false);
+  }
+
+  function fitRouteBounds(coords) {
+    let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+    for (const [lng, lat] of coords) {
+      if (lng < minLng) minLng = lng;
+      if (lng > maxLng) maxLng = lng;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+    }
+    const desktop = window.innerWidth >= 768;
+    mapRef.current?.fitBounds([[minLng, minLat], [maxLng, maxLat]], {
+      padding: { top: 70, bottom: desktop ? 70 : sheetHeight + 40, left: 70, right: desktop ? 420 : 70 },
+      duration: 1000,
+      maxZoom: 16,
+    });
+  }
+
+  async function startDirections() {
+    if (!selected) return;
+    setRouteError(null);
+    setRoutingBusy(true);
+    const dest = { lat: selected.lat, lng: selected.lng };
+    const run = async origin => {
+      const r = await getRoute(origin, dest);
+      setRoutingBusy(false);
+      if (!r) { setRouteError("Couldn't find a route to this station."); return; }
+      setRoute(r);
+      fitRouteBounds(r.geometry.coordinates);
+    };
+    if (userPos) { run(userPos); return; }
+    if (!navigator.geolocation) { setRoutingBusy(false); setRouteError('Location isn’t available in this browser.'); return; }
+    navigator.geolocation.getCurrentPosition(
+      p => { const pos = { lat: p.coords.latitude, lng: p.coords.longitude }; setUserPos(pos); run(pos); },
+      () => { setRoutingBusy(false); setRouteError('Location denied — allow location access to get directions.'); },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  function exitDirections() {
+    setRoute(null);
+    setRouteError(null);
   }
 
   async function toggleFavorite(stationId) {
@@ -583,10 +638,6 @@ export default function MapView() {
           </button>
           {loading && <div className={styles.loadingDot} />}
         </div>
-        <div className={styles.modeBtns}>
-          <button className={`${styles.modeBtn} ${mode === 'bbox' ? styles.modeBtnActive : ''}`} onClick={handleBboxMode}>Map view</button>
-          <button className={`${styles.modeBtn} ${mode === 'near' ? styles.modeBtnActive : ''}`} onClick={handleNearMe} disabled={!userPos}>Near me</button>
-        </div>
         {ctaMsg && <div className={styles.toast}>{ctaMsg}</div>}
       </div>
 
@@ -607,6 +658,7 @@ export default function MapView() {
             }}
             onLoad={handleMapLoad}
             onMoveEnd={e => { setMapCenter({ lng: e.viewState.longitude, lat: e.viewState.latitude }); handleMoveEnd(e); }}
+            onDragStart={exitNearModeOnDrag}
             onClick={handleMapClick}
             onMouseEnter={e => { e.target.getCanvas().style.cursor = 'pointer'; }}
             onMouseLeave={e => { e.target.getCanvas().style.cursor = ''; }}
@@ -629,6 +681,16 @@ export default function MapView() {
               <Layer {...makeHeatmapLayer(baseStyle)} />
               <Layer {...makePointLayer(baseStyle)} />
             </Source>
+
+            {route && (
+              <Source
+                id="route"
+                type="geojson"
+                data={{ type: 'Feature', geometry: route.geometry, properties: {} }}
+              >
+                {makeRouteLayers(lightChrome).map(l => <Layer key={l.id} {...l} />)}
+              </Source>
+            )}
 
             {/* Required attribution: OpenStreetMap (ODbL) basemap data + the tile
                 vendor (MapTiler, or CARTO on the dev fallback). Compact = a small
@@ -845,7 +907,7 @@ export default function MapView() {
                 <div className={styles.stationRowBody}>
                   <div className={styles.stationRowName}>{s.name}</div>
                   <div className={styles.stationRowCity}>
-                    {FLAGS[s.country] ?? s.country} {s.city}{s.distance != null ? ` · ${s.distance} km` : ''}
+                    {FLAGS[s.country] ?? s.country} {s.city}{s.distance != null ? ` · ${fmtDistance(s.distance)}` : ''}
                   </div>
                 </div>
                 <div className={styles.stationRowPrice} style={{ color: priceColor(s.price, lightChrome) }}>
@@ -875,12 +937,13 @@ export default function MapView() {
                 <div className={styles.detailCity}>{FLAGS[selected.country] ?? selected.country} {selected.city} · {COUNTRY_LABEL[selected.country] ?? selected.country}</div>
               </div>
               <div className={styles.detailActions}>
-                <a
-                  className={styles.closeBtn}
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`}
-                  target="_blank" rel="noopener noreferrer"
-                  title="Directions"
-                >Directions</a>
+                {route ? (
+                  <button className={styles.closeBtn} onClick={exitDirections}>Exit route</button>
+                ) : (
+                  <button className={styles.closeBtn} onClick={startDirections} disabled={routingBusy}>
+                    {routingBusy ? 'Locating…' : 'Directions'}
+                  </button>
+                )}
                 {user && (
                   <button
                     className={`${styles.favBtn} ${favorites.has(selected.id) ? styles.favBtnActive : ''}`}
@@ -893,33 +956,56 @@ export default function MapView() {
               </div>
             </div>
 
-            {/* Forecourt price totem: the station's fuels as a real price sign */}
-            <div className={styles.priceBoard}>
-              <div className={styles.boardHeader}>{(selected.brand || selected.name || '').toUpperCase()}</div>
-              {FUELS
-                .filter(f => (selected.allPrices?.[f.key] != null) || f.key === fuel)
-                .map(f => {
-                  const p = selected.allPrices?.[f.key] ?? (f.key === fuel ? selectedPrice : null);
-                  const active = f.key === fuel;
-                  const digits = ledDigits(convert(p));
-                  return (
-                    <div key={f.key} className={`${styles.boardRow} ${active ? styles.boardRowActive : ''}`}>
-                      <span className={styles.boardFuel}>{f.label}</span>
-                      <span className={styles.boardPrice} data-ghost={digits.replace(/\d/g, '8')}>{digits}</span>
-                    </div>
-                  );
-                })}
-              <div className={styles.boardFooter}>
-                <span>{effCode} / LITRE</span>
-                <span>
-                  {selected.updatedAt && relAgo(selected.updatedAt) ? `UPDATED ${relAgo(selected.updatedAt).toUpperCase()}` : ''}
-                  {selected.distance != null ? ` · ${selected.distance} KM` : ''}
-                </span>
-              </div>
-            </div>
+            {routeError && <p className={styles.routeError}>{routeError}</p>}
 
-            {loadingHistory && <div className={styles.histSpinner} />}
-            {!loadingHistory && history.length > 1 && (() => {
+            {route ? (
+              <div className={styles.routePanel}>
+                <div className={styles.routeSummary}>
+                  <span className={styles.routeSummaryDistance}>{fmtDistance(route.distanceKm)}</span>
+                  <span className={styles.routeSummaryDot}>·</span>
+                  <span>{fmtDuration(route.durationMin)} drive</span>
+                </div>
+                <ol className={styles.routeSteps}>
+                  {route.steps.map((s, i) => (
+                    <li key={i} className={styles.routeStep}>
+                      <span className={styles.routeStepNum}>{i + 1}</span>
+                      <span className={styles.routeStepBody}>
+                        <span className={styles.routeStepText}>{s.instruction}</span>
+                        {s.distanceKm > 0 && <span className={styles.routeStepDist}>{fmtDistance(s.distanceKm)}</span>}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ) : (
+              <>
+                {/* Forecourt price totem: the station's fuels as a real price sign */}
+                <div className={styles.priceBoard}>
+                  <div className={styles.boardHeader}>{(selected.brand || selected.name || '').toUpperCase()}</div>
+                  {FUELS
+                    .filter(f => (selected.allPrices?.[f.key] != null) || f.key === fuel)
+                    .map(f => {
+                      const p = selected.allPrices?.[f.key] ?? (f.key === fuel ? selectedPrice : null);
+                      const active = f.key === fuel;
+                      const digits = ledDigits(convert(p));
+                      return (
+                        <div key={f.key} className={`${styles.boardRow} ${active ? styles.boardRowActive : ''}`}>
+                          <span className={styles.boardFuel}>{f.label}</span>
+                          <span className={styles.boardPrice} data-ghost={digits.replace(/\d/g, '8')}>{digits}</span>
+                        </div>
+                      );
+                    })}
+                  <div className={styles.boardFooter}>
+                    <span>{effCode} / {volumeUnit === 'gal' ? 'GALLON' : 'LITRE'}</span>
+                    <span>
+                      {selected.updatedAt && relAgo(selected.updatedAt) ? `UPDATED ${relAgo(selected.updatedAt).toUpperCase()}` : ''}
+                      {selected.distance != null ? ` · ${fmtDistance(selected.distance).toUpperCase()}` : ''}
+                    </span>
+                  </div>
+                </div>
+
+                {loadingHistory && <div className={styles.histSpinner} />}
+                {!loadingHistory && history.length > 1 && (() => {
               const lo = Math.min(...history.map(h => h.price));
               const hi = Math.max(...history.map(h => h.price));
               return (
@@ -964,6 +1050,8 @@ export default function MapView() {
                 </div>
               );
             })()}
+              </>
+            )}
           </div>
         </div>
       )}

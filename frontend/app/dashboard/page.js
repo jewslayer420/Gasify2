@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUser } from '../../lib/context/UserContext';
 import { useCurrency } from '../../lib/context/CurrencyContext';
+import { useUnits } from '../../lib/context/UnitsContext';
 import { getFavorites, removeFavorite, getSavedLocations, saveLocation, deleteLocation, get2faStatus, setup2fa, enable2fa, disable2fa, setEmail2fa, getAccount, changePassword, resendVerification, setAlerts, logoutAll } from '../../lib/api';
 import styles from './page.module.css';
 
@@ -19,6 +20,7 @@ function priceColor(p) {
 export default function DashboardPage() {
   const { user, loading, logout } = useUser() ?? {};
   const { fmt } = useCurrency();
+  const { system: units, setSystem: setUnits } = useUnits() ?? {};
   const router = useRouter();
   const [favorites, setFavorites] = useState([]);
   const [locations, setLocations] = useState([]);
@@ -165,6 +167,24 @@ export default function DashboardPage() {
         <h1 className={styles.title}>Dashboard</h1>
         <p className={styles.sub}>{user?.email}</p>
       </div>
+
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>Preferences</h2>
+        <div className={styles.secRow}>
+          <div>
+            <div className={styles.secName}>Units</div>
+            <div className={styles.secDetail}>
+              {units === 'imperial' ? 'Imperial — miles, gallons' : 'Metric — kilometers, litres'}
+            </div>
+          </div>
+          <button
+            className={styles.addBtn}
+            onClick={() => setUnits?.(units === 'imperial' ? 'metric' : 'imperial')}
+          >
+            {units === 'imperial' ? 'Switch to metric' : 'Switch to imperial'}
+          </button>
+        </div>
+      </section>
 
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Account</h2>

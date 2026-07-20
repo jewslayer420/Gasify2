@@ -2,6 +2,7 @@ import './globals.css';
 import Nav from '../components/Nav/Nav';
 import { UserProvider } from '../lib/context/UserContext';
 import { CurrencyProvider } from '../lib/context/CurrencyContext';
+import { UnitsProvider } from '../lib/context/UnitsContext';
 import { ThemeProvider, STORAGE_KEY as THEME_STORAGE_KEY } from '../lib/context/ThemeContext';
 
 export const metadata = {
@@ -22,10 +23,12 @@ export default function RootLayout({ children }) {
       <body>
         <ThemeProvider>
           <UserProvider>
-            <CurrencyProvider>
-              <Nav />
-              {children}
-            </CurrencyProvider>
+            <UnitsProvider>
+              <CurrencyProvider>
+                <Nav />
+                {children}
+              </CurrencyProvider>
+            </UnitsProvider>
           </UserProvider>
         </ThemeProvider>
       </body>

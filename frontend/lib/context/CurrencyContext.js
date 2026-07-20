@@ -1,5 +1,6 @@
 'use client';
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { useUnits } from './UnitsContext';
 
 // Display-currency switcher. Prices stay EUR internally everywhere (sorting,
 // price-level colors, thresholds) — only the rendered string converts, using
@@ -60,6 +61,7 @@ function nf(code, digits) {
 export function CurrencyProvider({ children }) {
   const [code, setCodeState] = useState('EUR'); // first client render matches SSR; localStorage applies after mount
   const [rates, setRates] = useState(null);
+  const { volumeFactor, volumeUnit } = useUnits() ?? { volumeFactor: 1, volumeUnit: 'L' };
 
   useEffect(() => {
     const saved = typeof localStorage !== 'undefined' && localStorage.getItem(STORAGE_KEY);
@@ -75,20 +77,23 @@ export function CurrencyProvider({ children }) {
     const active = rate != null; // rates still loading / currency unknown → fall back to EUR display
     const effCode = active ? code : 'EUR';
     const effRate = active ? rate : 1;
+    // Prices arrive as EUR-per-litre; scale to EUR-per-gallon before applying
+    // the currency rate when the units preference is imperial.
+    const effRateVol = effRate * volumeFactor;
 
-    const convert = eur => (eur == null ? null : eur * effRate);
+    const convert = eur => (eur == null ? null : eur * effRateVol);
 
     // Fuel prices span €0.2/L to IDR ~19,000/L — pick decimals by magnitude so
     // every currency reads naturally (¥191, ₹92.46, $1.853, Rp 17,300).
     const fmt = eur => {
       if (eur == null) return '—';
-      const v = eur * effRate;
+      const v = eur * effRateVol;
       const d = v >= 1000 ? 0 : v >= 100 ? 1 : v >= 10 ? 2 : 3;
       return nf(effCode, d).format(v);
     };
     const fmtCompact = eur => {
       if (eur == null) return '—';
-      const v = eur * effRate;
+      const v = eur * effRateVol;
       const d = v >= 100 ? 0 : v >= 10 ? 1 : 2;
       return nf(effCode, d).format(v);
     };
@@ -99,8 +104,8 @@ export function CurrencyProvider({ children }) {
       try { localStorage.setItem(STORAGE_KEY, c); } catch {}
     };
 
-    return { code, effCode, setCode, rate: effRate, ready: active, convert, fmt, fmtCompact };
-  }, [code, rates]);
+    return { code, effCode, setCode, rate: effRate, ready: active, convert, fmt, fmtCompact, volumeUnit };
+  }, [code, rates, volumeFactor, volumeUnit]);
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
 }

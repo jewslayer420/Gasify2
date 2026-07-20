@@ -90,30 +90,6 @@
 }
 .searchBtn:hover { filter: brightness(1.1); }
 
-.modeBtns {
-  display: flex;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  box-shadow: var(--shadow-1);
-  overflow: hidden;
-}
-
-.modeBtn {
-  padding: 8px 14px;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.modeBtn:disabled { opacity: 0.4; cursor: not-allowed; }
-.modeBtn:not(:disabled):hover { color: var(--text); background: var(--bg-secondary); }
-.modeBtnActive { background: var(--bg-secondary) !important; color: var(--text) !important; }
-
 /* Wordmark chip on the map: the way home (the nav stays off the map) */
 .homeChip {
   display: flex;
@@ -749,6 +725,63 @@
   margin: 20px auto;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Directions (turn-by-turn) ─────────────── */
+.routeError {
+  color: var(--red);
+  font-size: 0.8rem;
+  margin-bottom: 12px;
+}
+
+.routeSummary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+.routeSummaryDistance {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.routeSummaryDot { color: var(--border); }
+
+.routeSteps { list-style: none; margin: 0; padding: 0; }
+
+.routeStep {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.routeStep:last-child { border-bottom: none; }
+
+.routeStepNum {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.routeStepBody { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.routeStepText { font-size: 0.85rem; color: var(--text); line-height: 1.4; }
+.routeStepDist { font-size: 0.72rem; color: var(--text-muted); }
 
 /* Mobile: hide sidebar */
 @media (max-width: 767px) {
