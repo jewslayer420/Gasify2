@@ -13,6 +13,10 @@
   justify-content: space-between;
   padding: 0 28px;
   z-index: 100;
+  /* backdrop-filter + position:sticky can get stuck mid-frame when swept up
+     in the theme toggle's root view-transition capture — give the nav its
+     own transition group so it just cross-fades independently instead. */
+  view-transition-name: main-nav;
 }
 
 .logo {
@@ -40,13 +44,13 @@
 .loginBtn {
   margin-left: 8px;
   color: #fff;
-  background: var(--text);
+  background: var(--accent);
   border: none;
   font-weight: 600;
   padding: 9px 22px;
-  transition: background 0.12s;
+  transition: opacity 0.12s;
 }
-.loginBtn:hover { background: var(--accent); color: #fff; }
+.loginBtn:hover { opacity: 0.85; }
 
 .linkActive { color: var(--accent); }
 

@@ -44,6 +44,9 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--sw-rule);
+  /* Same fix as Nav.module.css: keeps the sticky/blurred bar from getting
+     stuck mid-frame when the theme toggle's root view-transition fires. */
+  view-transition-name: main-nav;
 }
 
 .wordmark {

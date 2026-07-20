@@ -1,8 +1,8 @@
 :root {
   /* Gasify — Swiss/International, spec 2026-07-20. Paper, ink, signal cobalt.
      Same token names as before so every page keeps working; values retuned.
-     The map page pins its own copy of the old dark set locally and never
-     reads these — see .root in app/map/map.module.css. */
+     The map page (app/map/map.module.css) reads these same tokens too —
+     only its LED price totem stays fixed-dark on purpose. */
   --bg: #FFFFFF;
   --bg-secondary: #F4F4F1;
   --bg-card: #FFFFFF;
@@ -116,3 +116,23 @@ input { font-family: inherit; }
 /* MapLibre GL overrides */
 .maplibregl-canvas { outline: none; }
 .maplibregl-ctrl-attrib { display: none; }
+
+/* Theme switch: a circular reveal expanding from the toggle button, powered
+   by the View Transitions API (ThemeToggle sets --theme-flip-x/y/r from the
+   click point before calling document.startViewTransition). Browsers without
+   support simply skip straight to toggleTheme() with no transition at all —
+   these rules are inert there, nothing to feature-detect on the CSS side. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) {
+  z-index: 2;
+  animation: theme-flip-reveal 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes theme-flip-reveal {
+  from { clip-path: circle(0px at var(--theme-flip-x, 50%) var(--theme-flip-y, 50%)); }
+  to   { clip-path: circle(var(--theme-flip-r, 150%) at var(--theme-flip-x, 50%) var(--theme-flip-y, 50%)); }
+}

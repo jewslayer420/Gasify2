@@ -6,11 +6,34 @@ export default function ThemeToggle({ className = '' }) {
   const { theme, toggleTheme } = useTheme() ?? {};
   const dark = theme === 'dark';
 
+  // A circular reveal expanding from the button, via the View Transitions
+  // API — browsers without support (or reduced-motion) just snap instantly,
+  // which is a perfectly fine fallback since the underlying DOM swap is one
+  // attribute write either way.
+  function handleClick(e) {
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion || !document.startViewTransition) {
+      toggleTheme();
+      return;
+    }
+    const x = e.clientX;
+    const y = e.clientY;
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
+    );
+    const root = document.documentElement;
+    root.style.setProperty('--theme-flip-x', `${x}px`);
+    root.style.setProperty('--theme-flip-y', `${y}px`);
+    root.style.setProperty('--theme-flip-r', `${endRadius}px`);
+    document.startViewTransition(() => { toggleTheme(); });
+  }
+
   return (
     <button
       type="button"
       className={`${styles.toggle} ${className}`}
-      onClick={toggleTheme}
+      onClick={handleClick}
       aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
       title={dark ? 'Light mode' : 'Dark mode'}
     >

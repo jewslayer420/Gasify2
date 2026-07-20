@@ -9,7 +9,9 @@ import { COUNTRY_NAMES } from '../../lib/countries';
 import { COUNTRY_CENTROIDS } from '../../lib/countryCentroids';
 import { useUser } from '../../lib/context/UserContext';
 import { useCurrency } from '../../lib/context/CurrencyContext';
+import { useTheme, STORAGE_KEY as THEME_STORAGE_KEY } from '../../lib/context/ThemeContext';
 import CurrencySelect from '../../components/CurrencySelect/CurrencySelect';
+import ThemeToggle from '../../components/ThemeToggle/ThemeToggle';
 import styles from './map.module.css';
 
 // MapTiler (commercial-licensed) when a key is configured; CARTO's free styles as a
@@ -53,11 +55,17 @@ function relAgo(iso) {
   return `${Math.round(h / 24)} days ago`;
 }
 
-function priceColor(p) {
-  if (!p) return '#5A6072';
-  if (p <= 1.60) return '#2FBF84';
-  if (p <= 1.90) return '#E8A23D';
-  return '#E25A5A';
+// Same green/amber/red readings as LAYER_THEMES' heatmap dots (below), reused
+// here for price text/pills so both track the site's light/dark chrome theme
+// consistently — the light set is deliberately darker/more saturated so it
+// still reads on a white sidebar or frosted pill.
+function priceColor(p, light) {
+  const t = light ? { none: '#6B7280', green: '#118A56', amber: '#C2650A', red: '#B91C1C' }
+                  : { none: '#5A6072', green: '#2FBF84', amber: '#E8A23D', red: '#E25A5A' };
+  if (!p) return t.none;
+  if (p <= 1.60) return t.green;
+  if (p <= 1.90) return t.amber;
+  return t.red;
 }
 
 // Bare digits for the LED totem (no symbol, no grouping — like a real sign).
@@ -164,6 +172,8 @@ function project(lng, lat, zoom) {
 
 export default function MapView() {
   const { user } = useUser() ?? {};
+  const { theme } = useTheme() ?? {};
+  const lightChrome = theme === 'light';
   const { fmt, fmtCompact, convert, effCode } = useCurrency();
   const [fuel, setFuel] = useState('diesel');
   const [sidebarStations, setSidebarStations] = useState([]);
@@ -185,7 +195,13 @@ export default function MapView() {
   const [baseStyle, setBaseStyle] = useState(() => {
     if (typeof window === 'undefined') return 'dark';
     const saved = localStorage.getItem(STYLE_LS_KEY);
-    return MAP_STYLES[saved] ? saved : 'dark';
+    if (MAP_STYLES[saved]) return saved;
+    // No explicit basemap choice yet — open on whichever matches the site's
+    // own light/dark setting, so the map isn't a jarring mismatch on first visit.
+    try {
+      if (localStorage.getItem(THEME_STORAGE_KEY) === 'light' && MAP_STYLES.light) return 'light';
+    } catch {}
+    return 'dark';
   });
   const [stationsGeojson, setStationsGeojson] = useState(null);
   const [showCountryBadges, setShowCountryBadges] = useState(true);
@@ -560,7 +576,8 @@ export default function MapView() {
               </button>
             ))}
           </div>
-          <CurrencySelect className={styles.currencyPin} />
+          <CurrencySelect />
+          <ThemeToggle className={styles.mapThemeToggle} />
           <button className={styles.ctaBtn} onClick={cheapestNearMe} disabled={ctaBusy}>
             {ctaBusy ? 'Locating…' : 'Cheapest near me'}
           </button>
@@ -656,7 +673,7 @@ export default function MapView() {
                   <span className={styles.pillCc}>{c.country}</span>
                   <span
                     className={styles.pillPrice}
-                    style={c.median != null ? { color: priceColor(c.median) } : undefined}
+                    style={c.median != null ? { color: priceColor(c.median, lightChrome) } : undefined}
                   >
                     {c.median != null ? fmtCompact(c.median) : '—'}
                   </span>
@@ -716,7 +733,7 @@ export default function MapView() {
                         <div className={styles.stationRowName}>{s.name}</div>
                         <div className={styles.stationRowCity}>{FLAGS[s.country] ?? s.country} {s.city}</div>
                       </div>
-                      <div className={styles.stationRowPrice} style={{ color: priceColor(p) }}>
+                      <div className={styles.stationRowPrice} style={{ color: priceColor(p, lightChrome) }}>
                         {p ? fmt(p) : '—'}
                       </div>
                     </button>
@@ -749,7 +766,7 @@ export default function MapView() {
                   const min = rows[0].median;
                   const span = rows[rows.length - 1].median - min || 1;
                   return rows.map((m, i) => {
-                    const color = priceColor(m.median);
+                    const color = priceColor(m.median, lightChrome);
                     const pct = 10 + 90 * ((m.median - min) / span);
                     return (
                       <button
@@ -782,7 +799,7 @@ export default function MapView() {
               <div className={styles.lensTitle}>{FLAGS[lens.country] ?? ''} {COUNTRY_NAMES[lens.country] ?? lens.country}</div>
               <div className={styles.lensStats}>
                 {lens.median != null && (
-                  <span>National median <b style={{ color: priceColor(lens.median) }}>{fmt(lens.median)}</b></span>
+                  <span>National median <b style={{ color: priceColor(lens.median, lightChrome) }}>{fmt(lens.median)}</b></span>
                 )}
                 <span>{lens.stations.toLocaleString()} stations</span>
               </div>
@@ -831,7 +848,7 @@ export default function MapView() {
                     {FLAGS[s.country] ?? s.country} {s.city}{s.distance != null ? ` · ${s.distance} km` : ''}
                   </div>
                 </div>
-                <div className={styles.stationRowPrice} style={{ color: priceColor(s.price) }}>
+                <div className={styles.stationRowPrice} style={{ color: priceColor(s.price, lightChrome) }}>
                   {s.price ? fmt(s.price) : '—'}
                 </div>
               </button>
@@ -910,7 +927,7 @@ export default function MapView() {
                   <div className={styles.chartHead}>
                     <span className={styles.chartTitle}>Price history · {FUELS.find(f => f.key === fuel)?.label}</span>
                     <span className={styles.chartRange}>
-                      low <b style={{ color: '#2FBF84' }}>{fmt(lo)}</b> · high <b style={{ color: '#E25A5A' }}>{fmt(hi)}</b>
+                      low <b style={{ color: lightChrome ? '#118A56' : '#2FBF84' }}>{fmt(lo)}</b> · high <b style={{ color: lightChrome ? '#B91C1C' : '#E25A5A' }}>{fmt(hi)}</b>
                     </span>
                   </div>
                   <ResponsiveContainer width="100%" height={140}>
