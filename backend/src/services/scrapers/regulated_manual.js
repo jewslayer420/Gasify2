@@ -122,8 +122,8 @@ const COUNTRIES = [
   },
   {
     cc: 'CR', label: 'costarica', currency: 'CRC', bbox: [8.0, -85.9, 11.2, -82.5],
-    asOf: '2026-06-03', source: 'Costa Rica ARESEP regulated prices (uniform at all stations)',
-    prices: { sp95: 753, diesel: 670 }, // CRC/L (gasolina súper, diésel)
+    asOf: '2026-07-14', source: 'Costa Rica ARESEP regulated prices (uniform at all stations)',
+    prices: { sp95: 756, diesel: 683 }, // CRC/L (gasolina súper, diésel)
   },
   {
     cc: 'PA', label: 'panama', currency: 'USD', bbox: [7.2, -83.1, 9.7, -77.1],
@@ -193,8 +193,8 @@ const COUNTRIES = [
   },
   {
     cc: 'BA', label: 'bosnia', currency: 'BAM', bbox: [42.5, 15.7, 45.3, 19.7],
-    asOf: '2026-06-18', source: 'Bosnia & Herzegovina national AVERAGE retail price (market — NOT a unified regulated price; published fact)',
-    prices: { sp95: 2.80, diesel: 2.90 }, // BAM/L
+    asOf: '2026-07-13', source: 'Bosnia & Herzegovina national AVERAGE retail price (market — NOT a unified regulated price; published fact)',
+    prices: { sp95: 2.76, diesel: 2.80 }, // BAM/L
   },
 ];
 
